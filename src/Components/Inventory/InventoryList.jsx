@@ -7,8 +7,9 @@ import { fetchInventorySummary } from '../../redux/features/inventory/inventoryS
 function InventoryList() {
   const dispatch = useDispatch();
   const { summary = [], loading, error } = useSelector((s) => s.inventory);
-
+ const { userInfo } = useSelector((state) => state.users);
   const [filter, setFilter] = useState({ month: 'all', year: 'all' });
+console.log('userifo',userInfo);
 
   useEffect(() => {
     dispatch(fetchInventorySummary());

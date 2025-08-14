@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import RequestService from './RequestService';
 import ServiceHistory from './ServiceHistory';
 import ServiceDue from './ServiceDue';
 import Sidebar from '../Sidebar/Sidebar';
 import Header from '../Header/Header';
-
+import { useSelector } from 'react-redux';
 
 // Configuration object for the service tabs
-const TABS = {
+const ALL_TABS = {
   requestService: { label: 'Request Service', component: RequestService },
   serviceHistory: { label: 'Service History', component: ServiceHistory },
   serviceDue: { label: 'Service Due', component: ServiceDue },
@@ -15,12 +15,42 @@ const TABS = {
 
 function ServiceLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
-  // Set the default active tab to 'requestService'
-  const [activeTab, setActiveTab] = useState('requestService');
+  const { userInfo } = useSelector((state) => state.users);
+
+  // Filter tabs based on user type - Admin users don't see Request Service
+  const availableTabs = useMemo(() => {
+    if (userInfo?.userType === 'Admin') {
+      // Remove requestService tab for Admin users
+      const { requestService, ...adminTabs } = ALL_TABS;
+      return adminTabs;
+    }
+    return ALL_TABS;
+  }, [userInfo?.userType]);
+
+  // Get the first available tab as default
+  const defaultTab = Object.keys(availableTabs)[0];
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
+  // Ensure active tab exists in available tabs (important when user type changes)
+  React.useEffect(() => {
+    if (!availableTabs[activeTab]) {
+      setActiveTab(defaultTab);
+    }
+  }, [availableTabs, activeTab, defaultTab]);
 
   // Dynamically select the component to render based on the active tab
-  const ActiveComponent = TABS[activeTab].component;
+  const ActiveComponent = availableTabs[activeTab]?.component;
+
+  // Handle case where no component is available
+  if (!ActiveComponent) {
+    return (
+      <div className="flex min-h-screen bg-[#DC6D18]">
+        <div className="flex-1 flex items-center justify-center">
+          <p>No available services for your user type.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-[#DC6D18]">
@@ -34,12 +64,12 @@ function ServiceLayout() {
         {/* Main content panel with the theme's styling */}
         <main className="p-4 sm:p-6 md:p-8 flex-1 rounded-tl-[50px] bg-gradient-to-br from-[#FFF] to-[#FFF7ED]">
           <div className="w-full max-w-7xl mx-auto">
-
+            
             {/* Responsive Tab Navigation */}
             <div className="border-b-2 border-[#FFEFE1] mb-6">
               <div className="overflow-x-auto">
                 <nav className="flex space-x-2 sm:space-x-4 -mb-0.5" aria-label="Tabs">
-                  {Object.keys(TABS).map((tabKey) => (
+                  {Object.keys(availableTabs).map((tabKey) => (
                     <button
                       key={tabKey}
                       onClick={() => setActiveTab(tabKey)}
@@ -51,13 +81,13 @@ function ServiceLayout() {
                         }
                       `}
                     >
-                      {TABS[tabKey].label}
+                      {availableTabs[tabKey].label}
                     </button>
                   ))}
                 </nav>
               </div>
             </div>
-
+            
             {/* Tab Content Area */}
             <div className="mt-4">
               {/* The selected component is rendered here */}
