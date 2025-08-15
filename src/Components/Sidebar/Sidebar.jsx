@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import kspcb from '../../assets/safetik.png';
+import { useSelector } from 'react-redux';
 
 function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const [openSection, setOpenSection] = useState(null);
-  
+    const { userInfo } = useSelector((state) => state.users);
+
   const handleSectionToggle = (section) => {
     setOpenSection(openSection === section ? null : section);
   };
@@ -51,73 +53,42 @@ function Sidebar({ isOpen, onClose }) {
           </div>
         </div>
 
-        {/* Navigation Links */}
-        <ul className="space-y-2">
-          <li className={navItemClasses} onClick={() => navigate('/manageuser')}>
-            <span className="mr-4 text-xl"></span>
-            <span>Manage Users</span>
-          </li>
-          <li className={navItemClasses} onClick={() => navigate('/inventory')}>
-            <span className="mr-4 text-xl"></span>
-            <span>Inventory</span>
-          </li>
-             <li className={navItemClasses} onClick={() => navigate('/services')}>
-            <span className="mr-4 text-xl"></span>
-            <span>Servives</span>
-          </li>
+  
+     {/* Navigation Links */}
+<ul className="space-y-2">
+  {userInfo?.userType === 'Admin' || 'Super Admin' && (
+    <li className={navItemClasses} onClick={() => navigate('/manageuser')}>
+      <span className="mr-4 text-xl"></span>
+      <span>Manage Users</span>
+    </li>
+  )}
 
-          {/* Calibration Section */}
-         {/*  <li>
-            <div className={`${navItemClasses} justify-between`} onClick={() => handleSectionToggle('calibration')}>
-              <span className="flex items-center">
-                <span className="mr-4 text-xl"></span>
-                <span>Calibration</span>
-              </span>
-              <span>{openSection === 'calibration' ? '▲' : '▼'}</span>
-            </div>
-            {openSection === 'calibration' && (
-              <ul className="ml-6 mt-2 space-y-1">
-                <li className={subNavItemClasses} onClick={() => navigate('/addcalibration')}>Add Calibration</li>
-                <li className={subNavItemClasses} onClick={() => navigate('/viewcalibration')}>View Calibration</li>
-              </ul>
-            )}
-          </li> */}
+  <li className={navItemClasses} onClick={() => navigate('/inventory')}>
+    <span className="mr-4 text-xl"></span>
+    <span>Inventory</span>
+  </li>
+  
+  <li className={navItemClasses} onClick={() => navigate('/services')}>
+    <span className="mr-4 text-xl"></span>
+    <span>Services</span>
+  </li>
 
-          {/* Report Section */}
-         {/*  <li>
-            <div className={`${navItemClasses} justify-between`} onClick={() => handleSectionToggle('report')}>
-              <span className="flex items-center">
-                <span className="mr-4 text-xl"></span>
-                <span>Report</span>
-              </span>
-              <span>{openSection === 'report' ? '▲' : '▼'}</span>
-            </div>
-            {openSection === 'report' && (
-              <ul className="ml-6 mt-2 space-y-1">
-                <li className={subNavItemClasses} onClick={() => navigate('/validatereport')}>Add Report</li>
-                <li className={subNavItemClasses} onClick={() => navigate('/view-report')}>View Report</li>
-              </ul>
-            )}
-          </li> */}
+  <li className={navItemClasses} onClick={() => navigate('/equipment')}>
+    <span className="mr-4 text-xl"></span>
+    <span>Equipments</span>
+  </li>
 
-        {/*   <li className={navItemClasses} onClick={() => navigate('/chat')}>
-            <span className="mr-4 text-xl"></span>
-            <span>Chat</span>
-          </li> */}
-             <li className={navItemClasses} onClick={() => navigate('/equipment')}>
-            <span className="mr-4 text-xl"></span>
-            <span>Equipments</span>
-          </li>
-          <li className={navItemClasses} onClick={() => navigate('/attendence')}>
-            <span className="mr-4 text-xl"></span>
-            <span>Attendence</span>
-          </li>
+  <li className={navItemClasses} onClick={() => navigate('/attendence')}>
+    <span className="mr-4 text-xl"></span>
+    <span>Attendence</span>
+  </li>
 
-          <li className={navItemClasses} onClick={() => navigate('/account')}>
-            <span className="mr-4 text-xl"></span>
-            <span>Account</span>
-          </li>
-        </ul>
+  <li className={navItemClasses} onClick={() => navigate('/account')}>
+    <span className="mr-4 text-xl"></span>
+    <span>Account</span>
+  </li>
+</ul>
+
       </div>
     </>
   );

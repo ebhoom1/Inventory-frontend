@@ -23,8 +23,8 @@ export default function ServiceDue() {
 
   // Who's logged in?
   const { userInfo } = useSelector((s) => s.users || {});
-  const isAdmin = (userInfo?.userType || "").toLowerCase() === "admin";
-  const getActiveUserId = () =>
+const adminRoles = ['Admin', 'Super Admin'];
+const isAdmin = adminRoles.includes(userInfo?.userType);    const getActiveUserId = () =>
     userInfo?.userId || userInfo?._id || userInfo?.id || userInfo?.username || "";
 
   // From Redux slice

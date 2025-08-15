@@ -302,18 +302,24 @@ const AddUser = () => {
 
         {/* User Type */}
         <div className="relative">
-          <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
-            User Type
-          </span>
-          <input
-            name="userType"
-            value={form.userType}
-            onChange={handleChange}
-            placeholder="e.g., Admin, Operator"
-            className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-            required
-          />
-        </div>
+  <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+    User Type
+  </span>
+  <select
+    name="userType"
+    value={form.userType}
+    onChange={handleChange}
+    className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+    required
+  >
+    <option value="">Select user type</option>
+    <option value="Admin">Admin</option>
+    <option value="User">User</option>
+    <option value="Super Admin">Super Admin</option>
+    <option value="Operator">Operator</option>
+  </select>
+</div>
+
 
         {/* Admin Type */}
         <div className="relative">

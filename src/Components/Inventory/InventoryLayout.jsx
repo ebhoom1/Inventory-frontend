@@ -30,7 +30,7 @@ function InventoryLayout() {
   // Get the logged-in user from Redux
   const { userInfo } = useSelector((state) => state.users);
   console.log("userInfo:",userInfo);
-  const isAdmin = userInfo?.userType === 'Admin';
+  const isAdmin = userInfo?.userType === 'Admin'|| 'Super Admin';
 
   // Debug: print logged-in user details to console whenever it changes
   useEffect(() => {

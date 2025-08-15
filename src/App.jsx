@@ -21,6 +21,7 @@ import EquipmentLayout from './Components/Equipment/EquipmentLayout';
 import Attendence from './Components/Attendence/Attendence';
 import PreviousAttendence from './Components/Attendence/PreviousAttendence';
 import EditUser from './Components/ManageUser/EditUser';
+import ViewUser from './Components/ManageUser/ViewUser';
 function App() {
   return (
     <Routes>
@@ -40,6 +41,7 @@ function App() {
             <Route path="/account" element={<Account/>} />
             <Route path="/manageuser" element={<ManageUser/>} />
              <Route path="/edit-user/:id" element={<EditUser />} />
+              <Route path="/view-user/:id" element={<ViewUser />} />
             <Route path="/validatereport" element={<ValidateReport/>} />
             <Route path="/checkandvalidate" element={<CheckAndValidate/>} />
             <Route path="/view-report" element={<ViewReport/>} />

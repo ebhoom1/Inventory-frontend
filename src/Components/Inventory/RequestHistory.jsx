@@ -33,8 +33,8 @@ const StatusBadge = ({ status }) => {
 
 function RequestHistory() {
   const { userInfo } = useSelector((s) => s.users || {});
-  const isAdmin = userInfo?.userType === "Admin";
-const [rowBusy, setRowBusy] = useState({});
+const adminRoles = ['Admin', 'Super Admin'];
+const isAdmin = adminRoles.includes(userInfo?.userType);  const [rowBusy, setRowBusy] = useState({});
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState({ month: "all", year: "all" });

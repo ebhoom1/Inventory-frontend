@@ -40,8 +40,9 @@ export default function ServiceHistory() {
 
   // You said your users slice stores userInfo here:
   const { userInfo } = useSelector((s) => s.users || {});
-  const isAdmin = (userInfo?.userType || "").toLowerCase() === "admin";
-
+const adminRoles = ['Admin', 'Super Admin'];
+const isAdmin = adminRoles.includes(userInfo?.userType);  
+const [rowBusy, setRowBusy] = useState({});
   // serviceRequests state from the slice
   const { loading, error, all, byUser, successMessage } = useSelector((s) => s.serviceRequests);
 

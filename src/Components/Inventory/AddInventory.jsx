@@ -16,6 +16,9 @@ function AddInventory() {
     loading: usersLoading,
     error: usersError,
   } = useSelector((s) => s.users || {});
+  const { userInfo } = useSelector((state) => state.users);
+
+  const isAdmin = userInfo?.userType === 'Admin'|| 'Super Admin';
 
   const [formData, setFormData] = useState({
     userId: '',
@@ -24,12 +27,21 @@ function AddInventory() {
     date: '',
   });
 
-  // fetch users on mount (if not already loaded)
+  // If admin, fetch all users on mount (if not already loaded)
   useEffect(() => {
-    if (!allUsers || allUsers.length === 0) {
-      dispatch(getAllUsers());
+    if (isAdmin) {
+      if (!allUsers || allUsers.length === 0) {
+        dispatch(getAllUsers());
+      }
     }
-  }, [dispatch]); // intentionally not depending on allUsers to avoid double fetches in some setups
+  }, [dispatch, isAdmin]); // don't depend on allUsers to avoid duplicate fetches
+
+  // If NOT admin, pre-fill userId with the logged-in user's userId
+  useEffect(() => {
+    if (!isAdmin && userInfo?.userId) {
+      setFormData((p) => ({ ...p, userId: userInfo.userId }));
+    }
+  }, [isAdmin, userInfo?.userId]);
 
   // SweetAlert for inventory add error
   useEffect(() => {
@@ -65,10 +77,10 @@ function AddInventory() {
         timer: 1400,
         showConfirmButton: false,
       });
-      setFormData({ userId: '', skuName: '', quantity: '', date: '' });
+      setFormData({ userId: isAdmin ? '' : (userInfo?.userId || ''), skuName: '', quantity: '', date: '' });
       dispatch(resetInventoryState());
     }
-  }, [lastAdded, dispatch]);
+  }, [lastAdded, dispatch, isAdmin, userInfo?.userId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -97,11 +109,16 @@ function AddInventory() {
     dispatch(addInventory(payload));
   };
 
-  // Pre-sort users by userId for a nicer dropdown (optional)
-  const userOptions = useMemo(() => {
-    const arr = Array.isArray(allUsers) ? allUsers : [];
-    return [...arr].sort((a, b) => (a.userId || '').localeCompare(b.userId || ''));
-  }, [allUsers]);
+  // Pre-sort users by userId for admin dropdown
+ // Pre-sort and filter users by userType for admin dropdown
+const userOptions = useMemo(() => {
+  if (!isAdmin) return [];
+  const arr = Array.isArray(allUsers) ? allUsers : [];
+  return arr
+    .filter(u => u.userType === 'User') // <-- only normal users
+    .sort((a, b) => (a.userId || '').localeCompare(b.userId || ''));
+}, [allUsers, isAdmin]);
+
 
   return (
     <div className="w-full max-w-4xl mx-auto">
@@ -111,28 +128,44 @@ function AddInventory() {
 
       <form className="space-y-10" onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8 md:gap-y-10">
-          {/* User (dropdown) */}
+          {/* User (dropdown or locked) */}
           <div className="relative flex items-center">
             <span className="absolute -top-3 left-5 bg-gradient-to-r from-[#FFF] to-[#FFF7ED] px-2 text-sm font-semibold text-[#DC6D18] z-10">
-              User (userId - company)
+              {isAdmin ? 'User (userId - company)' : 'Your User ID'}
             </span>
-            <select
-              name="userId"
-              value={formData.userId}
-              onChange={handleChange}
-              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-              required
-              disabled={usersLoading}
-            >
-              <option value="">
-                {usersLoading ? 'Loading users…' : 'Select a user'}
-              </option>
-              {userOptions.map((u) => (
-                <option key={u._id} value={u.userId}>
-                  {u.userId} - {u.companyName}
+
+            {isAdmin ? (
+              <select
+                name="userId"
+                value={formData.userId}
+                onChange={handleChange}
+                className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                required
+                disabled={usersLoading}
+              >
+                <option value="">
+                  {usersLoading ? 'Loading users…' : 'Select a user'}
                 </option>
-              ))}
-            </select>
+                {userOptions.map((u) => (
+                  <option key={u._id} value={u.userId}>
+                    {u.userId} - {u.companyName}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select
+                name="userId"
+                value={formData.userId}
+                onChange={handleChange}
+                className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                required
+                disabled
+              >
+                <option value={formData.userId}>
+                  {formData.userId || '—'}
+                </option>
+              </select>
+            )}
           </div>
 
           {/* SKU Name */}
@@ -185,15 +218,6 @@ function AddInventory() {
         </div>
 
         <div className="flex justify-center mt-8 gap-3">
-         {/*  <button
-            type="button"
-            onClick={() => dispatch(getAllUsers())}
-            className="px-4 py-3 bg-white text-[#DC6D18] border-2 border-[#DC6D18] rounded-lg font-semibold shadow-md hover:bg-[#FFF7ED] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#DC6D18] transition-all duration-200 ease-in-out"
-            disabled={usersLoading}
-          >
-            {usersLoading ? 'Refreshing…' : 'Refresh Users'}
-          </button> */}
-
           <button
             type="submit"
             disabled={inventoryLoading || usersLoading}

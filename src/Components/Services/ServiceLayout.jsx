@@ -18,14 +18,14 @@ function ServiceLayout() {
   const { userInfo } = useSelector((state) => state.users);
 
   // Filter tabs based on user type - Admin users don't see Request Service
-  const availableTabs = useMemo(() => {
-    if (userInfo?.userType === 'Admin') {
-      // Remove requestService tab for Admin users
-      const { requestService, ...adminTabs } = ALL_TABS;
-      return adminTabs;
-    }
-    return ALL_TABS;
-  }, [userInfo?.userType]);
+// Only "User" role should see the Request Service tab
+const role = userInfo?.userType;
+
+const availableTabs = useMemo(() => {
+  const { requestService, ...tabsWithoutRequest } = ALL_TABS;
+  return role === 'User' ? ALL_TABS : tabsWithoutRequest;
+}, [role]);
+
 
   // Get the first available tab as default
   const defaultTab = Object.keys(availableTabs)[0];

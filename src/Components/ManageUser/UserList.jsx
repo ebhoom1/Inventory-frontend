@@ -1,5 +1,5 @@
 // src/components/UserList/UserList.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { useDispatch, useSelector } from 'react-redux';
@@ -7,7 +7,7 @@ import { getAllUsers } from '../../redux/features/users/userSlice';
 import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../../../utils/apiConfig';
 
-// Enhanced Icons with better styling
+// Icons
 const ViewIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
     <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
@@ -44,13 +44,26 @@ const UserList = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const { allUsers, loading, error } = useSelector((state) => state.users);
+  const { allUsers = [], loading, error } = useSelector((state) => state.users || {});
+  const { userInfo } = useSelector((state) => state.users || {});
+  const isSuperAdmin = userInfo?.userType === 'Super Admin';
 
+  // filterMode: 'users' or 'admins' (only super admin can switch)
+  const [filterMode, setFilterMode] = useState('users');
   const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     dispatch(getAllUsers());
   }, [dispatch]);
+
+  // Compute filtered rows based on mode
+  const rows = useMemo(() => {
+    if (!Array.isArray(allUsers)) return [];
+    if (filterMode === 'admins') {
+      return allUsers.filter((u) => u.userType === 'Admin');
+    }
+    return allUsers.filter((u) => u.userType === 'User');
+  }, [allUsers, filterMode]);
 
   const handleView = (userId) => {
     if (!userId) return;
@@ -65,7 +78,6 @@ const UserList = () => {
   const handleDelete = async (userId, userName) => {
     if (!userId) return;
 
-    // Enhanced SweetAlert with better styling and visibility
     const confirmResult = await Swal.fire({
       title: 'Delete User?',
       html: `
@@ -107,23 +119,18 @@ const UserList = () => {
 
     try {
       setDeletingId(userId);
-      
-      // Show loading state
+
       Swal.fire({
         title: 'Deleting User...',
         html: 'Please wait while we delete the user.',
         allowOutsideClick: false,
         allowEscapeKey: false,
         showConfirmButton: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
+        didOpen: () => Swal.showLoading(),
       });
 
-      // Matches your backend route: DELETE /api/auth/:id
       await axios.delete(`${API_URL}/api/auth/${userId}`);
-      
-      // Success message
+
       await Swal.fire({
         icon: 'success',
         title: '✅ Deleted Successfully!',
@@ -133,8 +140,7 @@ const UserList = () => {
         timer: 2000,
         timerProgressBar: true
       });
-      
-      // Refresh list
+
       dispatch(getAllUsers());
     } catch (err) {
       console.error('Error deleting user:', err);
@@ -158,52 +164,57 @@ const UserList = () => {
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
           font-family: 'Inter', sans-serif !important;
         }
-        
-        .swal2-actions-custom {
-          margin-top: 30px !important;
-          gap: 15px !important;
-        }
-        
+        .swal2-actions-custom { margin-top: 30px !important; gap: 15px !important; }
         .swal2-confirm-custom {
-          background: #dc2626 !important;
-          color: white !important;
-          font-weight: 600 !important;
-          font-size: 16px !important;
-          padding: 14px 28px !important;
-          border-radius: 8px !important;
-          border: none !important;
-          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4) !important;
-          min-width: 140px !important;
-          transition: all 0.2s ease !important;
+          background: #dc2626 !important; color: white !important; font-weight: 600 !important;
+          font-size: 16px !important; padding: 14px 28px !important; border-radius: 8px !important;
+          border: none !important; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4) !important;
+          min-width: 140px !important; transition: all 0.2s ease !important;
         }
-        
-        .swal2-confirm-custom:hover {
-          background: #b91c1c !important;
-          transform: translateY(-1px) !important;
-          box-shadow: 0 6px 16px rgba(220, 38, 38, 0.5) !important;
-        }
-        
+        .swal2-confirm-custom:hover { background: #b91c1c !important; transform: translateY(-1px) !important; }
         .swal2-cancel-custom {
-          background: #f3f4f6 !important;
-          color: #374151 !important;
-          font-weight: 600 !important;
-          font-size: 16px !important;
-          padding: 14px 28px !important;
-          border-radius: 8px !important;
-          border: 2px solid #d1d5db !important;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-          min-width: 140px !important;
-          transition: all 0.2s ease !important;
+          background: #f3f4f6 !important; color: #374151 !important; font-weight: 600 !important;
+          font-size: 16px !important; padding: 14px 28px !important; border-radius: 8px !important;
+          border: 2px solid #d1d5db !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+          min-width: 140px !important; transition: all 0.2s ease !important;
         }
-        
-        .swal2-cancel-custom:hover {
-          background: #e5e7eb !important;
-          border-color: #9ca3af !important;
-          transform: translateY(-1px) !important;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-        }
+        .swal2-cancel-custom:hover { background: #e5e7eb !important; border-color: #9ca3af !important; transform: translateY(-1px) !important; }
       `}</style>
-      
+
+      {/* Header + Filter Toggle (visible only to Super Admins) */}
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-bold text-slate-800">
+          {filterMode === 'admins' ? 'Admin List' : 'User List'}
+        </h2>
+
+        {isSuperAdmin && (
+          <div className="inline-flex rounded-lg overflow-hidden border border-orange-300">
+            <button
+              onClick={() => setFilterMode('users')}
+              className={`px-4 py-2 text-sm font-medium transition ${
+                filterMode === 'users'
+                  ? 'bg-[#DC6D18] text-white'
+                  : 'bg-white text-[#DC6D18] hover:bg-orange-50'
+              }`}
+              title="Show Users (userType = User)"
+            >
+              Users
+            </button>
+            <button
+              onClick={() => setFilterMode('admins')}
+              className={`px-4 py-2 text-sm font-medium transition ${
+                filterMode === 'admins'
+                  ? 'bg-[#DC6D18] text-white'
+                  : 'bg-white text-[#DC6D18] hover:bg-orange-50'
+              }`}
+              title="Show Admins (userType = Admin)"
+            >
+              Admins
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="overflow-x-auto rounded-xl shadow-lg bg-white border border-gray-200">
         <table className="min-w-full">
           <thead className="bg-gradient-to-r from-orange-50 to-orange-100 border-b border-orange-200">
@@ -242,89 +253,89 @@ const UserList = () => {
               <tr>
                 <td colSpan="5" className="text-center py-12">
                   <div className="text-red-600 bg-red-50 p-6 rounded-lg mx-4 border border-red-200">
-                    <p className="font-semibold text-lg">⚠️ Error loading users</p>
+                    <p className="font-semibold text-lg">⚠️ Error loading list</p>
                     <p className="text-sm mt-2">{error}</p>
                   </div>
                 </td>
               </tr>
             )}
 
-            {!loading && !error && allUsers?.length === 0 && (
+            {!loading && !error && rows.length === 0 && (
               <tr>
                 <td colSpan="5" className="text-center py-12">
                   <div className="text-gray-500">
-                    <p className="text-xl font-semibold">📭 No users found</p>
-                    <p className="text-sm mt-2">There are no users to display at the moment.</p>
+                    <p className="text-xl font-semibold">📭 No records found</p>
+                    <p className="text-sm mt-2">
+                      {filterMode === 'admins'
+                        ? 'There are no Admin accounts to display.'
+                        : 'There are no User accounts to display.'}
+                    </p>
                   </div>
                 </td>
               </tr>
             )}
 
-            {!loading &&
-              !error &&
-              Array.isArray(allUsers) &&
-              allUsers.length > 0 &&
-              allUsers.map((user) => {
-                const isDeleting = deletingId === user._id;
-                const displayName = user.userId || user.firstName || user.companyName || 'Unknown User';
-                
-                return (
-                  <tr 
-                    key={user._id} 
-                    className="hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-25 transition-all duration-200 group"
-                  >
-                    <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-gray-800">
-                      {user.companyName || 'N/A'}
-                    </td>
-                    <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-700">
-                      {user.userId || user.firstName || 'N/A'}
-                    </td>
-                    <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-700">
-                      {user.email || 'N/A'}
-                    </td>
-                    <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-700">
-                      {user.state || user.district || 'N/A'}
-                    </td>
-                    <td className="px-6 py-5 whitespace-nowrap text-center">
-                      <div className="flex justify-center space-x-2">
-                        <button
-                          className="text-[#DC6D18] hover:text-white hover:bg-[#DC6D18] transition-all duration-200 p-3 rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-110"
-                          onClick={() => handleView(user._id)}
-                          title="View User Details"
-                          disabled={isDeleting}
-                        >
-                          <ViewIcon />
-                        </button>
+            {!loading && !error && rows.length > 0 && rows.map((user) => {
+              const isDeleting = deletingId === user._id;
+              const displayName = user.userId || user.firstName || user.companyName || 'Unknown User';
 
-                        <button
-                          className="text-green-600 hover:text-white hover:bg-green-600 transition-all duration-200 p-3 rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-110"
-                          onClick={() => handleEdit(user._id)}
-                          title="Edit User"
-                          disabled={isDeleting}
-                        >
-                          <EditIcon />
-                        </button>
+              return (
+                <tr
+                  key={user._id}
+                  className="hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-25 transition-all duration-200 group"
+                >
+                  <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-gray-800">
+                    {user.companyName || 'N/A'}
+                  </td>
+                  <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-700">
+                    {user.userId || user.firstName || 'N/A'}
+                  </td>
+                  <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-700">
+                    {user.email || 'N/A'}
+                  </td>
+                  <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-700">
+                    {user.state || user.district || 'N/A'}
+                  </td>
+                  <td className="px-6 py-5 whitespace-nowrap text-center">
+                    <div className="flex justify-center space-x-2">
+                      <button
+                        className="text-[#DC6D18] hover:text-white hover:bg-[#DC6D18] transition-all duration-200 p-3 rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-110"
+                        onClick={() => handleView(user._id)}
+                        title="View Details"
+                        disabled={isDeleting}
+                      >
+                        <ViewIcon />
+                      </button>
 
-                        <button
-                          className="text-red-500 hover:text-white hover:bg-red-500 transition-all duration-200 p-3 rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-110"
-                          onClick={() => handleDelete(user._id, displayName)}
-                          title="Delete User"
-                          disabled={isDeleting}
-                        >
-                          {isDeleting ? (
-                            <div className="flex items-center">
-                              <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2" />
-                              <span className="text-xs">Deleting...</span>
-                            </div>
-                          ) : (
-                            <DeleteIcon />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                      <button
+                        className="text-green-600 hover:text-white hover:bg-green-600 transition-all duration-200 p-3 rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-110"
+                        onClick={() => handleEdit(user._id)}
+                        title="Edit"
+                        disabled={isDeleting}
+                      >
+                        <EditIcon />
+                      </button>
+
+                      <button
+                        className="text-red-500 hover:text-white hover:bg-red-500 transition-all duration-200 p-3 rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-110"
+                        onClick={() => handleDelete(user._id, displayName)}
+                        title="Delete"
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? (
+                          <div className="flex items-center">
+                            <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+                            <span className="text-xs">Deleting...</span>
+                          </div>
+                        ) : (
+                          <DeleteIcon />
+                        )}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

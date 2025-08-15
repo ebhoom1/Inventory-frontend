@@ -3,31 +3,83 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Swal from 'sweetalert2';
 import { fetchInventorySummary } from '../../redux/features/inventory/inventorySlice';
+import { API_URL } from "../../../utils/apiConfig";
 
 function InventoryList() {
   const dispatch = useDispatch();
-  const { summary = [], loading, error } = useSelector((s) => s.inventory);
- const { userInfo } = useSelector((state) => state.users);
+
+  // Redux (admin path)
+  const { summary: reduxSummary = [], loading: reduxLoading, error: reduxError } =
+    useSelector((s) => s.inventory || {});
+
+  // Auth
+  const { userInfo } = useSelector((state) => state.users || {});
+  const isAdmin = userInfo?.userType === 'Admin' || 'Super Admin';
+  const userId = userInfo?.userId;
+  const token =
+    userInfo?.token ||
+    localStorage.getItem('token');
+
+  // Local state (user path)
+  const [userSummary, setUserSummary] = useState([]);
+  const [userLoading, setUserLoading] = useState(false);
+  const [userError, setUserError] = useState(null);
+
+  // Filters
   const [filter, setFilter] = useState({ month: 'all', year: 'all' });
-console.log('userifo',userInfo);
 
+  // --------- Data fetching ----------
   useEffect(() => {
-    dispatch(fetchInventorySummary());
-  }, [dispatch]);
+    if (!userInfo) return;
 
-  useEffect(() => {
-    if (error) {
-      Swal.fire({ icon: 'error', title: 'Failed to load inventory', text: error });
+    if (isAdmin) {
+      // Admin: existing redux flow (global summary)
+      dispatch(fetchInventorySummary());
+    } else if (userId) {
+      // User: hit /api/inventory/summary/:userId directly
+      const ac = new AbortController();
+      (async () => {
+        try {
+          setUserLoading(true);
+          setUserError(null);
+          const res = await fetch(
+            `${API_URL}/api/inventory/summary/${encodeURIComponent(userId)}`,
+            {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+              signal: ac.signal,
+            }
+          );
+          const data = await res.json();
+          if (!res.ok) throw new Error(data?.message || 'Failed to load summary');
+          setUserSummary(Array.isArray(data) ? data : []);
+        } catch (e) {
+          if (e.name !== 'AbortError') setUserError(e.message || 'Failed to load summary');
+        } finally {
+          setUserLoading(false);
+        }
+      })();
+      return () => ac.abort();
     }
-  }, [error]);
+  }, [dispatch, isAdmin, userId, userInfo, token]);
 
+  // Error handling alerts
+  useEffect(() => {
+    const msg = isAdmin ? reduxError : userError;
+    if (msg) Swal.fire({ icon: 'error', title: 'Failed to load inventory', text: msg });
+  }, [reduxError, userError, isAdmin]);
+
+  // Pick correct data source
+  const summary = isAdmin ? reduxSummary : userSummary;
+  const loading = isAdmin ? reduxLoading : userLoading;
+
+  // --------- Helpers & derived data ----------
   const parseDate = (d) => {
     if (!d) return null;
     const dt = new Date(d);
-    return isNaN(dt.getTime()) ? null : dt;
+    return Number.isNaN(dt.getTime()) ? null : dt;
   };
 
-  // Build years from both lastAddDate & lastUseDate
+  // Years from both lastAddDate & lastUseDate
   const availableYears = useMemo(() => {
     const years = new Set(
       (summary || []).flatMap((r) => {
@@ -54,11 +106,11 @@ console.log('userifo',userInfo);
     setFilter((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Filter by the most recent activity date (max of add/use)
+  // Most recent activity date
   const filteredSummary = useMemo(() => {
     const base = Array.isArray(summary) ? summary : [];
-
     let result = base;
+
     if (filter.year !== 'all') {
       result = result.filter((r) => {
         const d = parseDate(r.lastUseDate) || parseDate(r.lastAddDate);
@@ -82,7 +134,9 @@ console.log('userifo',userInfo);
   return (
     <div className="w-full max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <h2 className="text-3xl font-bold text-[#DC6D18]">Current Inventory</h2>
+        <h2 className="text-3xl font-bold text-[#DC6D18]">
+          {isAdmin ? 'Current Inventory (All Users)' : 'My Inventory'}
+        </h2>
         <div className="flex items-center gap-3">
           <select
             name="month"
@@ -146,7 +200,7 @@ console.log('userifo',userInfo);
         {!loading && (
           <div className="px-6 py-3 text-sm text-gray-600 bg-orange-50/50">
             Showing <span className="font-semibold">{filteredSummary.length}</span>{' '}
-            of <span className="font-semibold">{summary.length}</span> SKUs
+            of <span className="font-semibold">{(summary || []).length}</span> SKUs
           </div>
         )}
       </div>
