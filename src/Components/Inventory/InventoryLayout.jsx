@@ -20,36 +20,35 @@ const TABS = {
   requestHistory: { label: 'Request History', component: RequestHistory },
 };
 
-// (Optional) Keep a consistent order
 const TAB_ORDER = ['inventoryList', 'addInventory', 'useInventory', 'requestInventory', 'requestHistory'];
 
 function InventoryLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('inventoryList');
 
-  // Get the logged-in user from Redux
+  // Logged-in user
   const { userInfo } = useSelector((state) => state.users);
-  console.log("userInfo:",userInfo);
-  const isAdmin = userInfo?.userType === 'Admin'|| 'Super Admin';
 
-  // Debug: print logged-in user details to console whenever it changes
+  // Normalize role and compute admin flag correctly
+  const role = (userInfo?.userType || '').toLowerCase(); // e.g. 'admin', 'super admin', 'user'
+  const isAdmin = role === 'admin' || role === 'super admin';
+
   useEffect(() => {
     if (userInfo) {
       console.log('Logged-in user (from Redux):', userInfo);
     }
   }, [userInfo]);
 
-  // Compute visible tabs based on role
+  // Visible tabs based on role
   const visibleTabKeys = useMemo(() => {
     return TAB_ORDER.filter((key) => {
-      if (key === 'requestInventory') {
-        return !isAdmin; // hide these two for Admins
-      }
-      return true; // show others to everyone
+      // Hide Request Inventory for Admins only
+      if (key === 'requestInventory') return !isAdmin;
+      return true;
     });
   }, [isAdmin]);
 
-  // If current active tab becomes hidden (e.g., Admin), switch to inventoryList
+  // Ensure active tab is valid for current role
   useEffect(() => {
     if (!visibleTabKeys.includes(activeTab)) {
       setActiveTab('inventoryList');

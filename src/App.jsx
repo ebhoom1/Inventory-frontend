@@ -40,8 +40,8 @@ function App() {
             <Route path="/chat" element={<Chat/>} />
             <Route path="/account" element={<Account/>} />
             <Route path="/manageuser" element={<ManageUser/>} />
-             <Route path="/edit-user/:id" element={<EditUser />} />
-              <Route path="/view-user/:id" element={<ViewUser />} />
+            <Route path="/edit-user/:id" element={<EditUser />} />
+            <Route path="/view-user/:id" element={<ViewUser />} />
             <Route path="/validatereport" element={<ValidateReport/>} />
             <Route path="/checkandvalidate" element={<CheckAndValidate/>} />
             <Route path="/view-report" element={<ViewReport/>} />
