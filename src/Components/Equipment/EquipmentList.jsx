@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getEquipments } from "../../redux/features/equipment/equipmentSlice";
+import ReportModal from "./ReportModal";
 
 const EquipmentDetailsRow = ({ item, onDownloadQR, onAddReport }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -36,11 +37,11 @@ const EquipmentDetailsRow = ({ item, onDownloadQR, onAddReport }) => {
 
         <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
           <button
-            onClick={() => onAddReport(item.equipmentName)}
-            className="px-4 py-2 bg-[#DC6D18] text-white text-xs font-semibold rounded-lg shadow-md hover:bg-[#B85B14] transition-colors"
-          >
-            Add Report
-          </button>
+  onClick={() => onAddReport(item)}
+  className="px-4 py-2 bg-[#DC6D18] text-white text-xs font-semibold rounded-lg shadow-md hover:bg-[#B85B14] transition-colors"
+>
+  Add Report
+</button>
         </td>
       </tr>
 
@@ -106,6 +107,9 @@ export default function EquipmentList() {
   const { list, loading, error } = useSelector((s) => s.equipment);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [reportOpen, setReportOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+
   useEffect(() => {
     dispatch(getEquipments());
   }, [dispatch]);
@@ -130,8 +134,9 @@ export default function EquipmentList() {
     document.body.removeChild(link);
   };
 
-  const handleAddReport = (equipmentName) => {
-    alert(`'Add Report' clicked for ${equipmentName}.`);
+  const handleAddReport = (item) => {
+    setSelectedItem(item);
+    setReportOpen(true);
   };
 
   return (
@@ -210,6 +215,12 @@ export default function EquipmentList() {
           </table>
         </div>
       </div>
+       <ReportModal
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        item={selectedItem}
+        // onSubmitted={handleReportSaved}
+      />
     </div>
   );
 }
