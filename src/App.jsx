@@ -25,13 +25,9 @@ import ViewUser from './Components/ManageUser/ViewUser';
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Login />} />
-      <Route path='/reset' element={<ResetLink/>}></Route>
-      <Route path='/setpassword' element={<SetPassword/>}></Route>
-
-      
-
-
+             <Route path="/" element={<Login />} />
+            <Route path='/reset' element={<ResetLink/>}></Route>
+            <Route path='/setpassword' element={<SetPassword/>}></Route>
             <Route path="/water" element={<Dashboard />} />
             <Route path="/addparameter" element={<AddParameter />} />
             <Route path="/addcalibration" element={<Calibration />} />
