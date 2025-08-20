@@ -31,7 +31,8 @@ const AddUser = () => {
   // --- STATE MANAGEMENT ---
   const [form, setForm] = useState(initialFormState);
   const [formError, setFormError] = useState('');
-
+const [passShow, setPassShow] = useState(false);
+const [confirmPassShow, setConfirmPassShow] = useState(false);
   const dispatch = useDispatch();
   const {
     loading,
@@ -241,36 +242,51 @@ const AddUser = () => {
         </div>
 
         {/* Password */}
-        <div className="relative">
-          <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
-            Password
-          </span>
-          <input
-            name="password"
-            value={form.password}
-            type="password"
-            onChange={handleChange}
-            placeholder="Enter Password"
-            className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-            required
-          />
-        </div>
+       {/* Password (toggle like Login) */}
+<div className="relative">
+  <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+    Password
+  </span>
+  <i className="fa-solid fa-lock absolute top-[15px] left-4 text-gray-400" />
+  <input
+    name="password"
+    value={form.password}
+    type={passShow ? "text" : "password"}
+    onChange={handleChange}
+    placeholder="Enter Password"
+    className="w-full pl-12 pr-12 border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+    required
+  />
+  <i
+    className={`fa-solid ${passShow ? "fa-eye" : "fa-eye-slash"} absolute top-[15px] right-4 cursor-pointer text-[#DC6D18]`}
+    onClick={() => setPassShow((v) => !v)}
+    title={passShow ? "Hide password" : "Show password"}
+  />
+</div>
 
-        {/* Confirm Password */}
-        <div className="relative">
-          <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
-            Confirm Password
-          </span>
-          <input
-            name="confirmPassword"
-            value={form.confirmPassword}
-            type="password"
-            onChange={handleChange}
-            placeholder="Confirm Password"
-            className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-            required
-          />
-        </div>
+
+        {/* Confirm Password (toggle like Login) */}
+<div className="relative">
+  <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+    Confirm Password
+  </span>
+  <i className="fa-solid fa-lock absolute top-[15px] left-4 text-gray-400" />
+  <input
+    name="confirmPassword"
+    value={form.confirmPassword}
+    type={confirmPassShow ? "text" : "password"}
+    onChange={handleChange}
+    placeholder="Confirm Password"
+    className="w-full pl-12 pr-12 border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+    required
+  />
+  <i
+    className={`fa-solid ${confirmPassShow ? "fa-eye" : "fa-eye-slash"} absolute top-[15px] right-4 cursor-pointer text-[#DC6D18]`}
+    onClick={() => setConfirmPassShow((v) => !v)}
+    title={confirmPassShow ? "Hide password" : "Show password"}
+  />
+</div>
+
 
         {/* Date of subscription */}
         <div className="relative">

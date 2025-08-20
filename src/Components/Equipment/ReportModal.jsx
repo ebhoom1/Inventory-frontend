@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { createReport } from "../../redux/features/report/reportSlice";
+import Swal from "sweetalert2";
 
 export default function ReportModal({ open, onClose, item, onSubmitted }) {
+  const dispatch = useDispatch();
+  const creating = useSelector((s) => s.report.creating);
+
   useEffect(() => {
     if (!open) return;
     // lock background scroll
@@ -23,15 +29,50 @@ export default function ReportModal({ open, onClose, item, onSubmitted }) {
       { key: "installationDate", label: "Instalation Date", type: "date" },
       { key: "canSerialNumber", label: "Can Serial Number.", type: "text" },
       { key: "refillingDue", label: "Refilling Due", type: "date" },
-       { key: "product", label: "Product", type: "text" },
+      { key: "product", label: "Product", type: "text" },
       { key: "others", label: "Others", type: "text" },
-      { key: "tag", label: "Tag", type: "select", options: ["yes", "no", "na"] },
-      { key: "safetyPin", label: "Safety pin", type: "select", options: ["yes", "no", "na"] },
-      { key: "pressureGuage", label: "Pressure Guage", type: "select", options: ["Green", "Red", "NA"] },
-      { key: "valveSupport", label: "Valve support", type: "select", options: ["yes", "no", "na"] },
-      { key: "corrossion", label: "Corrossion", type: "select", options: ["Fine", "Moderate", "Severe", "NA"] },
-      { key: "baseCap", label: "Base Cap", type: "select", options: ["Ok", "Damaged", "Missing", "NA"] },
-      { key: "powderFlow", label: "Powder Flow", type: "select", options: ["good", "average", "poor", "NA"] },
+      {
+        key: "tag",
+        label: "Tag",
+        type: "select",
+        options: ["yes", "no", "na"],
+      },
+      {
+        key: "safetyPin",
+        label: "Safety pin",
+        type: "select",
+        options: ["yes", "no", "na"],
+      },
+      {
+        key: "pressureGuage",
+        label: "Pressure Guage",
+        type: "select",
+        options: ["Green", "Red", "NA"],
+      },
+      {
+        key: "valveSupport",
+        label: "Valve support",
+        type: "select",
+        options: ["yes", "no", "na"],
+      },
+      {
+        key: "corrossion",
+        label: "Corrossion",
+        type: "select",
+        options: ["Fine", "Moderate", "Severe", "NA"],
+      },
+      {
+        key: "baseCap",
+        label: "Base Cap",
+        type: "select",
+        options: ["Ok", "Damaged", "Missing", "NA"],
+      },
+      {
+        key: "powderFlow",
+        label: "Powder Flow",
+        type: "select",
+        options: ["good", "average", "poor", "NA"],
+      },
       { key: "remarks", label: "Remarks", type: "textarea" },
     ],
     []
@@ -50,7 +91,9 @@ export default function ReportModal({ open, onClose, item, onSubmitted }) {
       ? new Date(item.installationDate).toISOString().slice(0, 10)
       : "",
     canSerialNumber: item?.serialNumber || item?.serialNo || "",
-    refillingDue: item?.refDue ? new Date(item.refDue).toISOString().slice(0, 10) : "",
+    refillingDue: item?.refDue
+      ? new Date(item.refDue).toISOString().slice(0, 10)
+      : "",
     others: "",
     tag: "yes",
     safetyPin: "yes",
@@ -64,38 +107,51 @@ export default function ReportModal({ open, onClose, item, onSubmitted }) {
 
   const update = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const payload = {
-        equipmentId: item?._id || item?.equipmentId,
-        equipmentName: item?.equipmentName,
-        modelSeries: item?.modelSeries,
-        report: form,
-      };
-      const res = await fetch("/api/reports", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      onSubmitted?.();
-      onClose();
-    } catch (err) {
-      alert(`Save failed: ${err.message || err}`);
-    } finally {
-      setSaving(false);
-    }
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  const payload = {
+    equipmentId: item?._id || item?.equipmentId,
+    equipmentName: item?.equipmentName,
+    modelSeries: item?.modelSeries,
+    report: form,
   };
+
+  try {
+    await dispatch(createReport(payload)).unwrap();
+
+    // ✅ Success Alert
+    Swal.fire({
+      title: "Report Submitted!",
+      text: "Your report has been saved successfully.",
+      icon: "success",
+      background: "#ffffff",
+      color: "#000000",
+      confirmButtonColor: "#DC6D18", // orange button
+      iconColor: "#DC6D18",          // orange tick
+    });
+
+    onClose();
+  } catch (err) {
+    Swal.fire({
+      title: "Save Failed",
+      text: err || "Something went wrong.",
+      icon: "error",
+      confirmButtonText: "Retry",
+      background: "#ffffff",
+      color: "#000000",
+      confirmButtonColor: "#DC6D18", // orange retry button
+    });
+  }
+};
+
 
   if (!open) return null;
 
   return (
-    // make viewport scrollable when content taller than screen
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 md:p-6">
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+    // modal container
+    <div className="fixed inset-0 z-[10000] flex items-start justify-center overflow-y-auto p-4 md:p-6">
+      {/* Backdrop (absolute so it's scoped inside container) */}
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       {/* Modal card */}
       <div className="relative w-[95vw] max-w-4xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
@@ -104,7 +160,8 @@ export default function ReportModal({ open, onClose, item, onSubmitted }) {
           <div>
             <h3 className="text-xl font-bold text-gray-900">Add Report</h3>
             <p className="text-sm text-gray-500">
-              {item?.equipmentName} {item?.modelSeries ? `• ${item.modelSeries}` : ""}
+              {item?.equipmentName}{" "}
+              {item?.modelSeries ? `• ${item.modelSeries}` : ""}
             </p>
           </div>
           <button
@@ -120,12 +177,14 @@ export default function ReportModal({ open, onClose, item, onSubmitted }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {schema.map((f) => (
               <div key={f.key} className="flex flex-col">
-                <label className="text-sm font-medium text-gray-700 mb-1">{f.label}</label>
+                <label className="text-sm font-medium text-gray-700 mb-1">
+                  {f.label}
+                </label>
                 {f.type === "select" ? (
                   <select
                     value={form[f.key] ?? ""}
                     onChange={(e) => update(f.key, e.target.value)}
-                    className="rounded-md border-gray-300 focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
+                    className="rounded-md border-2 border-[#DC6D18] focus:border-[#DC6D18] focus:outline-none focus:ring-0"
                   >
                     {(f.options || []).map((opt) => (
                       <option key={opt} value={opt}>
@@ -138,7 +197,7 @@ export default function ReportModal({ open, onClose, item, onSubmitted }) {
                     rows={3}
                     value={form[f.key] ?? ""}
                     onChange={(e) => update(f.key, e.target.value)}
-                    className="rounded-md border-gray-300 focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
+                    className="rounded-md border-2 border-[#DC6D18] focus:border-[#DC6D18] focus:outline-none focus:ring-0"
                     placeholder="Add remarks…"
                   />
                 ) : (
@@ -146,7 +205,7 @@ export default function ReportModal({ open, onClose, item, onSubmitted }) {
                     type={f.type}
                     value={form[f.key] ?? ""}
                     onChange={(e) => update(f.key, e.target.value)}
-                    className="rounded-md border-gray-300 focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
+                    className="rounded-md border-2 border-[#DC6D18] focus:border-[#DC6D18] focus:outline-none focus:ring-0"
                     placeholder={f.type === "date" ? "dd / mm / yyyy" : ""}
                   />
                 )}
@@ -154,7 +213,7 @@ export default function ReportModal({ open, onClose, item, onSubmitted }) {
             ))}
           </div>
 
-        {/* Sticky footer */}
+          {/* Sticky footer */}
           <div className="sticky bottom-0 mt-6 -mx-6 px-6 py-3 border-t bg-white rounded-b-2xl flex justify-end gap-3">
             <button
               type="button"
@@ -165,7 +224,7 @@ export default function ReportModal({ open, onClose, item, onSubmitted }) {
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={creating}
               className="px-4 py-2 rounded-lg bg-[#DC6D18] text-white font-semibold hover:bg-[#B85B14] disabled:opacity-60"
             >
               {saving ? "Saving…" : "Save Report"}
@@ -176,3 +235,4 @@ export default function ReportModal({ open, onClose, item, onSubmitted }) {
     </div>
   );
 }
+

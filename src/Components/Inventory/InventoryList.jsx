@@ -6,7 +6,7 @@ import { fetchInventorySummary } from '../../redux/features/inventory/inventoryS
 import { API_URL } from "../../../utils/apiConfig";
 
 function InventoryList() {
-  const dispatch = useDispatch();
+const dispatch = useDispatch();
 
   // Redux (admin path)
   const { summary: reduxSummary = [], loading: reduxLoading, error: reduxError } =

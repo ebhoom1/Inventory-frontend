@@ -44,7 +44,7 @@ function App() {
       <Route path="/inventory" element={<InventoryLayout />} />
       <Route path="/services" element={<ServiceLayout />} />
       <Route path="/equipment" element={<EquipmentLayout />} />
-      <Route path="/attendence" element={<Attendence />} />
+      {/* <Route path="/attendence" element={<Attendence />} /> */}
       <Route path="/previous-attendence" element={<PreviousAttendence />} />
     </Routes>
   );

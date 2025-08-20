@@ -40,13 +40,7 @@ function InventoryLayout() {
   }, [userInfo]);
 
   // Visible tabs based on role
-  const visibleTabKeys = useMemo(() => {
-    return TAB_ORDER.filter((key) => {
-      // Hide Request Inventory for Admins only
-      if (key === 'requestInventory') return !isAdmin;
-      return true;
-    });
-  }, [isAdmin]);
+  const visibleTabKeys = useMemo(() => TAB_ORDER, []);
 
   // Ensure active tab is valid for current role
   useEffect(() => {

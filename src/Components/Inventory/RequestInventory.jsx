@@ -250,13 +250,11 @@
 
 // export default RequestInventory;
 
-// src/components/Inventory/RequestInventory.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { API_URL } from "../../../utils/apiConfig";
-
-/** ---------- Config ---------- */
+import { getAllUsers } from "../../redux/features/users/userSlice"; 
 const INVENTORY_BASE = `${API_URL}/api/inventory`; // list for dropdown
 const REQUESTS_BASE = `${API_URL}/api/requests`;   // create request
 /** ---------------------------- */
@@ -270,20 +268,56 @@ const getAuthHeader = (userInfo) => {
 };
 
 function RequestInventory() {
-  const { userInfo } = useSelector((s) => s.users || {});
-  const displayName = userInfo?.name || userInfo?.userName || userInfo?.email || "User";
-  const userId = userInfo?._id || userInfo?.id;
+  const dispatch = useDispatch();
 
+  // Logged-in user
+  const { userInfo, allUsers, loading: usersLoading } = useSelector((s) => s.users || {});
+  const role = (userInfo?.userType || "").toLowerCase();
+  const isAdmin = role === "admin" || role === "super admin";
+  const isSuperAdmin = role === "super admin";
+  const isRequesterUser = role === "user";
+
+  const currentUserId = userInfo?._id || userInfo?.id;
+  const currentDisplayName =
+    userInfo?.name || userInfo?.userName || userInfo?.firstName || userInfo?.email || "User";
+
+  // Inventory list for SKU dropdown
   const [inventory, setInventory] = useState([]);
   const [loadingInv, setLoadingInv] = useState(false);
   const [errorInv, setErrorInv] = useState("");
 
+  // Form
   const [formData, setFormData] = useState({
     skuName: "",
     requiredQuantity: "",
-    date: "",      // required date
+    date: "",
     reason: "",
   });
+
+  // Selected user (only for Admin/Super Admin)
+  const [selectedUserId, setSelectedUserId] = useState(isRequesterUser ? currentUserId : "");
+
+  // Normalize/all users -> only type 'user'
+  const normalizedUsers = useMemo(() => {
+    const raw = Array.isArray(allUsers) ? allUsers : allUsers?.users || [];
+    return raw.map((u) => ({
+      id: u?._id || u?.id,
+      name:
+        u?.name ||
+        [u?.firstName, u?.lastName].filter(Boolean).join(" ") ||
+        u?.userName ||
+        u?.email ||
+        "Unnamed",
+      companyName: u?.companyName || u?.company?.name || u?.organizationName || u?.orgName || "",
+      email: u?.email || "",
+      role: (u?.userType || "").toLowerCase(),
+    }));
+  }, [allUsers]);
+
+  const selectableUsers = useMemo(
+    () => normalizedUsers.filter((u) => u.role === "user" && u.id),
+    [normalizedUsers]
+  );
 
   // Load inventory items for dropdown
   useEffect(() => {
@@ -314,6 +348,13 @@ function RequestInventory() {
     })();
   }, [userInfo]);
 
+  // Load users list only for Admin/Super Admin
+  useEffect(() => {
+    if (isAdmin) {
+      dispatch(getAllUsers());
+    }
+  }, [dispatch, isAdmin]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -334,16 +375,34 @@ function RequestInventory() {
       Swal.fire({ icon: "warning", text: "Please choose a required date." });
       return;
     }
+    if (isAdmin && !selectedUserId) {
+      Swal.fire({ icon: "warning", text: "Please select a user to request for." });
+      return;
+    }
+
+    // Resolve who the request is for
+    let targetUserId = currentUserId;
+    let targetUserName = currentDisplayName;
+
+    if (isAdmin) {
+      const chosen = selectableUsers.find((u) => u.id === selectedUserId);
+      if (!chosen) {
+        Swal.fire({ icon: "warning", text: "Selected user not found." });
+        return;
+      }
+      targetUserId = chosen.id;
+      targetUserName = chosen.name || chosen.email || "User";
+    }
 
     try {
       const payload = {
         skuName: formData.skuName,
         quantity: Number(formData.requiredQuantity),
-        userName: displayName,           // <- from userInfo
-        userId,                          // <- optional; backend can store this too
+        userName: targetUserName,
+        userId: targetUserId,
         requestedAt: formData.date,
         reason: formData.reason,
-        status: "Pending",               // server can default; kept for safety
+        status: "Pending",
       };
 
       const res = await fetch(REQUESTS_BASE, {
@@ -363,12 +422,13 @@ function RequestInventory() {
       Swal.fire({
         icon: "success",
         title: "Request submitted",
-        text: `Requested ${payload.quantity} × ${payload.skuName}`,
-        timer: 1600,
+        text: `Requested ${payload.quantity} × ${payload.skuName} for ${payload.userName}`,
+        timer: 1800,
         showConfirmButton: false,
       });
 
       setFormData({ skuName: "", requiredQuantity: "", date: "", reason: "" });
+      if (isAdmin) setSelectedUserId("");
     } catch (e) {
       Swal.fire({ icon: "error", title: "Submission failed", text: e.message });
     }
@@ -380,7 +440,6 @@ function RequestInventory() {
         Request Inventory
       </h2>
 
-
       {errorInv && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-3">
           {errorInv.includes("Cannot GET")
@@ -391,6 +450,31 @@ function RequestInventory() {
 
       <form className="space-y-10" onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-10">
+          {/* Admin/Super Admin: select user to request for */}
+          {isAdmin && (
+            <div className="relative flex items-center md:col-span-2">
+              <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                Request For (User)
+              </span>
+              <select
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                required
+                disabled={usersLoading}
+              >
+                <option value="">
+                  {usersLoading ? "Loading users..." : "Select a user"}
+                </option>
+                {selectableUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} {u.companyName ? `(${u.companyName})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* SKU Dropdown */}
           <div className="relative flex items-center">
             <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
