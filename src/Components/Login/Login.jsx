@@ -26,7 +26,7 @@ const Login = () => {
       // Hide success message and navigate after 2 seconds
       const timer = setTimeout(() => {
         setShowSuccessMessage(false);
-        navigate('/inventory');
+        navigate('/equipment');
       }, 1000);
       
       return () => clearTimeout(timer);
