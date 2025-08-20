@@ -408,7 +408,6 @@ function AddEquipment() {
         text: successMessage,
         icon: "success",
         timer: 1600,
-        showConfirmButton: false,
         timerProgressBar: true,
         backdrop: true,
       });

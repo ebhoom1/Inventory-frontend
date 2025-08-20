@@ -1,67 +1,63 @@
-import React, { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import Swal from 'sweetalert2';
-import { registerUser, reset } from '../../redux/features/users/userSlice';
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import Swal from "sweetalert2";
+import { registerUser, reset } from "../../redux/features/users/userSlice";
 
 // Define the initial empty state for the form to help with clearing it later
 const initialFormState = {
-  userId: '',
-  companyName: '',
-  firstName: '',
-  email: '',
-  additionalEmails: '',
-  mobileNumber: '',
-  password: '',
-  confirmPassword: '',
-  subscriptionDate: '',
-  subscriptionPlan: '',
-  userType: '',
-  adminType: '',
-  assignOperators: '',
-  assignTerritorialManager: '',
-  assignTechnicians: '',
-  district: '',
-  state: '',
-  address: '',
-  latitude: '',
-  longitude: '',
+  userId: "",
+  companyName: "",
+  firstName: "",
+  email: "",
+  additionalEmails: "",
+  mobileNumber: "",
+  password: "",
+  confirmPassword: "",
+  subscriptionDate: "",
+  subscriptionPlan: "",
+  userType: "",
+  adminType: "",
+  assignOperators: "",
+  assignTerritorialManager: "",
+  assignTechnicians: "",
+  district: "",
+  state: "",
+  address: "",
+  latitude: "",
+  longitude: "",
 };
 
 const AddUser = () => {
   // --- STATE MANAGEMENT ---
   const [form, setForm] = useState(initialFormState);
-  const [formError, setFormError] = useState('');
-const [passShow, setPassShow] = useState(false);
-const [confirmPassShow, setConfirmPassShow] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [passShow, setPassShow] = useState(false);
+  const [confirmPassShow, setConfirmPassShow] = useState(false);
   const dispatch = useDispatch();
-  const {
-    loading,
-    error,
-    registerSuccess,
-    registerMessage,
-    registerData,
-  } = useSelector((state) => state.users);
+  const { loading, error, registerSuccess, registerMessage, registerData } =
+    useSelector((state) => state.users);
 
   // --- SIDE EFFECTS ---
   useEffect(() => {
     // Handle API error -> SweetAlert (modern)
     if (error) {
       const errMsg =
-        typeof error === 'string'
+        typeof error === "string"
           ? error
-          : error?.message || 'Registration failed. Please try again.';
+          : error?.message || "Registration failed. Please try again.";
 
       Swal.fire({
-        icon: 'error',
-        title: 'Could not add user',
+        icon: "error",
+        title: "Could not add user",
         html: `<div class="text-left">
                  <p class="font-semibold mb-2">${errMsg}</p>
                  <p class="text-sm text-gray-500">If this keeps happening, please re-check required fields or try again later.</p>
                </div>`,
-        confirmButtonText: 'Okay',
-        confirmButtonColor: '#DC6D18',
-        background: '#fff',
-        color: '#111827',
+        allowOutsideClick: true,
+        confirmButtonColor: "#DC6D18",
+        showConfirmButton: false,    
+        background: "#fff",
+        color: "#111827",
         backdrop: `
           rgba(0,0,0,0.4)
           left top
@@ -73,45 +69,58 @@ const [confirmPassShow, setConfirmPassShow] = useState(false);
     }
   }, [error]);
 
- useEffect(() => {
-  if (registerSuccess) {
-    const createdEmail = registerData?.email || form.email;
-    const createdUserId = registerData?.userId || form.userId;
+  useEffect(() => {
+    if (registerSuccess) {
+      const createdEmail = registerData?.email || form.email;
+      const createdUserId = registerData?.userId || form.userId;
 
-    Swal.fire({
-      icon: 'success',
-      title: 'User Added 🎉',
-      html: `
+      Swal.fire({
+        icon: "success",
+        title: "User Added 🎉",
+        html: `
         <div class="text-left">
-          <p class="font-semibold mb-1">${registerMessage || 'User registered successfully!'}</p>
+          <p class="font-semibold mb-1">${
+            registerMessage || "User registered successfully!"
+          }</p>
           <div class="text-sm text-gray-600 mt-2">
-            <div><span class="font-semibold">User ID:</span> ${createdUserId || '-'}</div>
-            <div><span class="font-semibold">Email:</span> ${createdEmail || '-'}</div>
+            <div><span class="font-semibold">User ID:</span> ${
+              createdUserId || "-"
+            }</div>
+            <div><span class="font-semibold">Email:</span> ${
+              createdEmail || "-"
+            }</div>
           </div>
         </div>
       `,
-      background: '#ffffff',
-      color: '#111827',
-      confirmButtonColor: '#DC6D18',
-      timer: 2000, // ⏳ auto-close after 2 seconds
-      timerProgressBar: true,
-      showConfirmButton: false,
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      backdrop: `
+        background: "#ffffff",
+        color: "#111827",
+        confirmButtonColor: "#DC6D18",
+        timer: 2000, // ⏳ auto-close after 2 seconds
+        timerProgressBar: true,
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        backdrop: `
         linear-gradient(120deg, rgba(220,109,24,0.25), rgba(255,237,213,0.35))
         left top
         no-repeat
       `,
-      didClose: () => {
-        // Reset form and slice after alert closes
-        setForm(initialFormState);
-        dispatch(reset());
-        setFormError('');
-      }
-    });
-  }
-}, [registerSuccess, registerMessage, registerData, dispatch, form.email, form.userId]);
+        didClose: () => {
+          // Reset form and slice after alert closes
+          setForm(initialFormState);
+          dispatch(reset());
+          setFormError("");
+        },
+      });
+    }
+  }, [
+    registerSuccess,
+    registerMessage,
+    registerData,
+    dispatch,
+    form.email,
+    form.userId,
+  ]);
 
   // --- HANDLER FUNCTIONS ---
   const handleChange = (e) => {
@@ -120,16 +129,16 @@ const [confirmPassShow, setConfirmPassShow] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setFormError('');
+    setFormError("");
 
     if (form.password !== form.confirmPassword) {
-      setFormError('Passwords do not match!');
+      setFormError("Passwords do not match!");
       Swal.fire({
-        icon: 'warning',
-        title: 'Password mismatch',
-        text: 'Please make sure both password fields match.',
-        confirmButtonText: 'Fix it',
-        confirmButtonColor: '#DC6D18',
+        icon: "warning",
+        title: "Password mismatch",
+        text: "Please make sure both password fields match.",
+        confirmButtonText: "Fix it",
+        confirmButtonColor: "#DC6D18",
       });
       return;
     }
@@ -141,7 +150,9 @@ const [confirmPassShow, setConfirmPassShow] = useState(false);
   // --- JSX RENDER ---
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 mb-8 mx-auto">
-      <h2 className="text-xl font-bold text-[#DC6D18] mb-6 text-center">Add User</h2>
+      <h2 className="text-xl font-bold text-[#DC6D18] mb-6 text-center">
+        Add User
+      </h2>
 
       {/* Display for form validation or API errors */}
       {formError && (
@@ -150,7 +161,10 @@ const [confirmPassShow, setConfirmPassShow] = useState(false);
         </div>
       )}
 
-      <form className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8" onSubmit={handleSubmit}>
+      <form
+        className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8"
+        onSubmit={handleSubmit}
+      >
         {/* User ID */}
         <div className="relative">
           <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
@@ -242,51 +256,53 @@ const [confirmPassShow, setConfirmPassShow] = useState(false);
         </div>
 
         {/* Password */}
-       {/* Password (toggle like Login) */}
-<div className="relative">
-  <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
-    Password
-  </span>
-  <i className="fa-solid fa-lock absolute top-[15px] left-4 text-gray-400" />
-  <input
-    name="password"
-    value={form.password}
-    type={passShow ? "text" : "password"}
-    onChange={handleChange}
-    placeholder="Enter Password"
-    className="w-full pl-12 pr-12 border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-    required
-  />
-  <i
-    className={`fa-solid ${passShow ? "fa-eye" : "fa-eye-slash"} absolute top-[15px] right-4 cursor-pointer text-[#DC6D18]`}
-    onClick={() => setPassShow((v) => !v)}
-    title={passShow ? "Hide password" : "Show password"}
-  />
-</div>
-
+        {/* Password (toggle like Login) */}
+        <div className="relative">
+          <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+            Password
+          </span>
+          <i className="fa-solid fa-lock absolute top-[15px] left-4 text-gray-400" />
+          <input
+            name="password"
+            value={form.password}
+            type={passShow ? "text" : "password"}
+            onChange={handleChange}
+            placeholder="Enter Password"
+            className="w-full pl-12 pr-12 border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+            required
+          />
+          <i
+            className={`fa-solid ${
+              passShow ? "fa-eye" : "fa-eye-slash"
+            } absolute top-[15px] right-4 cursor-pointer text-[#DC6D18]`}
+            onClick={() => setPassShow((v) => !v)}
+            title={passShow ? "Hide password" : "Show password"}
+          />
+        </div>
 
         {/* Confirm Password (toggle like Login) */}
-<div className="relative">
-  <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
-    Confirm Password
-  </span>
-  <i className="fa-solid fa-lock absolute top-[15px] left-4 text-gray-400" />
-  <input
-    name="confirmPassword"
-    value={form.confirmPassword}
-    type={confirmPassShow ? "text" : "password"}
-    onChange={handleChange}
-    placeholder="Confirm Password"
-    className="w-full pl-12 pr-12 border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-    required
-  />
-  <i
-    className={`fa-solid ${confirmPassShow ? "fa-eye" : "fa-eye-slash"} absolute top-[15px] right-4 cursor-pointer text-[#DC6D18]`}
-    onClick={() => setConfirmPassShow((v) => !v)}
-    title={confirmPassShow ? "Hide password" : "Show password"}
-  />
-</div>
-
+        <div className="relative">
+          <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+            Confirm Password
+          </span>
+          <i className="fa-solid fa-lock absolute top-[15px] left-4 text-gray-400" />
+          <input
+            name="confirmPassword"
+            value={form.confirmPassword}
+            type={confirmPassShow ? "text" : "password"}
+            onChange={handleChange}
+            placeholder="Confirm Password"
+            className="w-full pl-12 pr-12 border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+            required
+          />
+          <i
+            className={`fa-solid ${
+              confirmPassShow ? "fa-eye" : "fa-eye-slash"
+            } absolute top-[15px] right-4 cursor-pointer text-[#DC6D18]`}
+            onClick={() => setConfirmPassShow((v) => !v)}
+            title={confirmPassShow ? "Hide password" : "Show password"}
+          />
+        </div>
 
         {/* Date of subscription */}
         <div className="relative">
@@ -318,24 +334,23 @@ const [confirmPassShow, setConfirmPassShow] = useState(false);
 
         {/* User Type */}
         <div className="relative">
-  <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
-    User Type
-  </span>
-  <select
-    name="userType"
-    value={form.userType}
-    onChange={handleChange}
-    className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-    required
-  >
-    <option value="">Select user type</option>
-    <option value="Admin">Admin</option>
-    <option value="User">User</option>
-    <option value="Super Admin">Super Admin</option>
-    <option value="Operator">Operator</option>
-  </select>
-</div>
-
+          <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+            User Type
+          </span>
+          <select
+            name="userType"
+            value={form.userType}
+            onChange={handleChange}
+            className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+            required
+          >
+            <option value="">Select user type</option>
+            <option value="Admin">Admin</option>
+            <option value="User">User</option>
+            <option value="Super Admin">Super Admin</option>
+            <option value="Operator">Operator</option>
+          </select>
+        </div>
 
         {/* Admin Type */}
         <div className="relative">
@@ -471,7 +486,7 @@ const [confirmPassShow, setConfirmPassShow] = useState(false);
             className="bg-[#DC6D18] text-white px-8 py-3 rounded-lg text-sm font-semibold shadow-md hover:bg-[#B85B14] transition w-auto disabled:bg-gray-400 disabled:cursor-not-allowed"
             disabled={loading}
           >
-            {loading ? 'Adding User...' : 'Add User'}
+            {loading ? "Adding User..." : "Add User"}
           </button>
         </div>
       </form>

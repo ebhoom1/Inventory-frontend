@@ -424,7 +424,6 @@ function RequestInventory() {
         title: "Request submitted",
         text: `Requested ${payload.quantity} × ${payload.skuName} for ${payload.userName}`,
         timer: 1800,
-        showConfirmButton: false,
       });
 
       setFormData({ skuName: "", requiredQuantity: "", date: "", reason: "" });

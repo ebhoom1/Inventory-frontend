@@ -123,7 +123,7 @@ const UserList = () => {
       Swal.fire({
         title: 'Deleting User...',
         html: 'Please wait while we delete the user.',
-        allowOutsideClick: false,
+        allowOutsideClick: true,
         allowEscapeKey: false,
         showConfirmButton: false,
         didOpen: () => Swal.showLoading(),
@@ -149,7 +149,8 @@ const UserList = () => {
         title: '❌ Deletion Failed',
         text: err?.response?.data?.message || 'Failed to delete user. Please try again.',
         confirmButtonColor: '#dc2626',
-        confirmButtonText: 'OK'
+        confirmButtonText: 'OK',
+        allowOutsideClick: true,
       });
     } finally {
       setDeletingId(null);

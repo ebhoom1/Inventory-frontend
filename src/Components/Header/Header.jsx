@@ -11,10 +11,10 @@
 //   const [searchQuery, setSearchQuery] = useState('');
 //   const [onlineStatus, setOnlineStatus] = useState(navigator.onLine ? 'Online' : 'Offline');
 //   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  
+
 //   const navigate = useNavigate();
 //   const dispatch = useDispatch();
-  
+
 //   // Get user info from Redux store
 //   const { userInfo } = useSelector((state) => state.users);
 
@@ -37,13 +37,13 @@
 //   const handleLogout = () => {
 //     // Clear localStorage
 //     localStorage.removeItem('userInfo');
-    
+
 //     // Dispatch logout action to clear Redux state
 //     dispatch(logout());
-    
+
 //     // Navigate to login page
 //     navigate('/');
-    
+
 //     console.log('User logged out successfully');
 //   };
 
@@ -137,12 +137,12 @@
 //         <span className="hidden md:inline" title={userInfo ? `Logged in as: ${userInfo.email}` : 'Not logged in'}>
 //           {getUserTypeDisplay()}
 //         </span>
-        
+
 //         {/* Show user name on smaller screens */}
 //         <span className="md:hidden text-sm truncate max-w-20" title={getDisplayName()}>
 //           {getDisplayName()}
 //         </span>
-        
+
 //         {/* NOTE: Status colors (green/red) are intentionally kept for universal UX understanding */}
 //         <span
 //           className={`w-3 h-3 rounded-full animate-pulse ${
@@ -150,13 +150,13 @@
 //           } hidden md:inline`}
 //           title={onlineStatus}
 //         ></span>
-        
+
 //         {/* NOTE: Notification color (red) is kept for universal UX understanding */}
 //         <button className="relative">
 //           <i className="fa-regular fa-bell text-xl"></i>
 //           <span className="absolute -top-1 -right-2 bg-red-600 text-white rounded-full px-1 text-xs">3</span>
 //         </button>
-        
+
 //         <div className="relative">
 //           <img
 //             src="https://cdn.pixabay.com/photo/2020/07/01/12/58/icon-5359553_640.png"
@@ -178,14 +178,14 @@
 //                   </div>
 //                 </>
 //               )}
-              
+
 //              {/*  <button
 //                 className="block w-full text-left px-4 py-2 hover:bg-gray-100"
 //                 onClick={() => setProfileDropdownOpen(false)}
 //               >
 //                 Profile Settings
 //               </button> */}
-              
+
 //               <button
 //                 onClick={handleLogout}
 //                 className="block w-full text-left px-4 py-2 hover:bg-red-50 hover:text-red-600 text-red-500 font-semibold"
@@ -270,14 +270,14 @@
 //                      border border-[#F5D2B6] shadow-md ring-1 ring-[#DC6D18]/10"
 //           title="Safetik Safety Solutions Pvt. Ltd"
 //         >
-          
+
 //           <div className="min-w-0">
 //             <div className="text-[#B85B14] font-extrabold tracking-tight text-base sm:text-lg truncate">
 //               Safetik Safety Solutions Pvt. Ltd
 //             </div>
-           
+
 //           </div>
-          
+
 //         </div>
 //       </div>
 
@@ -341,14 +341,16 @@
 // export default Header;
 
 // src/components/Header/Header.jsx
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../../redux/features/users/userSlice';
-import safetickLogo from '../../assets/safetik.png';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../../redux/features/users/userSlice";
+import safetickLogo from "../../assets/safetik.png";
 
 function Header({ onSidebarToggle }) {
-  const [onlineStatus, setOnlineStatus] = useState(navigator.onLine ? 'Online' : 'Offline');
+  const [onlineStatus, setOnlineStatus] = useState(
+    navigator.onLine ? "Online" : "Offline"
+  );
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   const navigate = useNavigate();
@@ -358,27 +360,33 @@ function Header({ onSidebarToggle }) {
 
   useEffect(() => {
     const handleOnlineStatusChange = () => {
-      setOnlineStatus(navigator.onLine ? 'Online' : 'Offline');
+      setOnlineStatus(navigator.onLine ? "Online" : "Offline");
     };
-    window.addEventListener('online', handleOnlineStatusChange);
-    window.addEventListener('offline', handleOnlineStatusChange);
+    window.addEventListener("online", handleOnlineStatusChange);
+    window.addEventListener("offline", handleOnlineStatusChange);
     return () => {
-      window.removeEventListener('online', handleOnlineStatusChange);
-      window.removeEventListener('offline', handleOnlineStatusChange);
+      window.removeEventListener("online", handleOnlineStatusChange);
+      window.removeEventListener("offline", handleOnlineStatusChange);
     };
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('userInfo');
+    localStorage.removeItem("userInfo");
     dispatch(logout());
-    navigate('/');
+    navigate("/");
   };
 
   const getDisplayName = () =>
-    userInfo ? (userInfo.firstName || userInfo.userId || userInfo.email) : 'ADMIN-DEV';
+    userInfo
+      ? userInfo.firstName || userInfo.userId || userInfo.email
+      : "ADMIN-DEV";
 
   const getUserTypeDisplay = () =>
-    userInfo ? (userInfo.userType ? userInfo.userType.toUpperCase() : 'USER') : 'ADMIN-DEV';
+    userInfo
+      ? userInfo.userType
+        ? userInfo.userType.toUpperCase()
+        : "USER"
+      : "ADMIN-DEV";
 
   return (
     <header className="p-4 sm:p-6 flex justify-between items-center shadow-sm bg-[#DC6D18] text-[#FFF7ED] relative z-10">
@@ -395,19 +403,22 @@ function Header({ onSidebarToggle }) {
           strokeWidth="2"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4 6h16M4 12h16M4 18h16"
+          />
         </svg>
       </button>
 
-      {/* ✨ Enhanced static company label */}
-      <div className="relative w-full max-w-2xl">
+      {/* ✨ Company label — show on md+ only */}
+      <div className="hidden md:block w-medium max-w-2xl">
         <div
           className="group flex items-center gap-3 pr-4 pl-2 py-2 rounded-2xl
-                     bg-gradient-to-r from-[#FFF7ED] via-[#FFF7ED] to-[#FFE9D6]
-                     border border-[#F5D2B6] shadow-md ring-1 ring-[#DC6D18]/10"
+               bg-gradient-to-r from-[#FFF7ED] via-[#FFF7ED] to-[#FFE9D6]
+               border border-[#F5D2B6] shadow-md ring-1 ring-[#DC6D18]/10"
           title="Safetik Safety Solutions Pvt. Ltd"
         >
-          
           <div className="min-w-0">
             <div className="text-[#B85B14] font-extrabold tracking-tight text-base sm:text-lg truncate">
               Safetik Safety Solutions Pvt. Ltd
@@ -416,7 +427,6 @@ function Header({ onSidebarToggle }) {
               Safety • Compliance • Reliability
             </div>
           </div>
-          
         </div>
       </div>
 
@@ -424,18 +434,21 @@ function Header({ onSidebarToggle }) {
       <div className="ml-2 flex items-center space-x-4 font-semibold relative">
         <span
           className="hidden md:inline"
-          title={userInfo ? `Logged in as: ${userInfo.email}` : 'Not logged in'}
+          title={userInfo ? `Logged in as: ${userInfo.email}` : "Not logged in"}
         >
           {getUserTypeDisplay()}
         </span>
 
-        <span className="md:hidden text-sm truncate max-w-20" title={getDisplayName()}>
+        <span
+          className="md:hidden text-sm truncate max-w-20"
+          title={getDisplayName()}
+        >
           {getDisplayName()}
         </span>
 
         <span
           className={`w-3 h-3 rounded-full animate-pulse ${
-            onlineStatus === 'Online' ? 'bg-green-500' : 'bg-red-500'
+            onlineStatus === "Online" ? "bg-green-500" : "bg-red-500"
           } hidden md:inline`}
           title={onlineStatus}
         />
@@ -458,7 +471,9 @@ function Header({ onSidebarToggle }) {
             <div className="absolute right-0 mt-2 w-48 bg-white text-black rounded-md shadow-lg py-2 z-50">
               {userInfo && (
                 <div className="px-4 py-2 border-b border-gray-200">
-                  <p className="text-sm font-semibold text-gray-800">{getDisplayName()}</p>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {getDisplayName()}
+                  </p>
                   <p className="text-xs text-gray-600">{userInfo.email}</p>
                 </div>
               )}

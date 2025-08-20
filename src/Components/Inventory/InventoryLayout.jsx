@@ -31,8 +31,7 @@ function InventoryLayout() {
 
   // Normalize role and compute admin flag correctly
   const role = (userInfo?.userType || '').toLowerCase(); // e.g. 'admin', 'super admin', 'user'
-  const isAdmin = role === 'admin' || role === 'super admin';
-
+  const isAdmin = role === 'admin' ;
   useEffect(() => {
     if (userInfo) {
       console.log('Logged-in user (from Redux):', userInfo);
@@ -40,14 +39,19 @@ function InventoryLayout() {
   }, [userInfo]);
 
   // Visible tabs based on role
-  const visibleTabKeys = useMemo(() => TAB_ORDER, []);
+const visibleTabKeys = useMemo(() => {
+  // show 'requestInventory' only for Admin
+  return TAB_ORDER.filter((key) =>
+    key === 'requestInventory' ? isAdmin : true
+  );
+}, [isAdmin]);
 
   // Ensure active tab is valid for current role
   useEffect(() => {
-    if (!visibleTabKeys.includes(activeTab)) {
-      setActiveTab('inventoryList');
-    }
-  }, [visibleTabKeys, activeTab]);
+  if (!visibleTabKeys.includes(activeTab)) {
+    setActiveTab('inventoryList');
+  }
+}, [visibleTabKeys, activeTab]);
 
   const ActiveComponent = (TABS[activeTab] || TABS.inventoryList).component;
 

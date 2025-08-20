@@ -122,18 +122,16 @@ function ServiceLayout() {
   const { userInfo } = useSelector((state) => state.users);
 
   // Normalize role
-  const role = (userInfo?.userType || '').toString().trim().toLowerCase();
+const role = (userInfo?.userType || '').toString().trim().toLowerCase();
 
-  // Show Request Service for admin/super admin; hide for user
-  const availableTabs = useMemo(() => {
-    const tabs = { ...ALL_TABS };
-    if (role === 'user') {
-      delete tabs.requestService;
-    }
-    // If you want ONLY Admin (not Super Admin) to see it, replace with:
-    // if (role !== 'admin') delete tabs.requestService;
-    return tabs;
-  }, [role]);
+// Show "Request Service" ONLY for Admin
+const availableTabs = useMemo(() => {
+  const tabs = { ...ALL_TABS };
+  if (role !== 'admin') {
+    delete tabs.requestService; // hide for user & super admin
+  }
+  return tabs;
+}, [role]);
 
   // Get the first available tab as default
   const defaultTab = Object.keys(availableTabs)[0];

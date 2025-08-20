@@ -124,6 +124,8 @@ const EditUser = () => {
       timer: 2000,
       timerProgressBar: true,
       confirmButtonColor: '#DC6D18',
+      allowOutsideClick: true,
+      showConfirmButton: false, 
     });
   };
 
@@ -140,7 +142,7 @@ const EditUser = () => {
     Swal.fire({
       title: 'Updating User...',
       text: 'Please wait.',
-      allowOutsideClick: false,
+      allowOutsideClick: true,
       didOpen: () => {
         Swal.showLoading();
       },

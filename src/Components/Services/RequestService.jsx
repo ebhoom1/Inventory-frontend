@@ -38,7 +38,7 @@ function RequestService() {
             equipmentName: scanned.equipmentName || prev.equipmentName,
             userId: scanned.userId || scanned.userId || prev.userId,
           }));
-          Swal.fire({ title: "Scanned!", text: scanned.equipmentName || "QR read", icon: "success", timer: 1200, showConfirmButton: false });
+          Swal.fire({ title: "Scanned!", text: scanned.equipmentName || "QR read", icon: "success", timer: 1200, showConfirmButton: false,allowOutsideClick: true });
         } catch (error) {
           console.error("Failed to parse QR code data.", error);
           Swal.fire({ title: "Invalid QR", text: "Please try again.", icon: "error" });
@@ -68,7 +68,7 @@ function RequestService() {
 
   useEffect(() => {
     if (successMessage) {
-      Swal.fire({ title: "Submitted", text: successMessage, icon: "success", timer: 1500, showConfirmButton: false });
+      Swal.fire({ title: "Submitted", text: successMessage, icon: "success", timer: 1500, showConfirmButton: false,allowOutsideClick: true, });
       setFormData({ equipmentId: "", equipmentName: "", userId: "", serviceType: "", date: "", faultDescription: "" });
       dispatch(resetServiceRequestState());
     }
@@ -111,7 +111,7 @@ function RequestService() {
         <div className="flex flex-col sm:flex-row items-center gap-4 p-4 border-2 border-dashed border-gray-300 rounded-xl">
           <div className="w-full">
             <label htmlFor="equipmentId" className="text-sm font-semibold text-gray-600 mb-1 block">
-              Enter Equipment ID
+            Equipment ID
             </label>
             <input
               type="text"
@@ -119,12 +119,11 @@ function RequestService() {
               name="equipmentId"
               value={formData.equipmentId}
               onChange={handleChange}
-              placeholder="e.g., EQP-123"
+              placeholder="Prefilled after scan"
               className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:border-solid focus:ring-2 focus:ring-[#DC6D18]"
               required
             />
           </div>
-          <div className="text-sm font-bold text-gray-500 my-2 sm:my-0">OR</div>
           <button
             type="button"
             onClick={() => setScannerVisible(!isScannerVisible)}

@@ -75,7 +75,6 @@ function AddInventory() {
         title: 'Inventory Added',
         text: `${lastAdded.skuName} x ${lastAdded.quantity} for ${lastAdded.userId}`,
         timer: 1400,
-        showConfirmButton: false,
       });
       setFormData({ userId: isAdmin ? '' : (userInfo?.userId || ''), skuName: '', quantity: '', date: '' });
       dispatch(resetInventoryState());
