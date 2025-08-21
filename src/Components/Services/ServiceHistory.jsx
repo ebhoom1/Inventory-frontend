@@ -41,7 +41,7 @@
 //   // You said your users slice stores userInfo here:
 //   const { userInfo } = useSelector((s) => s.users || {});
 // const adminRoles = ['Admin', 'Super Admin'];
-// const isAdmin = adminRoles.includes(userInfo?.userType);  
+// const isAdmin = adminRoles.includes(userInfo?.userType);
 // const [rowBusy, setRowBusy] = useState({});
 //   // serviceRequests state from the slice
 //   const { loading, error, all, byUser, successMessage } = useSelector((s) => s.serviceRequests);
@@ -413,7 +413,11 @@ const StatusBadge = ({ status }) => {
     Pending: "bg-orange-100 text-orange-800",
     Denied: "bg-red-100 text-red-800",
   };
-  return <span className={`${base} ${map[status] || "bg-gray-100 text-gray-800"}`}>{status}</span>;
+  return (
+    <span className={`${base} ${map[status] || "bg-gray-100 text-gray-800"}`}>
+      {status}
+    </span>
+  );
 };
 
 const Modal = ({ open, onClose, children, title }) => {
@@ -423,7 +427,12 @@ const Modal = ({ open, onClose, children, title }) => {
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl">
         <div className="flex items-center justify-between px-5 py-3 border-b">
           <h3 className="text-lg font-semibold">{title}</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            ✕
+          </button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -439,11 +448,13 @@ export default function ServiceHistory() {
   const role = (userInfo?.userType || "").toString().trim().toLowerCase();
   const isSuperAdmin = role === "super admin";
   const isAdmin = role === "admin";
-  const isManager = isAdmin || isSuperAdmin;       // can view ALL
-  const canModerate = isSuperAdmin;                // only super admin sees Actions & can update
+  const isManager = isAdmin || isSuperAdmin; // can view ALL
+  const canModerate = isSuperAdmin; // only super admin sees Actions & can update
 
   const [rowBusy, setRowBusy] = useState({});
-  const { loading, error, all, byUser, successMessage } = useSelector((s) => s.serviceRequests);
+  const { loading, error, all, byUser, successMessage } = useSelector(
+    (s) => s.serviceRequests
+  );
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -467,23 +478,39 @@ export default function ServiceHistory() {
   const totalPages = data?.totalPages || 1;
 
   const availableYears = useMemo(() => {
-    const years = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4];
+    const years = [
+      currentYear,
+      currentYear - 1,
+      currentYear - 2,
+      currentYear - 3,
+      currentYear - 4,
+    ];
     return ["all", ...years];
   }, [currentYear]);
 
   const availableMonths = [
-    { value: "all", label: "All Months" }, { value: 1, label: "January" },
-    { value: 2, label: "February" }, { value: 3, label: "March" },
-    { value: 4, label: "April" }, { value: 5, label: "May" },
-    { value: 6, label: "June" }, { value: 7, label: "July" },
-    { value: 8, label: "August" }, { value: 9, label: "September" },
-    { value: 10, label: "October" }, { value: 11, label: "November" },
+    { value: "all", label: "All Months" },
+    { value: 1, label: "January" },
+    { value: 2, label: "February" },
+    { value: 3, label: "March" },
+    { value: 4, label: "April" },
+    { value: 5, label: "May" },
+    { value: 6, label: "June" },
+    { value: 7, label: "July" },
+    { value: 8, label: "August" },
+    { value: 9, label: "September" },
+    { value: 10, label: "October" },
+    { value: 11, label: "November" },
     { value: 12, label: "December" },
   ];
 
   const fmt = (d) => (d ? new Date(d).toLocaleDateString() : "N/A");
   const getActiveUserId = () =>
-    userInfo?.userId || userInfo?._id || userInfo?.id || userInfo?.username || "UNKNOWN";
+    userInfo?.userId ||
+    userInfo?._id ||
+    userInfo?.id ||
+    userInfo?.username ||
+    "UNKNOWN";
 
   const buildQuery = () => {
     const q = {};
@@ -512,7 +539,10 @@ export default function ServiceHistory() {
       dispatch(resetServiceRequestState());
       const query = buildQuery();
       if (isManager) dispatch(listAllServiceRequests(query));
-      else dispatch(listServiceRequestsByUserId({ userId: getActiveUserId(), ...query }));
+      else
+        dispatch(
+          listServiceRequestsByUserId({ userId: getActiveUserId(), ...query })
+        );
     }
   }, [successMessage, editOpen, dispatch, isManager]);
 
@@ -528,7 +558,9 @@ export default function ServiceHistory() {
     setEditForm({
       status: req.status || "Pending",
       serviceDate: req.serviceDate ? req.serviceDate.substring(0, 10) : "",
-      nextServiceDate: req.nextServiceDate ? req.nextServiceDate.substring(0, 10) : "",
+      nextServiceDate: req.nextServiceDate
+        ? req.nextServiceDate.substring(0, 10)
+        : "",
       technicianName: req.technicianName || "",
     });
     setEditOpen(true);
@@ -538,8 +570,13 @@ export default function ServiceHistory() {
     e.preventDefault();
     if (!canModerate || !editing?._id) return;
 
-    if (editForm.status === "Serviced" && (!editForm.serviceDate || !editForm.technicianName)) {
-      alert("When status is Serviced, Service Date and Technician Name are required.");
+    if (
+      editForm.status === "Serviced" &&
+      (!editForm.serviceDate || !editForm.technicianName)
+    ) {
+      alert(
+        "When status is Serviced, Service Date and Technician Name are required."
+      );
       return;
     }
 
@@ -548,8 +585,10 @@ export default function ServiceHistory() {
       updatedBy: getActiveUserId(),
     };
     if (editForm.serviceDate) updates.serviceDate = editForm.serviceDate;
-    if (editForm.nextServiceDate) updates.nextServiceDate = editForm.nextServiceDate;
-    if (editForm.technicianName) updates.technicianName = editForm.technicianName;
+    if (editForm.nextServiceDate)
+      updates.nextServiceDate = editForm.nextServiceDate;
+    if (editForm.technicianName)
+      updates.technicianName = editForm.technicianName;
 
     dispatch(updateServiceRequestStatus({ id: editing._id, updates }));
   };
@@ -593,7 +632,9 @@ export default function ServiceHistory() {
       </div>
 
       {/* Status bar */}
-      {loading && <div className="mb-3 text-sm text-gray-600">Loading requests…</div>}
+      {loading && (
+        <div className="mb-3 text-sm text-gray-600">Loading requests…</div>
+      )}
       {error && <div className="mb-3 text-sm text-red-600">Error: {error}</div>}
 
       <div className="bg-white shadow-lg rounded-xl overflow-hidden">
@@ -601,59 +642,98 @@ export default function ServiceHistory() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Equipment</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type of Service</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Requested By</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Reported Date</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Service Date</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Next Service Date</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Technician</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {canModerate ? "Actions" : "Details"}
+                  Equipment
                 </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Type of Service
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Requested By
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Description
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Reported Date
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Service Date
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Next Service Date
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Technician
+                </th>
+                {canModerate ? (
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                ) : (
+                  ""
+                )}
               </tr>
             </thead>
 
             <tbody className="bg-white divide-y divide-gray-200">
               {items.length > 0 ? (
                 items.map((req) => (
-                  <tr key={req._id || req.id} className="hover:bg-orange-50/50 transition-colors duration-150">
+                  <tr
+                    key={req._id || req.id}
+                    className="hover:bg-orange-50/50 transition-colors duration-150"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {req.equipmentName || req.equipment || "-"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{req.serviceType}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{req.userId || req.requestedBy}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 max-w-xs truncate" title={req.faultDescription || req.description}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {req.serviceType}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {req.userId || req.requestedBy}
+                    </td>
+                    <td
+                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 max-w-xs truncate"
+                      title={req.faultDescription || req.description}
+                    >
                       {req.faultDescription || req.description}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{fmt(req.reportedDate)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {fmt(req.reportedDate)}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge status={req.status} />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{fmt(req.serviceDate)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{fmt(req.nextServiceDate)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {fmt(req.serviceDate)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {fmt(req.nextServiceDate)}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {req.technicianName || req.technician || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {canModerate ? (
+                      {canModerate && (
                         <button
                           onClick={() => openEdit(req)}
                           className="px-3 py-1 bg-[#DC6D18] text-white text-xs font-semibold rounded-md shadow-md hover:bg-[#B85B14]"
                         >
                           Update
                         </button>
-                      ) : (
-                        <button className="text-[#DC6D18] hover:text-[#B85B14] font-semibold">View</button>
                       )}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={totalCols} className="text-center py-10 text-gray-500">
+                  <td
+                    colSpan={totalCols}
+                    className="text-center py-10 text-gray-500"
+                  >
                     No records match the selected filters.
                   </td>
                 </tr>
@@ -689,7 +769,9 @@ export default function ServiceHistory() {
             >
               Prev
             </button>
-            <span className="px-2 py-1 text-gray-600">Page {page} / {Math.max(totalPages, 1)}</span>
+            <span className="px-2 py-1 text-gray-600">
+              Page {page} / {Math.max(totalPages, 1)}
+            </span>
             <button
               disabled={page >= Math.max(totalPages, 1)}
               onClick={() => setPage((p) => p + 1)}
@@ -713,10 +795,14 @@ export default function ServiceHistory() {
       >
         <form onSubmit={submitEdit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
             <select
               value={editForm.status}
-              onChange={(e) => setEditForm((p) => ({ ...p, status: e.target.value }))}
+              onChange={(e) =>
+                setEditForm((p) => ({ ...p, status: e.target.value }))
+              }
               className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
               required
             >
@@ -729,22 +815,33 @@ export default function ServiceHistory() {
           {editForm.status === "Serviced" && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Service Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Service Date
+                </label>
                 <input
                   type="date"
                   value={editForm.serviceDate}
-                  onChange={(e) => setEditForm((p) => ({ ...p, serviceDate: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, serviceDate: e.target.value }))
+                  }
                   className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Technician Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Technician Name
+                </label>
                 <input
                   type="text"
                   value={editForm.technicianName}
-                  onChange={(e) => setEditForm((p) => ({ ...p, technicianName: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((p) => ({
+                      ...p,
+                      technicianName: e.target.value,
+                    }))
+                  }
                   placeholder="e.g., Alex Ray"
                   className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
                   required
@@ -752,11 +849,18 @@ export default function ServiceHistory() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Next Service Date (optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Next Service Date (optional)
+                </label>
                 <input
                   type="date"
                   value={editForm.nextServiceDate}
-                  onChange={(e) => setEditForm((p) => ({ ...p, nextServiceDate: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((p) => ({
+                      ...p,
+                      nextServiceDate: e.target.value,
+                    }))
+                  }
                   className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
                 />
               </div>
@@ -765,7 +869,8 @@ export default function ServiceHistory() {
 
           {editForm.status !== "Serviced" && (
             <div className="text-xs text-gray-500">
-              When status = <b>Serviced</b>, you must specify <b>Service Date</b> and <b>Technician Name</b>.
+              When status = <b>Serviced</b>, you must specify{" "}
+              <b>Service Date</b> and <b>Technician Name</b>.
             </div>
           )}
 
