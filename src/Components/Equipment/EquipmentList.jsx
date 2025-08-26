@@ -257,6 +257,9 @@ const EquipmentDetailsRow = ({ item, isAdmin, isSuperAdmin, onDownloadQR, onAddR
   const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "-");
   const showActions = isAdmin || isSuperAdmin;
 
+  // ++ MODIFIED: The colSpan now accounts for the new 'Company Name' column.
+  const totalColumnsForRow = showActions ? 6 : 5;
+
   return (
     <>
       {/* Main visible row */}
@@ -266,7 +269,9 @@ const EquipmentDetailsRow = ({ item, isAdmin, isSuperAdmin, onDownloadQR, onAddR
           <div className="text-sm text-gray-500">{item.modelSeries}</div>
         </td>
 
-        {/* Added By (userId) */}
+        {/* ++ ADDED: Company Name cell */}
+       
+
         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
           {item.userId || item.username || "-"}
         </td>
@@ -301,7 +306,7 @@ const EquipmentDetailsRow = ({ item, isAdmin, isSuperAdmin, onDownloadQR, onAddR
       {isOpen && (
         <tr className="bg-orange-50/20">
           <td
-            colSpan={showActions ? 5 : 4}
+            colSpan={totalColumnsForRow} // ++ MODIFIED: Using the updated colSpan
             className="px-6 py-4"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-8">
@@ -358,14 +363,12 @@ export default function EquipmentList() {
   const dispatch = useDispatch();
   const { list, loading, error } = useSelector((s) => s.equipment);
 
-  // Get user info safely
   const { userInfo } = useSelector((state) => state.users || {});
   const roleRaw = (userInfo?.userType || "").toString();
   const role = roleRaw.toLowerCase();
 
   const isAdmin = role === "admin";
   const isSuperAdmin = role === "super admin";
-  const isUser = role === "user";
   const showActions = isAdmin || isSuperAdmin;
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -383,7 +386,9 @@ export default function EquipmentList() {
     return list.filter((item) => {
       const name = (item.equipmentName || "").toLowerCase();
       const user = (item.userId || item.username || "").toLowerCase();
-      return name.includes(term) || user.includes(term);
+      // ++ MODIFIED: Added companyName to the search filter
+      const company = (item.companyName || "").toLowerCase();
+      return name.includes(term) || user.includes(term) || company.includes(term);
     });
   }, [searchTerm, list]);
 
@@ -399,21 +404,18 @@ export default function EquipmentList() {
   const handleAddReport = (item) => {
     setSelectedItem(item);
     if (isAdmin) {
-      // Admin: Add Report
       setReportOpen(true);
     } else if (isSuperAdmin) {
-      // Super Admin: View Report
       setReportListOpen(true);
     }
-    // Users do not see the Actions column, so no else branch needed.
   };
 
   const handleReportSaved = () => {
     // optional: refresh or toast after save
-    // e.g., dispatch(fetchReportsByEquipment({ equipmentId: selectedItem?._id || selectedItem?.equipmentId }));
   };
-
-  const totalColumns = showActions ? 5 : 4;
+  
+  // ++ MODIFIED: totalColumns is increased by 1 to account for the new column.
+  const totalColumns = showActions ? 6 : 5;
 
   return (
     <div className="w-full max-w-7xl mx-auto">
@@ -423,7 +425,8 @@ export default function EquipmentList() {
         <div className="relative w-full md:w-1/3">
           <input
             type="text"
-            placeholder="Search by Equipment or User..."
+            // ++ MODIFIED: Placeholder text updated for better user experience
+            placeholder="Search by Equipment, User, or Company..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
@@ -450,8 +453,12 @@ export default function EquipmentList() {
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Equipment Details
                 </th>
+                {/* ++ ADDED: Company Name header */}
+               {/*  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Company Name
+                </th> */}
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Added By
+                  User name
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Installation Date

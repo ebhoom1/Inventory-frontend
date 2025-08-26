@@ -470,12 +470,12 @@ function InventoryList() {
             <thead className="bg-orange-50">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">SKU</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Updated By</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Quantity Added</th>
+{/*               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Updated By</th>
+ */}                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Quantity Added</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Quantity Used</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Left Quantity</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Update Date</th>
-              </tr>
+{/*                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Update Date</th>
+ */}              </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
@@ -489,12 +489,12 @@ function InventoryList() {
                       className="hover:bg-orange-50/50 transition-colors duration-150"
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.skuName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.lastUsedBy || '-'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{row.totalAdded ?? 0}</td>
+{/*                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.lastUsedBy || '-'}</td>
+ */}                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{row.totalAdded ?? 0}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{row.totalUsed ?? 0}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">{row.left ?? 0}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{lastDate ? lastDate.toLocaleDateString() : '-'}</td>
-                    </tr>
+{/*                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{lastDate ? lastDate.toLocaleDateString() : '-'}</td>
+ */}                    </tr>
                   );
                 })
               ) : (

@@ -453,12 +453,12 @@ function Header({ onSidebarToggle }) {
           title={onlineStatus}
         />
 
-        <button className="relative" aria-label="Notifications">
+       {/*  <button className="relative" aria-label="Notifications">
           <i className="fa-regular fa-bell text-xl" />
           <span className="absolute -top-1 -right-2 bg-red-600 text-white rounded-full px-1 text-xs">
             3
           </span>
-        </button>
+        </button> */}
 
         <div className="relative">
           <img

@@ -250,38 +250,7 @@ function UseInventory() {
       <form className="space-y-10" onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-10">
           {/* SKU Name (Dropdown) */}
-          <div className="relative flex items-center">
-            <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
-              SKU Name
-            </span>
-            <select
-              name="skuName"
-              value={formData.skuName}
-              onChange={handleChange}
-              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-              required
-              // disabled={skuLoading}
-              disabled={skuLoading || (isAdmin && !selectedUserId)}
-            >
-              <option value="">
-                {skuLoading
-                  ? "Loading SKUs…"
-                  : isAdmin && !selectedUserId
-                  ? "Select a user first"
-                  : skuError
-                  ? "Failed to load SKUs"
-                  : "Select SKU"}
-              </option>
-              {!skuLoading &&
-                !skuError &&
-                skuOptions.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-            </select>
-          </div>
-
+        
           {/* User Name */}
           <div className="relative flex items-center">
             <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
@@ -321,6 +290,38 @@ function UseInventory() {
               </select>
             )}
           </div>
+            <div className="relative flex items-center">
+            <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+              SKU Name
+            </span>
+            <select
+              name="skuName"
+              value={formData.skuName}
+              onChange={handleChange}
+              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+              required
+              // disabled={skuLoading}
+              disabled={skuLoading || (isAdmin && !selectedUserId)}
+            >
+              <option value="">
+                {skuLoading
+                  ? "Loading SKUs…"
+                  : isAdmin && !selectedUserId
+                  ? "Select a user first"
+                  : skuError
+                  ? "Failed to load SKUs"
+                  : "Select SKU"}
+              </option>
+              {!skuLoading &&
+                !skuError &&
+                skuOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+            </select>
+          </div>
+
 
           {/* Quantity Used */}
           <div className="relative flex items-center">
