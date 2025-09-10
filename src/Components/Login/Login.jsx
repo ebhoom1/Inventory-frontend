@@ -172,12 +172,13 @@ const Login = () => {
               <i className="fa-solid fa-chevron-down absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
             </div>
             
-            {/* Forgot Password Link */}
-            <div className="text-right text-sm">
-              <a href="/reset" className="font-medium text-[#DC6D18] hover:underline">
-                Forgot password?
-              </a>
-            </div>
+              {/* Forgot Password Link */}
+               <div className="text-right text-sm">
+               <a href="/resetpassword" className="font-medium text-[#DC6D18] hover:underline">
+                 Forgot password?
+                </a>
+              </div>
+
 
             {/* Login Button */}
             <button

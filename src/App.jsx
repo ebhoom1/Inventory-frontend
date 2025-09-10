@@ -1,14 +1,18 @@
 import "./App.css";
-import Login from "./Components/Login/Login";
 import { Routes, Route } from "react-router-dom";
+
+// Auth pages
+import Login from "./Components/Login/Login";
+import ResetPasswordPage from "./Components/Login/ResetPasswordPage";
+import SetPassword from "./Components/Login/SetPassword";
+
+// Dashboards & features
 import Water from "./Components/WaterDashboard/Water";
 import AddParameter from "./Components/Parameter/AddParameter";
 import Calibration from "./Components/Calibration/AddCalibration";
 import ViewCalibration from "./Components/Calibration/ViewCalibration";
 import Download from "./Components/Download";
 import Account from "./Components/Account/Account";
-import ResetLink from "./Components/Login/ResetLink";
-import SetPassword from "./Components/Login/SetPassword";
 import ManageUser from "./Components/ManageUser/ManageUser";
 import ValidateReport from "./Components/Report/ValidateReport";
 import CheckAndValidate from "./Components/Report/CheckAndValidate";
@@ -22,12 +26,16 @@ import Attendence from "./Components/Attendence/Attendence";
 import PreviousAttendence from "./Components/Attendence/PreviousAttendence";
 import EditUser from "./Components/ManageUser/EditUser";
 import ViewUser from "./Components/ManageUser/ViewUser";
+
 function App() {
   return (
     <Routes>
+      {/* Auth */}
       <Route path="/" element={<Login />} />
-      <Route path="/reset" element={<ResetLink />}></Route>
-      <Route path="/setpassword" element={<SetPassword />}></Route>
+      <Route path="/resetpassword" element={<ResetPasswordPage />} />
+      <Route path="/resetpassword/set" element={<SetPassword />} />
+
+      {/* Core */}
       <Route path="/water" element={<Dashboard />} />
       <Route path="/addparameter" element={<AddParameter />} />
       <Route path="/addcalibration" element={<Calibration />} />
