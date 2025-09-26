@@ -164,9 +164,10 @@ const Login = () => {
                 className="w-full pl-12 pr-4 py-3 border-2 border-dotted border-[#DC6D18] rounded-lg appearance-none focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-[#DC6D18] transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="" disabled>Select User Type</option>
+                <option value="Super Admin">Super Admin</option>
                 <option value="Admin">Admin</option>
                 <option value="User">User</option>
-                <option value="Super Admin">Super Admin</option>
+                <option value="Technician">Technician</option>
 
               </select>
               <i className="fa-solid fa-chevron-down absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none"></i>

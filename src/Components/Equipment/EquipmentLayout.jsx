@@ -96,12 +96,13 @@ function EquipmentLayout() {
 
   const isAdmin = role === "admin";
   const isSuperAdmin = role === "super admin";
+  const isTechnician = role === "technician";
   const isUser = role === "user";
 
   // Tabs available based on role: hide Add tab for 'user'
   const AVAILABLE_TABS = useMemo(() => {
     const base = { equipmentList: TABS.equipmentList };
-    if (isAdmin || isSuperAdmin) base.addEquipment = TABS.addEquipment;
+    if (isAdmin || isSuperAdmin ||isTechnician) base.addEquipment = TABS.addEquipment;
     return base;
   }, [isAdmin, isSuperAdmin]);
 

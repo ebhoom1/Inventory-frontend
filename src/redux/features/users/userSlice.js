@@ -56,7 +56,7 @@ export const loginUser = createAsyncThunk(
         userData,
         config
       );
-
+console.log("usserData:",userData)
       const cleanedUserInfo = {
         _id: data._id,
         userId: data.userId,

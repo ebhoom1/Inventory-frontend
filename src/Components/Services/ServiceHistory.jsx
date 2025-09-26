@@ -448,7 +448,8 @@ export default function ServiceHistory() {
   const role = (userInfo?.userType || "").toString().trim().toLowerCase();
   const isSuperAdmin = role === "super admin";
   const isAdmin = role === "admin";
-  const isManager = isAdmin || isSuperAdmin; // can view ALL
+  const isTechnician = role === "technician";
+  const isManager = isAdmin || isSuperAdmin || isTechnician; // can view ALL
   const canModerate = isSuperAdmin; // only super admin sees Actions & can update
 
   const [rowBusy, setRowBusy] = useState({});

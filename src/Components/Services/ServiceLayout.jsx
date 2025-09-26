@@ -17,15 +17,17 @@
 //   const [sidebarOpen, setSidebarOpen] = useState(false);
 //   const { userInfo } = useSelector((state) => state.users);
 
-//   // Filter tabs based on user type - Admin users don't see Request Service
-// // Only "User" role should see the Request Service tab
-// const role = userInfo?.userType;
+//   // Normalize role
+// const role = (userInfo?.userType || '').toString().trim().toLowerCase();
 
+// // Show "Request Service" ONLY for Admin
 // const availableTabs = useMemo(() => {
-//   const { requestService, ...tabsWithoutRequest } = ALL_TABS;
-//   return role === 'User' ? ALL_TABS : tabsWithoutRequest;
+//   const tabs = { ...ALL_TABS };
+//   if (role !== 'admin') {
+//     delete tabs.requestService; // hide for user & super admin
+//   }
+//   return tabs;
 // }, [role]);
-
 
 //   // Get the first available tab as default
 //   const defaultTab = Object.keys(availableTabs)[0];
@@ -41,7 +43,6 @@
 //   // Dynamically select the component to render based on the active tab
 //   const ActiveComponent = availableTabs[activeTab]?.component;
 
-//   // Handle case where no component is available
 //   if (!ActiveComponent) {
 //     return (
 //       <div className="flex min-h-screen bg-[#DC6D18]">
@@ -54,18 +55,14 @@
 
 //   return (
 //     <div className="flex min-h-screen bg-[#DC6D18]">
-//       {/* Reusable Sidebar component */}
 //       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
 //       <div className="flex-1 flex flex-col min-w-0">
-//         {/* Reusable Header component */}
 //         <Header onSidebarToggle={() => setSidebarOpen((open) => !open)} />
         
-//         {/* Main content panel with the theme's styling */}
 //         <main className="p-4 sm:p-6 md:p-8 flex-1 rounded-tl-[50px] bg-gradient-to-br from-[#FFF] to-[#FFF7ED]">
 //           <div className="w-full max-w-7xl mx-auto">
-            
-//             {/* Responsive Tab Navigation */}
+//             {/* Tabs */}
 //             <div className="border-b-2 border-[#FFEFE1] mb-6">
 //               <div className="overflow-x-auto">
 //                 <nav className="flex space-x-2 sm:space-x-4 -mb-0.5" aria-label="Tabs">
@@ -76,10 +73,9 @@
 //                       className={`whitespace-nowrap py-3 px-3 sm:px-4 border-b-4 font-semibold text-sm md:text-md transition-colors duration-200
 //                         ${
 //                           activeTab === tabKey
-//                             ? 'border-[#DC6D18] text-[#DC6D18]' // Active tab style
-//                             : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' // Inactive tab style
-//                         }
-//                       `}
+//                             ? 'border-[#DC6D18] text-[#DC6D18]'
+//                             : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+//                         }`}
 //                     >
 //                       {availableTabs[tabKey].label}
 //                     </button>
@@ -87,10 +83,9 @@
 //                 </nav>
 //               </div>
 //             </div>
-            
-//             {/* Tab Content Area */}
+
+//             {/* Content */}
 //             <div className="mt-4">
-//               {/* The selected component is rendered here */}
 //               <ActiveComponent />
 //             </div>
 //           </div>
@@ -110,10 +105,10 @@ import Sidebar from '../Sidebar/Sidebar';
 import Header from '../Header/Header';
 import { useSelector } from 'react-redux';
 
-// Configuration object for the service tabs
+// All possible tabs
 const ALL_TABS = {
-  requestService: { label: 'Request Service', component: RequestService },
-  serviceHistory: { label: 'Service History', component: ServiceHistory },
+  requestService: { label: 'Service Report', component: RequestService },
+  // serviceHistory: { label: 'Service History', component: ServiceHistory },
   serviceDue: { label: 'Service Due', component: ServiceDue },
 };
 
@@ -122,29 +117,30 @@ function ServiceLayout() {
   const { userInfo } = useSelector((state) => state.users);
 
   // Normalize role
-const role = (userInfo?.userType || '').toString().trim().toLowerCase();
+  const role = (userInfo?.userType || '').toString().trim().toLowerCase();
 
-// Show "Request Service" ONLY for Admin
-const availableTabs = useMemo(() => {
-  const tabs = { ...ALL_TABS };
-  if (role !== 'admin') {
-    delete tabs.requestService; // hide for user & super admin
-  }
-  return tabs;
-}, [role]);
+  // Tab filtering logic
+  const availableTabs = useMemo(() => {
+    if (role === 'user') {
+      // Only Request Service for user
+      return { requestService: ALL_TABS.requestService };
+    }
+    // Admin & Super Admin → see all tabs
+    return ALL_TABS;
+  }, [role]);
 
-  // Get the first available tab as default
+  // Default tab setup
   const defaultTab = Object.keys(availableTabs)[0];
   const [activeTab, setActiveTab] = useState(defaultTab);
 
-  // Ensure active tab exists in available tabs (important when user type changes)
+  // Reset if role changes
   React.useEffect(() => {
     if (!availableTabs[activeTab]) {
       setActiveTab(defaultTab);
     }
   }, [availableTabs, activeTab, defaultTab]);
 
-  // Dynamically select the component to render based on the active tab
+  // Which component to render
   const ActiveComponent = availableTabs[activeTab]?.component;
 
   if (!ActiveComponent) {
@@ -160,10 +156,10 @@ const availableTabs = useMemo(() => {
   return (
     <div className="flex min-h-screen bg-[#DC6D18]">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      
+
       <div className="flex-1 flex flex-col min-w-0">
         <Header onSidebarToggle={() => setSidebarOpen((open) => !open)} />
-        
+
         <main className="p-4 sm:p-6 md:p-8 flex-1 rounded-tl-[50px] bg-gradient-to-br from-[#FFF] to-[#FFF7ED]">
           <div className="w-full max-w-7xl mx-auto">
             {/* Tabs */}
@@ -200,3 +196,4 @@ const availableTabs = useMemo(() => {
 }
 
 export default ServiceLayout;
+

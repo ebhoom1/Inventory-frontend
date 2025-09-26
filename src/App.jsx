@@ -26,6 +26,7 @@ import Attendence from "./Components/Attendence/Attendence";
 import PreviousAttendence from "./Components/Attendence/PreviousAttendence";
 import EditUser from "./Components/ManageUser/EditUser";
 import ViewUser from "./Components/ManageUser/ViewUser";
+import RequestService from "./Components/Services/RequestService";
 
 function App() {
   return (
@@ -50,10 +51,13 @@ function App() {
       <Route path="/checkandvalidate" element={<CheckAndValidate />} />
       <Route path="/view-report" element={<ViewReport />} />
       <Route path="/inventory" element={<InventoryLayout />} />
-      <Route path="/services" element={<ServiceLayout />} />
       <Route path="/equipment" element={<EquipmentLayout />} />
       {/* <Route path="/attendence" element={<Attendence />} /> */}
       <Route path="/previous-attendence" element={<PreviousAttendence />} />
+
+      <Route path="/services" element={<ServiceLayout />} />
+      {/* <Route path="/service" element={<RequestService />} /> */}
+      {/* <Route path="/services" element={<RequestService />} /> */}
     </Routes>
   );
 }

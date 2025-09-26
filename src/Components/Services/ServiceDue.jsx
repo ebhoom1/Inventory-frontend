@@ -23,7 +23,7 @@ export default function ServiceDue() {
 
   // Who's logged in?
   const { userInfo } = useSelector((s) => s.users || {});
-const adminRoles = ['Admin', 'Super Admin'];
+const adminRoles = ['Admin', 'Super Admin',"Technician"];
 const isAdmin = adminRoles.includes(userInfo?.userType);    const getActiveUserId = () =>
     userInfo?.userId || userInfo?._id || userInfo?.id || userInfo?.username || "";
 

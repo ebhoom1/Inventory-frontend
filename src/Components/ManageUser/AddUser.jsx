@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import Swal from "sweetalert2";
 import { registerUser, reset } from "../../redux/features/users/userSlice";
 
-// Define the initial empty state for the form to help with clearing it later
 const initialFormState = {
   userId: "",
   companyName: "",
@@ -28,7 +27,6 @@ const initialFormState = {
 };
 
 const AddUser = () => {
-  // --- STATE MANAGEMENT ---
   const [form, setForm] = useState(initialFormState);
   const [formError, setFormError] = useState("");
   const [passShow, setPassShow] = useState(false);
@@ -37,15 +35,12 @@ const AddUser = () => {
   const { loading, error, registerSuccess, registerMessage, registerData } =
     useSelector((state) => state.users);
 
-  // --- SIDE EFFECTS ---
   useEffect(() => {
-    // Handle API error -> SweetAlert (modern)
     if (error) {
       const errMsg =
         typeof error === "string"
           ? error
           : error?.message || "Registration failed. Please try again.";
-
       Swal.fire({
         icon: "error",
         title: "Could not add user",
@@ -55,17 +50,12 @@ const AddUser = () => {
                </div>`,
         allowOutsideClick: true,
         confirmButtonColor: "#DC6D18",
-        showConfirmButton: false,    
+        showConfirmButton: false,
         background: "#fff",
         color: "#111827",
-        backdrop: `
-          rgba(0,0,0,0.4)
-          left top
-          no-repeat
-        `,
+        backdrop: `rgba(0,0,0,0.4) left top no-repeat`,
       });
       setFormError(errMsg);
-      // do not reset slice here; keep error visible until next submit/reset
     }
   }, [error]);
 
@@ -95,34 +85,21 @@ const AddUser = () => {
         background: "#ffffff",
         color: "#111827",
         confirmButtonColor: "#DC6D18",
-        timer: 2000, // ⏳ auto-close after 2 seconds
+        timer: 2000,
         timerProgressBar: true,
         showConfirmButton: false,
         allowOutsideClick: false,
         allowEscapeKey: false,
-        backdrop: `
-        linear-gradient(120deg, rgba(220,109,24,0.25), rgba(255,237,213,0.35))
-        left top
-        no-repeat
-      `,
+        backdrop: `linear-gradient(120deg, rgba(220,109,24,0.25), rgba(255,237,213,0.35)) left top no-repeat`,
         didClose: () => {
-          // Reset form and slice after alert closes
           setForm(initialFormState);
           dispatch(reset());
           setFormError("");
         },
       });
     }
-  }, [
-    registerSuccess,
-    registerMessage,
-    registerData,
-    dispatch,
-    form.email,
-    form.userId,
-  ]);
+  }, [registerSuccess, registerMessage, registerData, dispatch, form.email, form.userId]);
 
-  // --- HANDLER FUNCTIONS ---
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -130,7 +107,6 @@ const AddUser = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setFormError("");
-
     if (form.password !== form.confirmPassword) {
       setFormError("Passwords do not match!");
       Swal.fire({
@@ -142,19 +118,15 @@ const AddUser = () => {
       });
       return;
     }
-
-    // Dispatch registration
     dispatch(registerUser(form));
   };
 
-  // --- JSX RENDER ---
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 mb-8 mx-auto">
       <h2 className="text-xl font-bold text-[#DC6D18] mb-6 text-center">
         Add User
       </h2>
 
-      {/* Display for form validation or API errors */}
       {formError && (
         <div className="text-red-600 bg-red-50 border border-red-200 p-3 rounded-lg mb-4 text-center font-semibold">
           {formError}
@@ -256,7 +228,6 @@ const AddUser = () => {
         </div>
 
         {/* Password */}
-        {/* Password (toggle like Login) */}
         <div className="relative">
           <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
             Password
@@ -272,15 +243,13 @@ const AddUser = () => {
             required
           />
           <i
-            className={`fa-solid ${
-              passShow ? "fa-eye" : "fa-eye-slash"
-            } absolute top-[15px] right-4 cursor-pointer text-[#DC6D18]`}
+            className={`fa-solid ${passShow ? "fa-eye" : "fa-eye-slash"} absolute top-[15px] right-4 cursor-pointer text-[#DC6D18]`}
             onClick={() => setPassShow((v) => !v)}
             title={passShow ? "Hide password" : "Show password"}
           />
         </div>
 
-        {/* Confirm Password (toggle like Login) */}
+        {/* Confirm Password */}
         <div className="relative">
           <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
             Confirm Password
@@ -296,15 +265,13 @@ const AddUser = () => {
             required
           />
           <i
-            className={`fa-solid ${
-              confirmPassShow ? "fa-eye" : "fa-eye-slash"
-            } absolute top-[15px] right-4 cursor-pointer text-[#DC6D18]`}
+            className={`fa-solid ${confirmPassShow ? "fa-eye" : "fa-eye-slash"} absolute top-[15px] right-4 cursor-pointer text-[#DC6D18]`}
             onClick={() => setConfirmPassShow((v) => !v)}
             title={confirmPassShow ? "Hide password" : "Show password"}
           />
         </div>
 
-        {/* Date of subscription */}
+        {/* Date of Subscription */}
         <div className="relative">
           <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
             Date of Subscription
@@ -348,23 +315,25 @@ const AddUser = () => {
             <option value="Admin">Admin</option>
             <option value="User">User</option>
             <option value="Super Admin">Super Admin</option>
-            <option value="Operator">Operator</option>
+            <option value="Technician">Technician</option>
           </select>
         </div>
 
-        {/* Admin Type */}
+        {/* Admin Type - changed to dropdown */}
         <div className="relative">
           <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
             Admin Type
           </span>
-          <input
+          <select
             name="adminType"
             value={form.adminType}
             onChange={handleChange}
-            placeholder="e.g., Super, Regional"
             className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
             required
-          />
+          >
+            {/* <option value="">Select Admin Type</option> */}
+            <option value="Admin">Admin</option>
+          </select>
         </div>
 
         {/* Assign Operator(s) */}
@@ -479,7 +448,7 @@ const AddUser = () => {
           />
         </div>
 
-        {/* Submit Button */}
+        {/* Submit */}
         <div className="flex justify-center md:col-span-2 mt-6">
           <button
             type="submit"
