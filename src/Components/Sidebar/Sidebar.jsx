@@ -251,14 +251,24 @@ function Sidebar({ isOpen, onClose }) {
     "flex items-center p-3 rounded-md cursor-pointer transition-colors duration-200 hover:bg-[#FFF7ED] hover:text-[#DC6D18]";
 
   // normalize role from either users slice or user slice
-  const rawRole =
-    userInfo?.userType ||
-    ""; // you also read adminType from s.user elsewhere; Sidebar used users slice
-  const role = String(rawRole).toLowerCase().replace(/\s+/g, "");
-  const isAdmin = role === "admin";
-  const isSuperAdmin = role === "superadmin";
-  const isUser = role === "user";
-  const isTechnician=role=="technician";
+  // const rawRole =
+  //   userInfo?.userType ||
+  //   ""; // you also read adminType from s.user elsewhere; Sidebar used users slice
+  // const role = String(rawRole).toLowerCase().replace(/\s+/g, "");
+  // const isAdmin = role === "admin";
+  // const isSuperAdmin = role === "superadmin";
+  // const isUser = role === "user";
+  // const isTechnician=role=="technician";
+  const rawRole = userInfo?.userType || "";
+const role = String(rawRole).toLowerCase().replace(/\s+/g, "");
+const isAdmin = role === "admin";
+const isSuperAdmin = role === "superadmin";
+const isTechnician = role === "technician";
+const isUser = role === "user";
+
+const canSeeInventory = isAdmin || isSuperAdmin || isTechnician;
+
+
 
   return (
     <>
@@ -302,13 +312,16 @@ function Sidebar({ isOpen, onClose }) {
               <span>Manage Users</span>
             </li>
           )}
+          
+          {/** Show Inventory for admin-like roles; hide for end users. */} 
+           {canSeeInventory && (
+  <li className={navItemClasses} onClick={() => navigate("/inventory")}>
+    <span className="mr-4 text-xl" />
+    <span>Inventory</span>
+  </li>
+)}
 
-          {!isUser||!isTechnician && (
-            <li className={navItemClasses} onClick={() => navigate("/inventory")}>
-              <span className="mr-4 text-xl" />
-              <span>Inventory</span>
-            </li>
-          )}
+          
 
           {/* Always show Services (same component for all; UI adapts by role) */}
           <li className={navItemClasses} onClick={() => navigate("/services")}>
