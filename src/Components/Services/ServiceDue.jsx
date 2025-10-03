@@ -12,8 +12,9 @@ const DueDate = ({ value }) => {
   if (!dueDate) return <span className="text-gray-400">N/A</span>;
 
   let cls = "text-gray-600";
-  if (dueDate < today) cls = "text-red-600 font-bold";                           // Overdue
-  else if (dueDate - today <= 7 * 24 * 60 * 60 * 1000) cls = "text-orange-600 font-semibold"; // Due in 7 days
+  if (dueDate < today) cls = "text-red-600 font-bold"; // Overdue
+  else if (dueDate - today <= 7 * 24 * 60 * 60 * 1000)
+    cls = "text-orange-600 font-semibold"; // Due in 7 days
 
   return <span className={cls}>{dueDate.toLocaleDateString()}</span>;
 };
@@ -23,9 +24,16 @@ export default function ServiceDue() {
 
   // Who's logged in?
   const { userInfo } = useSelector((s) => s.users || {});
-const adminRoles = ['Admin', 'Super Admin',"Technician"];
-const isAdmin = adminRoles.includes(userInfo?.userType);    const getActiveUserId = () =>
-    userInfo?.userId || userInfo?._id || userInfo?.id || userInfo?.username || "";
+  const adminRoles = ["Admin", "Super Admin", "Technician"];
+  const isAdmin = adminRoles.includes(userInfo?.userType);
+  const isSuperAdmin =
+    (userInfo?.userType || "").toString().toLowerCase() === "super admin";
+  const getActiveUserId = () =>
+    userInfo?.userId ||
+    userInfo?._id ||
+    userInfo?.id ||
+    userInfo?.username ||
+    "";
 
   // From Redux slice
   const { due, loading, error } = useSelector((s) => s.serviceRequests);
@@ -35,7 +43,8 @@ const isAdmin = adminRoles.includes(userInfo?.userType);    const getActiveUserI
   const [filter, setFilter] = useState({
     month: now.getMonth() + 1,
     year: now.getFullYear(),
-    includeOverdue: true,
+    includeOverdue: false,
+    userId: "all", // NEW
   });
 
   // Fetch on mount and whenever filters/role change
@@ -43,22 +52,45 @@ const isAdmin = adminRoles.includes(userInfo?.userType);    const getActiveUserI
     const q = {};
     if (filter.month !== "all") q.month = filter.month;
     if (filter.year !== "all") q.year = filter.year;
-    if (filter.includeOverdue) q.includeOverdue = true;
-    if (!isAdmin) {
+    // if (filter.includeOverdue) q.includeOverdue = true;
+    q.includeOverdue = filter.includeOverdue ? "true" : "false";
+
+    // if (!isAdmin) {
+    //   const uid = getActiveUserId();
+    //   if (uid) q.userId = uid;
+    // }
+    if (isSuperAdmin) {
+      if (filter.userId && filter.userId !== "all") q.userId = filter.userId;
+    } else if (!isAdmin) {
       const uid = getActiveUserId();
       if (uid) q.userId = uid;
     }
+
     dispatch(listServiceDue(q));
-  }, [dispatch, isAdmin, filter.month, filter.year, filter.includeOverdue]);
+  }, [
+    dispatch,
+    isAdmin,
+    isSuperAdmin,
+    filter.month,
+    filter.year,
+    filter.includeOverdue,
+    filter.userId,
+  ]);
 
   // Month/Year dropdowns
   const availableMonths = [
-    { value: "all", label: "All Months" }, { value: 1, label: "January" },
-    { value: 2, label: "February" }, { value: 3, label: "March" },
-    { value: 4, label: "April" }, { value: 5, label: "May" },
-    { value: 6, label: "June" }, { value: 7, label: "July" },
-    { value: 8, label: "August" }, { value: 9, label: "September" },
-    { value: 10, label: "October" }, { value: 11, label: "November" },
+    { value: "all", label: "All Months" },
+    { value: 1, label: "January" },
+    { value: 2, label: "February" },
+    { value: 3, label: "March" },
+    { value: 4, label: "April" },
+    { value: 5, label: "May" },
+    { value: 6, label: "June" },
+    { value: 7, label: "July" },
+    { value: 8, label: "August" },
+    { value: 9, label: "September" },
+    { value: 10, label: "October" },
+    { value: 11, label: "November" },
     { value: 12, label: "December" },
   ];
 
@@ -66,7 +98,9 @@ const isAdmin = adminRoles.includes(userInfo?.userType);    const getActiveUserI
   const availableYears = useMemo(() => {
     const years = new Set(
       (due || [])
-        .map((r) => r?.nextServiceDate && new Date(r.nextServiceDate).getFullYear())
+        .map(
+          (r) => r?.nextServiceDate && new Date(r.nextServiceDate).getFullYear()
+        )
         .filter(Boolean)
     );
     if (years.size === 0) {
@@ -74,6 +108,21 @@ const isAdmin = adminRoles.includes(userInfo?.userType);    const getActiveUserI
       return ["all", y, y - 1, y - 2, y - 3, y - 4];
     }
     return ["all", ...Array.from(years).sort((a, b) => b - a)];
+  }, [due]);
+
+  //users dropdown filtering
+  const availableUsers = useMemo(() => {
+    // Collect unique userIds from the current "due" data
+    const ids = new Set(
+      (Array.isArray(due) ? due : []).map((r) => r?.userId).filter(Boolean)
+    );
+    // Return as [{value,label}, ...] for a nice dropdown
+    return [
+      { value: "all", label: "All Users" },
+      ...Array.from(ids)
+        .sort()
+        .map((u) => ({ value: u, label: u })),
+    ];
   }, [due]);
 
   const onFilterChange = (e) => {
@@ -100,6 +149,24 @@ const isAdmin = adminRoles.includes(userInfo?.userType);    const getActiveUserI
             />
             Include overdue
           </label>
+          {isSuperAdmin && (
+            <select
+              name="userId"
+              value={filter.userId}
+              onChange={(e) =>
+                setFilter((p) => ({ ...p, userId: e.target.value }))
+              }
+              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
+              title="Filter by user who created the service record"
+            >
+              {availableUsers.map((u) => (
+                <option key={u.value} value={u.value}>
+                  {u.label}
+                </option>
+              ))}
+            </select>
+          )}
+
           <select
             name="month"
             value={filter.month}
@@ -127,7 +194,9 @@ const isAdmin = adminRoles.includes(userInfo?.userType);    const getActiveUserI
         </div>
       </div>
 
-      {loading && <div className="mb-3 text-sm text-gray-600">Loading due items…</div>}
+      {loading && (
+        <div className="mb-3 text-sm text-gray-600">Loading due items…</div>
+      )}
       {error && <div className="mb-3 text-sm text-red-600">Error: {error}</div>}
 
       <div className="bg-white shadow-lg rounded-xl overflow-hidden">
@@ -135,16 +204,27 @@ const isAdmin = adminRoles.includes(userInfo?.userType);    const getActiveUserI
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Equipment</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Service Type</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Service</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Next Service Due</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Equipment
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Service Type
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Last Service
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Next Service Due
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {Array.isArray(due) && due.length > 0 ? (
                 due.map((item) => (
-                  <tr key={item._id || item.id} className="hover:bg-orange-50/50 transition-colors duration-150">
+                  <tr
+                    key={item._id || item.id}
+                    className="hover:bg-orange-50/50 transition-colors duration-150"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {item.equipmentName || item.equipment || "-"}
                     </td>

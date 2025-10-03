@@ -47,12 +47,7 @@ const DATE_ONLY_FIELDS = new Set([
   "nextServiceDate",
 ]);
 
-const DATE_TIME_FIELDS = new Set([
-  "date",
-  "createdAt",
-  "updatedAt",
-]);
-
+const DATE_TIME_FIELDS = new Set(["date", "createdAt", "updatedAt"]);
 
 function RequestService() {
   const dispatch = useDispatch();
@@ -74,6 +69,8 @@ function RequestService() {
   const role = String(userRoleRaw).toLowerCase().replace(/\s+/g, "");
   const isAdmin = ["admin", "superadmin", "megaadmin"].includes(role);
   const isTechnician = ["technician"].includes(role);
+  // ADD THIS:
+  const isSuperAdmin = role === "superadmin";
 
   // ----- State -----
   const [formData, setFormData] = useState({
@@ -113,6 +110,38 @@ function RequestService() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
 
+  // ADD THESE STATES (near other useState calls):
+  const [userList, setUserList] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [userReports, setUserReports] = useState([]);
+  const [userLoading, setUserLoading] = useState(false);
+  const [userError, setUserError] = useState("");
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+
+    let abort = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/reports/users`);
+        const data = await res.json();
+        if (!abort) {
+          if (res.ok && data?.success !== false) {
+            setUserList(data.users || []);
+          } else {
+            setUserError("Failed to load users");
+          }
+        }
+      } catch (e) {
+        if (!abort) setUserError("Failed to load users");
+      }
+    })();
+
+    return () => {
+      abort = true;
+    };
+  }, [isSuperAdmin]);
+
   // ----- Modal -----
   const openReportModal = (rep) => {
     setSelectedReport(rep);
@@ -135,21 +164,44 @@ function RequestService() {
   // };
 
   // Open a URL in a new tab. Works for both PDF (inline) and CSV (attachment)
-const openInNewTab = (url) => {
-  // Try window.open first
-  const win = window.open(url, "_blank", "noopener,noreferrer");
-  if (!win) {
-    // Fallback if popup blocked: simulate a click on an anchor
-    const a = document.createElement("a");
-    a.href = url;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }
-};
+  const openInNewTab = (url) => {
+    // Try window.open first
+    const win = window.open(url, "_blank", "noopener,noreferrer");
+    if (!win) {
+      // Fallback if popup blocked: simulate a click on an anchor
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+  };
 
+  const fetchReportsForUser = async (uid) => {
+    if (!uid) {
+      setUserReports([]);
+      return;
+    }
+    setUserLoading(true);
+    setUserError("");
+
+    try {
+      const res = await fetch(
+        `${API_URL}/api/reports?userId=${encodeURIComponent(uid)}&limit=100`
+      );
+      const data = await res.json();
+
+      // API may return either an array or a {items: []} envelope
+      const items = Array.isArray(data) ? data : data.items || [];
+      setUserReports(items);
+    } catch (e) {
+      setUserError("Failed to load reports");
+    } finally {
+      setUserLoading(false);
+    }
+  };
 
   // list of fields to show in modal
   const REPORT_FIELDS = [
@@ -206,7 +258,11 @@ const openInNewTab = (url) => {
         const data = await res.json();
 
         if (!res.ok || data?.success === false) {
-          Swal.fire({ title: "Not Found", text: "Equipment not found", icon: "error" });
+          Swal.fire({
+            title: "Not Found",
+            text: "Equipment not found",
+            icon: "error",
+          });
           setScannerVisible(false);
           return;
         }
@@ -219,7 +275,7 @@ const openInNewTab = (url) => {
           equipmentId: eq.equipmentId || prev.equipmentId,
           equipmentName: eq.equipmentName || prev.equipmentName,
           userId: eq.userId || prev.userId,
-           location: eq.location || prev.location, // âœ… NEW
+          location: eq.location || prev.location, // âœ… NEW
         }));
 
         Swal.fire({
@@ -233,13 +289,16 @@ const openInNewTab = (url) => {
         // Fetch report history for this equipment
         if (eq.equipmentId) {
           const repRes = await fetch(
-            `${API_URL}/api/reports?equipmentId=${encodeURIComponent(eq.equipmentId)}`
+            `${API_URL}/api/reports?equipmentId=${encodeURIComponent(
+              eq.equipmentId
+            )}`
           );
           const repData = await repRes.json();
 
           let reports = [];
           if (Array.isArray(repData)) reports = repData;
-          else if (repData && Array.isArray(repData.items)) reports = repData.items;
+          else if (repData && Array.isArray(repData.items))
+            reports = repData.items;
 
           if (repRes.ok && reports.length > 0) {
             const sorted = [...reports].sort(
@@ -266,7 +325,7 @@ const openInNewTab = (url) => {
                 refillingDue: last.refillingDue
                   ? last.refillingDue.slice(0, 10)
                   : prev.refillingDue,
-                  nextServiceDate: last.nextServiceDate,
+                nextServiceDate: last.nextServiceDate,
                 product: last.product ?? prev.product,
                 others: last.others ?? prev.others,
                 tag: last.tag ?? prev.tag,
@@ -277,7 +336,8 @@ const openInNewTab = (url) => {
                 baseCap: last.baseCap ?? prev.baseCap,
                 powderFlow: last.powderFlow ?? prev.powderFlow,
                 remarks: last.remarks ?? prev.remarks,
-                faultDescription: last.faultDescription ?? prev.faultDescription,
+                faultDescription:
+                  last.faultDescription ?? prev.faultDescription,
                 serviceType: last.serviceType ?? prev.serviceType,
               }));
             }
@@ -287,27 +347,29 @@ const openInNewTab = (url) => {
         }
       } catch (err) {
         console.error("QR fetch error:", err);
-        Swal.fire({ title: "Error", text: "Could not fetch equipment info", icon: "error" });
+        Swal.fire({
+          title: "Error",
+          text: "Could not fetch equipment info",
+          icon: "error",
+        });
       }
 
       setScannerVisible(false);
     };
 
-    scanner
-      .start({ facingMode: "user" }, qrConfig, onSuccess)
-      .catch(() => {
-        Swal.fire({
-          title: "Camera Error",
-          text: "Grant camera permission.",
-          icon: "error",
-        });
-        setScannerVisible(false);
+    scanner.start({ facingMode: "user" }, qrConfig, onSuccess).catch(() => {
+      Swal.fire({
+        title: "Camera Error",
+        text: "Grant camera permission.",
+        icon: "error",
       });
+      setScannerVisible(false);
+    });
 
     return () => {
       scanner.stop().catch(() => {});
     };
-  }, [isScannerVisible, isAdmin,isTechnician]);
+  }, [isScannerVisible, isAdmin, isTechnician]);
 
   // ----- Submission feedback -----
   useEffect(() => {
@@ -345,23 +407,22 @@ const openInNewTab = (url) => {
     if (!(isAdmin || isTechnician)) return; // safety
     // dispatch(createServiceRequest(formData));
 
-   //date 
-//    const payload = {
-//   ...formData,
-//    // If user didn't pick a date, use now (ISO). If your backend expects yyyy-mm-dd, slice(0,10)
-//    date: formData?.date || new Date().toISOString(),
-//    // Map your existing "Refilling/Service Due" -> nextServiceDate
-//    nextServiceDate: formData?.nextServiceDate || formData?.refillingDue
-//  };
-//  dispatch(createServiceRequest(payload));
-const payload = {
-  ...formData,
-  date: formData?.date || new Date().toISOString(),
-  nextServiceDate: formData?.nextServiceDate || formData?.refillingDue || null,
-};
-dispatch(createServiceRequest(payload));
-
-
+    //date
+    //    const payload = {
+    //   ...formData,
+    //    // If user didn't pick a date, use now (ISO). If your backend expects yyyy-mm-dd, slice(0,10)
+    //    date: formData?.date || new Date().toISOString(),
+    //    // Map your existing "Refilling/Service Due" -> nextServiceDate
+    //    nextServiceDate: formData?.nextServiceDate || formData?.refillingDue
+    //  };
+    //  dispatch(createServiceRequest(payload));
+    const payload = {
+      ...formData,
+      date: formData?.date || new Date().toISOString(),
+      nextServiceDate:
+        formData?.nextServiceDate || formData?.refillingDue || null,
+    };
+    dispatch(createServiceRequest(payload));
   };
 
   const inputClass =
@@ -371,12 +432,159 @@ dispatch(createServiceRequest(payload));
   return (
     <div className="w-full max-w-5xl mx-auto">
       <h2 className="text-2xl md:text-3xl font-bold text-center text-[#DC6D18] mb-8 md:mb-10">
-        {isAdmin||isTechnician ? "Equipment Service Report" : "Service Report History"}
+        {isAdmin || isTechnician
+          ? "Equipment Service Report"
+          : "Service Report History"}
       </h2>
+
+      {/* ===== Super Admin: filter reports by user ===== */}
+      {isSuperAdmin && (
+        <div className="mb-6 p-4 border-2 border-dashed border-gray-300 rounded-xl bg-white">
+          <label className="block text-sm font-semibold text-gray-600 mb-2">
+            Filter by User
+          </label>
+
+          <div className="flex gap-3 items-center">
+            <select
+              className={inputClass}
+              value={selectedUserId}
+              onChange={(e) => {
+                const uid = e.target.value;
+                setSelectedUserId(uid);
+                fetchReportsForUser(uid);
+              }}
+            >
+              <option value="">— Select a user —</option>
+              {userList.map((u) => (
+                <option key={u.userId} value={u.userId}>
+                  {u.name || u.userId}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Results */}
+          <div className="mt-4">
+            {userLoading && (
+              <div className="text-sm text-gray-600">Loading…</div>
+            )}
+            {userError && (
+              <div className="text-sm text-red-600">{userError}</div>
+            )}
+
+            {!userLoading && !userError && selectedUserId && (
+              <div className="overflow-x-auto bg-white rounded-lg shadow">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                        Date
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                        Equipment
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                        Service Type
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {userReports.length === 0 ? (
+                      <tr>
+                        <td
+                          className="px-4 py-4 text-sm text-gray-600"
+                          colSpan={4}
+                        >
+                          No reports found for this user.
+                        </td>
+                      </tr>
+                    ) : (
+                      userReports.map((rep) => {
+                        const pdfUrl =
+                          rep.pdfUrl || `${API_URL}/api/reports/${rep._id}/pdf`;
+                        const csvUrl =
+                          rep.csvUrl || `${API_URL}/api/reports/${rep._id}/csv`;
+
+                        return (
+                          <tr key={rep._id}>
+                            <td className="px-4 py-3 text-sm text-gray-700">
+                              {formatISTDateTime(rep.createdAt || rep.date)}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-700">
+                              {rep.equipmentName || rep.equipmentId || "-"}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-700">
+                              {rep.serviceType || "-"}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openReportModal(rep);
+                                  }}
+                                  className="px-3 py-1 rounded-md bg-[#DC6D18] text-white hover:bg-[#B85B14]"
+                                >
+                                  View Report
+                                </button>
+                                {/* <button
+                            type="button"
+                            onClick={() => openInNewTab(pdfUrl)}
+                            className="px-3 py-1 rounded-md border border-gray-300 hover:bg-gray-50"
+                          >
+                            PDF
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openInNewTab(csvUrl)}
+                            className="px-3 py-1 rounded-md border border-gray-300 hover:bg-gray-50"
+                          >
+                            CSV
+                          </button> */}
+                                {/* PDF — open in new tab once */}
+                                <a
+                                  href={pdfUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="px-3 py-1 rounded-md border border-gray-300 hover:bg-gray-50 inline-block"
+                                >
+                                  Download PDF
+                                </a>
+
+                                {/* CSV — force download, single fire */}
+                                <a
+                                  href={csvUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  download
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="px-3 py-1 rounded-md border border-gray-300 hover:bg-gray-50 inline-block"
+                                >
+                                  Download CSV
+                                </a>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <form
         className="space-y-6"
-        onSubmit={isAdmin||isTechnician ? handleSubmit : (e) => e.preventDefault()}
+        onSubmit={
+          isAdmin || isTechnician ? handleSubmit : (e) => e.preventDefault()
+        }
       >
         {/* Equipment ID + QR Scanner */}
         <div className="flex items-end gap-4 p-4 border-2 border-dashed border-gray-300 rounded-xl">
@@ -441,7 +649,7 @@ dispatch(createServiceRequest(payload));
           </div>
 
           {/* Admin-only form fields */}
-          {(isAdmin ||isTechnician) && (
+          {(isAdmin || isTechnician) && (
             <>
               {[
                 ["branchLocation", "Branch/Location"],
@@ -494,18 +702,17 @@ dispatch(createServiceRequest(payload));
                 />
               </div>
               <div className="relative">
-  <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18]">
-    Next Service Date
-  </span>
-  <input
-    type="date"
-    name="nextServiceDate"
-    value={formData.nextServiceDate}
-    onChange={handleChange}
-    className={inputClass}
-  />
-</div>
-
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18]">
+                  Next Service Date
+                </span>
+                <input
+                  type="date"
+                  name="nextServiceDate"
+                  value={formData.nextServiceDate}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
 
               {/* Dropdowns */}
               {[
@@ -513,9 +720,17 @@ dispatch(createServiceRequest(payload));
                 ["safetyPin", "Safety Pin", ["yes", "no", "na"]],
                 ["pressureGauge", "Pressure Gauge", ["Green", "Red", "na"]],
                 ["valveSupport", "Valve Support", ["yes", "no", "na"]],
-                ["corrosion", "Corrosion", ["Fine", "Moderate", "Severe", "na"]],
+                [
+                  "corrosion",
+                  "Corrosion",
+                  ["Fine", "Moderate", "Severe", "na"],
+                ],
                 ["baseCap", "Base Cap", ["Ok", "Damaged", "Missing", "na"]],
-                ["powderFlow", "Powder Flow", ["good", "average", "poor", "na"]],
+                [
+                  "powderFlow",
+                  "Powder Flow",
+                  ["good", "average", "poor", "na"],
+                ],
               ].map(([name, label, options]) => (
                 <div className="relative" key={name}>
                   <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18]">
@@ -550,7 +765,9 @@ dispatch(createServiceRequest(payload));
                   required
                 >
                   <option value="">Select a service type</option>
-                  <option value="Routine Maintenance">Routine Maintenance</option>
+                  <option value="Routine Maintenance">
+                    Routine Maintenance
+                  </option>
                   <option value="Repair">Repair</option>
                   <option value="Inspection">Inspection</option>
                   <option value="Calibration">Calibration</option>
@@ -601,7 +818,7 @@ dispatch(createServiceRequest(payload));
         </div>
 
         {/* Submit only for Admins and technicians*/}
-        {(isAdmin||isTechnician ) && (
+        {(isAdmin || isTechnician) && (
           <div className="flex justify-center pt-4">
             <button
               type="submit"
@@ -633,25 +850,27 @@ dispatch(createServiceRequest(payload));
                 <div className="bg-orange-50 px-4 py-3 flex flex-wrap gap-3 justify-between items-center">
                   <div className="min-w-0">
                     <div className="font-semibold truncate">
-                      {rep.title ||
-                        `Report - ${formatISTDate(rep.createdAt)}`}
+                      {rep.title || `Report - ${formatISTDate(rep.createdAt)}`}
                     </div>
                     {rep.createdAt && (
                       <div className="text-sm text-gray-600">
-                         {formatISTDateTime(rep.createdAt)}
+                        {formatISTDateTime(rep.createdAt)}
                       </div>
                     )}
                   </div>
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => openReportModal(rep)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openReportModal(rep);
+                      }}
                       className="px-4 py-2 rounded-lg bg-[#DC6D18] text-white hover:bg-[#B85B14] shadow-sm"
                     >
                       View report
                     </button>
 
-                    {rep.pdfUrl && (
+                    {/* {rep.pdfUrl && (
                       <button
                         type="button"
                         // onClick={() =>
@@ -676,6 +895,32 @@ dispatch(createServiceRequest(payload));
                       >
                         Download CSV
                       </button>
+                    )} */}
+
+                    {rep.pdfUrl && (
+                      <a
+                        href={rep.pdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-black shadow-sm inline-block"
+                        title="Download PDF"
+                      >
+                        Download PDF
+                      </a>
+                    )}
+                    {rep.csvUrl && (
+                      <a
+                        href={rep.csvUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download
+                        onClick={(e) => e.stopPropagation()}
+                        className="px-4 py-2 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 shadow-sm inline-block"
+                        title="Download CSV"
+                      >
+                        Download CSV
+                      </a>
                     )}
                   </div>
                 </div>
@@ -695,7 +940,9 @@ dispatch(createServiceRequest(payload));
           />
           <div className="relative bg-white w-[95vw] max-w-3xl rounded-xl shadow-xl p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4 sticky bg-white">
-              <h4 className="text-lg font-semibold text-[#DC6D18]">Report Details</h4>
+              <h4 className="text-lg font-semibold text-[#DC6D18]">
+                Report Details
+              </h4>
               <button
                 onClick={closeReportModal}
                 className="text-2xl leading-none"
@@ -710,13 +957,11 @@ dispatch(createServiceRequest(payload));
                   <span className="font-medium text-gray-700">{label}:</span>
                   <span className="text-gray-900 text-right">
                     {/* {selectedReport[key] || "â€”"} */}
-                     {
-    DATE_TIME_FIELDS.has(key)
-      ? formatISTDateTime(selectedReport[key])
-      : DATE_ONLY_FIELDS.has(key)
-        ? formatISTDate(selectedReport[key])
-        : (selectedReport[key] || "—")
-  }
+                    {DATE_TIME_FIELDS.has(key)
+                      ? formatISTDateTime(selectedReport[key])
+                      : DATE_ONLY_FIELDS.has(key)
+                      ? formatISTDate(selectedReport[key])
+                      : selectedReport[key] || "—"}
                   </span>
                 </div>
               ))}

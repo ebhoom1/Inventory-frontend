@@ -3,11 +3,20 @@ import { API_URL } from "../../../../utils/apiConfig";
 
 const getAuthHeader = (getState) => {
   const token =
+    getState()?.users?.userInfo?.token ||   // ✅ correct path
     getState()?.auth?.user?.token ||
     getState()?.users?.user?.token ||
     localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
+
+// const getAuthHeader = (getState) => {
+//   const token =
+//     getState()?.auth?.user?.token ||
+//     getState()?.users?.user?.token ||
+//     localStorage.getItem("token");
+//   return token ? { Authorization: `Bearer ${token}` } : {};
+// };
 
 const qs = (params = {}) =>
   Object.entries(params)

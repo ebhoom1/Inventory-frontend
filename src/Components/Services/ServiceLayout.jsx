@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import RequestService from './RequestService';
 import ServiceHistory from './ServiceHistory';

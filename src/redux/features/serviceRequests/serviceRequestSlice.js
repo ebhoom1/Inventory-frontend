@@ -98,13 +98,21 @@ export const listServiceDue = createAsyncThunk(
   "serviceRequests/listDue",
   async (params, { getState, rejectWithValue }) => {
     try {
-      const res = await getServiceDueApi(params, getState);
+      const { userInfo } = getState().users;   // ✅ get logged in user from redux
+      const res = await getServiceDueApi(
+        {
+          ...params,
+          headers: { Authorization: `Bearer ${userInfo?.token}` }, // ✅ add token
+        },
+        getState
+      );
       return res; // array of history docs with nextServiceDate
     } catch (e) {
       return rejectWithValue(rejectMsg(e));
     }
   }
 );
+
 
 // GET BY ID
 export const getServiceRequestById = createAsyncThunk(

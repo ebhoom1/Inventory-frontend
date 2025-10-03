@@ -32,6 +32,7 @@ const AddUser = () => {
   const [passShow, setPassShow] = useState(false);
   const [confirmPassShow, setConfirmPassShow] = useState(false);
   const dispatch = useDispatch();
+  const { userInfo } = useSelector((state) => state.users);
   const { loading, error, registerSuccess, registerMessage, registerData } =
     useSelector((state) => state.users);
 
@@ -98,7 +99,14 @@ const AddUser = () => {
         },
       });
     }
-  }, [registerSuccess, registerMessage, registerData, dispatch, form.email, form.userId]);
+  }, [
+    registerSuccess,
+    registerMessage,
+    registerData,
+    dispatch,
+    form.email,
+    form.userId,
+  ]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -120,6 +128,11 @@ const AddUser = () => {
     }
     dispatch(registerUser(form));
   };
+
+  const roleOptions =
+    userInfo?.userType === "Admin"
+      ? ["User", "Technician"] // Admins can only add these
+      : ["Admin", "User", "Super Admin", "Technician"]; // Super Admin sees all
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 mb-8 mx-auto">
@@ -243,7 +256,9 @@ const AddUser = () => {
             required
           />
           <i
-            className={`fa-solid ${passShow ? "fa-eye" : "fa-eye-slash"} absolute top-[15px] right-4 cursor-pointer text-[#DC6D18]`}
+            className={`fa-solid ${
+              passShow ? "fa-eye" : "fa-eye-slash"
+            } absolute top-[15px] right-4 cursor-pointer text-[#DC6D18]`}
             onClick={() => setPassShow((v) => !v)}
             title={passShow ? "Hide password" : "Show password"}
           />
@@ -265,7 +280,9 @@ const AddUser = () => {
             required
           />
           <i
-            className={`fa-solid ${confirmPassShow ? "fa-eye" : "fa-eye-slash"} absolute top-[15px] right-4 cursor-pointer text-[#DC6D18]`}
+            className={`fa-solid ${
+              confirmPassShow ? "fa-eye" : "fa-eye-slash"
+            } absolute top-[15px] right-4 cursor-pointer text-[#DC6D18]`}
             onClick={() => setConfirmPassShow((v) => !v)}
             title={confirmPassShow ? "Hide password" : "Show password"}
           />
@@ -311,11 +328,17 @@ const AddUser = () => {
             className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
             required
           >
-            <option value="">Select user type</option>
+            {/* <option value="">Select user type</option>
             <option value="Admin">Admin</option>
             <option value="User">User</option>
             <option value="Super Admin">Super Admin</option>
-            <option value="Technician">Technician</option>
+            <option value="Technician">Technician</option> */}
+            <option value="">Select user type</option>
+            {roleOptions.map((role) => (
+              <option key={role} value={role}>
+                {role}
+              </option>
+            ))}
           </select>
         </div>
 

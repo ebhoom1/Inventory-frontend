@@ -10,13 +10,49 @@ const userInfoFromStorage = localStorage.getItem('userInfo')
 // ==================== ASYNC THUNKS ==================== //
 
 // 1. Register User - Enhanced with better error handling
+// export const registerUser = createAsyncThunk(
+//   'users/register',
+//   async (userData, { rejectWithValue }) => {
+//     try {
+//       const config = {
+//         headers: {
+//           'Content-Type': 'application/json',
+//         },
+//       };
+
+//       const { data } = await axios.post(
+//         `${API_URL}/api/auth/register`,
+//         userData,
+//         config
+//       );
+
+//       // data -> { message, _id, userId, email, token }
+//       return data;
+//     } catch (error) {
+//       const errorMessage =
+//         error.response?.data?.message ||
+//         error.response?.data?.error ||
+//         error.message ||
+//         'Registration failed';
+
+//       return rejectWithValue({
+//         message: errorMessage,
+//         status: error.response?.status,
+//         statusText: error.response?.statusText,
+//         data: error.response?.data,
+//       });
+//     }
+//   }
+// );
 export const registerUser = createAsyncThunk(
   'users/register',
-  async (userData, { rejectWithValue }) => {
+  async (userData, { rejectWithValue, getState }) => {
     try {
+      const { userInfo } = getState().users;   // ✅ get token from redux
       const config = {
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${userInfo?.token}`,   // ✅ attach token
         },
       };
 
@@ -26,7 +62,6 @@ export const registerUser = createAsyncThunk(
         config
       );
 
-      // data -> { message, _id, userId, email, token }
       return data;
     } catch (error) {
       const errorMessage =
@@ -44,6 +79,7 @@ export const registerUser = createAsyncThunk(
     }
   }
 );
+
 
 // 2. Login User
 export const loginUser = createAsyncThunk(

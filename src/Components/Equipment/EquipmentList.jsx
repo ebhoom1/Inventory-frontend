@@ -4,6 +4,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { getEquipments } from "../../redux/features/equipment/equipmentSlice";
 import QRCode from "qrcode";
 
+
+
 const EquipmentDetailsRow = ({ item, onDownloadQR }) => {
   const [isOpen, setIsOpen] = useState(false);
   const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "-");
@@ -129,21 +131,75 @@ export default function EquipmentList() {
   const dispatch = useDispatch();
   const { list, loading, error } = useSelector((s) => s.equipment);
 
+  // read role from your Redux (same shape as in EquipmentLayout)
+const { userInfo } = useSelector((s) => s.users || {});
+const roleRaw = (userInfo?.userType || "").toString();
+const isSuperAdmin = roleRaw.toLowerCase() === "super admin";
+
+
   useEffect(() => {
     dispatch(getEquipments());
   }, [dispatch]);
 
-  const [searchTerm, setSearchTerm] = useState("");
+// //search bar
+//   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredList = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) return list;
-    return list.filter((item) => {
-      const name = (item.equipmentName || "").toLowerCase();
-      const user = (item.userId || item.username || "").toLowerCase();
-      return name.includes(term) || user.includes(term);
-    });
-  }, [searchTerm, list]);
+//   const filteredList = useMemo(() => {
+//     const term = searchTerm.trim().toLowerCase();
+//     if (!term) return list;
+//     return list.filter((item) => {
+//       const name = (item.equipmentName || "").toLowerCase();
+//       const user = (item.userId || item.username || "").toLowerCase();
+//       return name.includes(term) || user.includes(term);
+//     });
+//   }, [searchTerm, list]);
+
+// Build unique user list from the equipment array
+// const userOptions = useMemo(() => {
+//   const map = new Map();
+//   (list || []).forEach((it) => {
+//     const label = (it.username || it.userId || "").trim();
+//     if (label) {
+//       const key = label.toLowerCase();
+//       if (!map.has(key)) map.set(key, label);
+//     }
+//   });
+//   return ["All users", ...Array.from(map.values())];
+// }, [list]);
+
+// Build dropdown of users from the equipments visible to this Admin
+const userOptions = useMemo(() => {
+  const map = new Map();
+  (list || []).forEach((it) => {
+    const label = (it.username || it.userId || "").trim();
+    if (label) {
+      const key = label.toLowerCase();
+      if (!map.has(key)) map.set(key, label);
+    }
+  });
+  return ["All users", ...Array.from(map.values())];
+}, [list]);
+
+
+const [selectedUser, setSelectedUser] = useState("All users");
+
+// Final filtered list (only filter when super admin & admin has selected a specific user)
+const filteredList = useMemo(() => {
+  if (selectedUser === "All users") return list;
+  const target = selectedUser.toLowerCase();
+  return (list || []).filter(
+    (it) => (it.username || it.userId || "").toLowerCase() === target
+  );
+}, [list, selectedUser]);
+
+// const filteredList = useMemo(() => {
+//   if (!isSuperAdmin || selectedUser === "All users") return list;
+//   const target = selectedUser.toLowerCase();
+//   return (list || []).filter(
+//     (it) => (it.username || it.userId || "").toLowerCase() === target
+//   );
+// }, [list, selectedUser, isSuperAdmin]);
+
 
   const handleDownloadQR = async (item) => {
     const payload = JSON.stringify({ equipmentId: item.equipmentId });
@@ -163,7 +219,7 @@ export default function EquipmentList() {
     <div className="w-full max-w-7xl mx-auto">
       <h2 className="text-3xl font-bold text-gray-800 mb-6">Equipment List</h2>
 
-      <div className="relative w-full md:w-1/3 mb-4">
+      {/* <div className="relative w-full md:w-1/3 mb-4">
         <input
           type="text"
           placeholder="Search by Equipment or User..."
@@ -171,7 +227,27 @@ export default function EquipmentList() {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
         />
-      </div>
+      </div> */}
+
+      {(isSuperAdmin || roleRaw.toLowerCase() === "admin") && (
+  <div className="relative w-full md:w-1/3 mb-4">
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Filter by user
+    </label>
+    <select
+      value={selectedUser}
+      onChange={(e) => setSelectedUser(e.target.value)}
+      className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
+    >
+      {userOptions.map((u) => (
+        <option key={u} value={u}>
+          {u}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
+
 
       <div className="bg-white shadow-lg rounded-xl overflow-hidden">
         <div className="overflow-x-auto">

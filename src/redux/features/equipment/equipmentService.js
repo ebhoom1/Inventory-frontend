@@ -3,11 +3,28 @@ import { API_URL } from "../../../../utils/apiConfig";
 
 const getAuthHeader = (getState) => {
   const token =
+    getState()?.users?.userInfo?.token ||   // ✅ correct path
     getState()?.auth?.user?.token ||
     getState()?.users?.user?.token ||
     localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
+
+// const getAuthHeader = (getState) => {
+//   const token =
+//     getState()?.users?.userInfo?.token ||  // ✅ correct key
+//     getState()?.auth?.user?.token ||
+//     localStorage.getItem("token");
+//   return token ? { Authorization: `Bearer ${token}` } : {};
+// };
+
+// const getAuthHeader = (getState) => {
+//   const token =
+//     getState()?.auth?.user?.token ||
+//     getState()?.users?.user?.token ||
+//     localStorage.getItem("token");
+//   return token ? { Authorization: `Bearer ${token}` } : {};
+// };
 
 // POST /api/equipment
 export const createEquipmentApi = async (payload, getState) => {
