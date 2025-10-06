@@ -72,6 +72,23 @@ function RequestService() {
   // ADD THIS:
   const isSuperAdmin = role === "superadmin";
 
+  const isUser = role === "user";
+
+  // Try Redux first, then localStorage fallbacks
+const r1 = useSelector((s) => s.users?.token);
+const r2 = useSelector((s) => s.users?.userInfo?.token);
+const r3 = useSelector((s) => s.user?.token);
+const token =
+  r1 || r2 || r3 ||
+  localStorage.getItem("token") ||
+  localStorage.getItem("authToken") ||
+  localStorage.getItem("jwt") || "";
+
+
+  // pull token (adjust if your Redux stores it elsewhere)
+  const reduxToken = useSelector((s) => s.users?.token || s.user?.token);
+  // const token = reduxToken || localStorage.getItem("token") || "";
+
   // ----- State -----
   const [formData, setFormData] = useState({
     equipmentId: "",
@@ -117,8 +134,33 @@ function RequestService() {
   const [userLoading, setUserLoading] = useState(false);
   const [userError, setUserError] = useState("");
 
+  // useEffect(() => {
+  //   if (!isSuperAdmin) return;
+
+  //   let abort = false;
+  //   (async () => {
+  //     try {
+  //       const res = await fetch(`${API_URL}/api/reports/users`);
+  //       const data = await res.json();
+  //       if (!abort) {
+  //         if (res.ok && data?.success !== false) {
+  //           setUserList(data.users || []);
+  //         } else {
+  //           setUserError("Failed to load users");
+  //         }
+  //       }
+  //     } catch (e) {
+  //       if (!abort) setUserError("Failed to load users");
+  //     }
+  //   })();
+
+  //   return () => {
+  //     abort = true;
+  //   };
+  // }, [isSuperAdmin]);
+
   useEffect(() => {
-    if (!isSuperAdmin) return;
+    if (!(isSuperAdmin || isAdmin || isTechnician)) return;
 
     let abort = false;
     (async () => {
@@ -140,7 +182,7 @@ function RequestService() {
     return () => {
       abort = true;
     };
-  }, [isSuperAdmin]);
+  }, [isSuperAdmin, isAdmin, isTechnician]);
 
   // ----- Modal -----
   const openReportModal = (rep) => {
@@ -178,6 +220,54 @@ function RequestService() {
       a.remove();
     }
   };
+
+  // --- ONE-CLICK CSV EXPORT for currently selected user (or "me" when role=user)
+  async function downloadReportsCsvForUser({ apiBase, token, userId, displayName }) {
+  try {
+    if (!token) {
+      alert("You are not logged in. Please log in again.");
+      return;
+    }
+
+    const url = userId
+      ? `${apiBase}/api/reports/export/user?userId=${encodeURIComponent(userId)}`
+      : `${apiBase}/api/reports/export/user`;
+
+    const resp = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!resp.ok) {
+      // Read any JSON/text error for better debugging
+      const text = await resp.text();
+      throw new Error(text || `HTTP ${resp.status}`);
+    }
+
+    const blob = await resp.blob();
+
+    const cd = resp.headers.get("Content-Disposition") || "";
+    const match = /filename="([^"]+)"/i.exec(cd);
+    const ymd = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const safe = (displayName || userId || "me").replace(/[^A-Za-z0-9_-]+/g, "_");
+    const fallback = `reports_${safe}_${ymd}.csv`;
+    const filename = match?.[1] || fallback;
+
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+  } catch (e) {
+    console.error("CSV export failed:", e);
+    alert("CSV export failed. See console for details.");
+  }
+}
+
 
   const fetchReportsForUser = async (uid) => {
     if (!uid) {
@@ -437,8 +527,8 @@ function RequestService() {
           : "Service Report History"}
       </h2>
 
-      {/* ===== Super Admin: filter reports by user ===== */}
-      {isSuperAdmin && (
+      {/* ===== Manager filter (Super Admin / Admin / Technician) ===== */}
+      {(isSuperAdmin || isAdmin || isTechnician) && (
         <div className="mb-6 p-4 border-2 border-dashed border-gray-300 rounded-xl bg-white">
           <label className="block text-sm font-semibold text-gray-600 mb-2">
             Filter by User
@@ -461,8 +551,29 @@ function RequestService() {
                 </option>
               ))}
             </select>
-          </div>
 
+            {/* Download button, right side */}
+            <button
+              type="button"
+              className="ml-auto px-4 py-2 rounded-md bg-[#DC6D18] text-white hover:bg-[#B85B14] shadow-sm"
+              disabled={!selectedUserId}
+              onClick={() =>
+                downloadReportsCsvForUser({
+                  apiBase: API_URL,
+                  token,
+                  userId: selectedUserId,
+                  displayName: selectedUserId,
+                })
+              }
+              title={
+                selectedUserId
+                  ? `Download ${selectedUserId}'s Reports`
+                  : "Select a user first"
+              }
+            >
+              Download Reports
+            </button>
+          </div>
           {/* Results */}
           <div className="mt-4">
             {userLoading && (
@@ -579,6 +690,28 @@ function RequestService() {
           </div>
         </div>
       )}
+
+{/* ===== User role: only a single "Download My Reports" button ===== */}
+{isUser && (
+  <div className="mb-4 flex justify-end">
+    <button
+      type="button"
+      className="px-4 py-2 rounded-md bg-[#DC6D18] text-white hover:bg-[#B85B14] shadow-sm"
+      onClick={() =>
+        downloadReportsCsvForUser({
+          apiBase: API_URL,
+          token,
+          userId: null, // server infers "me" from token
+          displayName: (useSelector((s) => s.users?.userInfo?.userId)) || "me",
+        })
+      }
+      title="Download my reports"
+    >
+      Download My Reports
+    </button>
+  </div>
+)}
+
 
       <form
         className="space-y-6"
