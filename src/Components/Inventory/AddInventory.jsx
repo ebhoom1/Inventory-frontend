@@ -18,7 +18,13 @@ function AddInventory() {
   } = useSelector((s) => s.users || {});
   const { userInfo } = useSelector((state) => state.users);
 
-  const isAdmin = userInfo?.userType === 'Admin'|| 'Super Admin';
+  // const isAdmin = userInfo?.userType === 'Admin'|| 'Super Admin';
+  // Correct role flag
+const role = (userInfo?.userType || '').toLowerCase();
+// const isAdmin = role === 'admin' || role === 'super admin';
+const isAdmin = role === "admin" || role === "super admin" || role === "technician";
+
+
 
   const [formData, setFormData] = useState({
     userId: '',
@@ -29,12 +35,15 @@ function AddInventory() {
 
   // If admin, fetch all users on mount (if not already loaded)
   useEffect(() => {
-    if (isAdmin) {
-      if (!allUsers || allUsers.length === 0) {
-        dispatch(getAllUsers());
-      }
+  if (!userInfo?.token) return; // wait until token ready
+  if (isAdmin) {
+    if (!allUsers || allUsers.length === 0) {
+      dispatch(getAllUsers());
     }
-  }, [dispatch, isAdmin]); // don't depend on allUsers to avoid duplicate fetches
+  }
+}, [dispatch, isAdmin, userInfo?.token]);
+
+   // don't depend on allUsers to avoid duplicate fetches
 
   // If NOT admin, pre-fill userId with the logged-in user's userId
   useEffect(() => {
@@ -46,12 +55,14 @@ function AddInventory() {
   // SweetAlert for inventory add error
   useEffect(() => {
     if (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Failed to Add',
-        text: error,
-        confirmButtonText: 'OK',
-      });
+      // Swal.fire({
+      //   icon: 'error',
+      //   title: 'Failed to Add',
+      //   text: error,
+      //   confirmButtonText: 'OK',
+      // });
+      // Optional: console only
+console.warn("Add inventory failed (popup suppressed)");
     }
   }, [error]);
 

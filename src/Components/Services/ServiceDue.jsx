@@ -124,6 +124,53 @@ export default function ServiceDue() {
         .map((u) => ({ value: u, label: u })),
     ];
   }, [due]);
+// List actually shown in the table (client-side user filter + overdue toggle + nearest-first sort)
+const shownDue = useMemo(() => {
+  const list = Array.isArray(due) ? due.slice() : [];
+
+  // 1) Super Admin → filter by selected user (keep your existing behavior)
+  let filtered = list;
+  if (isSuperAdmin && filter.userId && filter.userId !== "all") {
+    filtered = filtered.filter((r) => r?.userId === filter.userId);
+  }
+
+  // 2) Include overdue toggle (if unchecked, hide past-due rows)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (!filter.includeOverdue) {
+    filtered = filtered.filter((r) => {
+      const d = r?.nextServiceDate ? new Date(r.nextServiceDate) : null;
+      return d && d >= today;        // keep only upcoming / today
+    });
+  }
+
+  // 3) Sort by nearest nextServiceDate ascending (nulls/invalids go to bottom)
+  filtered.sort((a, b) => {
+    const da = a?.nextServiceDate ? new Date(a.nextServiceDate) : null;
+    const db = b?.nextServiceDate ? new Date(b.nextServiceDate) : null;
+
+    if (da && db) return da - db;     // earliest first
+    if (da && !db) return -1;         // date first
+    if (!da && db) return 1;          // put undated rows at the bottom
+    return 0;
+  });
+
+  return filtered;
+}, [due, isSuperAdmin, filter.userId, filter.includeOverdue]);
+
+
+
+//   // List actually shown in the table (client-side filter for Super Admin)
+// const shownDue = useMemo(() => {
+//   let list = Array.isArray(due) ? due : [];
+//   if (isSuperAdmin && filter.userId && filter.userId !== "all") {
+//     // each record has userId (you already use it to build the dropdown)
+//     list = list.filter((r) => r?.userId === filter.userId);
+//   }
+//   return list;
+// }, [due, isSuperAdmin, filter.userId]);
+
 
   const onFilterChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -219,8 +266,8 @@ export default function ServiceDue() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {Array.isArray(due) && due.length > 0 ? (
-                due.map((item) => (
+              {Array.isArray(shownDue) && shownDue.length > 0 ? (
+                shownDue.map((item) => (
                   <tr
                     key={item._id || item.id}
                     className="hover:bg-orange-50/50 transition-colors duration-150"

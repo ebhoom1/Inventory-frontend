@@ -30,8 +30,11 @@ function UseInventory() {
     userInfo,
   } = useSelector((s) => s.users || {});
 
-  const isAdmin =
-    userInfo?.userType === "Admin" || userInfo?.userType === "Super Admin";
+  const role = (userInfo?.userType || "").toLowerCase();
+const isAdmin = role === "admin" || role === "super admin" || role === "technician";
+
+  // const isAdmin =
+  //   userInfo?.userType === "Admin" || userInfo?.userType === "Super Admin";
   const authToken = userInfo?.token || localStorage.getItem("token");
 
   // Local state

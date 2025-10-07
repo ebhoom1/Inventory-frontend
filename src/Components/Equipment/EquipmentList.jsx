@@ -134,7 +134,7 @@ export default function EquipmentList() {
   // read role from your Redux (same shape as in EquipmentLayout)
 const { userInfo } = useSelector((s) => s.users || {});
 const roleRaw = (userInfo?.userType || "").toString();
-const isSuperAdmin = roleRaw.toLowerCase() === "super admin";
+const isSuperAdmin = roleRaw.toLowerCase() === "admin";
 
 
   useEffect(() => {

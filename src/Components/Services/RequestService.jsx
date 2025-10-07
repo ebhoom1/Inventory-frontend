@@ -74,19 +74,30 @@ function RequestService() {
 
   const isUser = role === "user";
 
-  // Try Redux first, then localStorage fallbacks
-const r1 = useSelector((s) => s.users?.token);
-const r2 = useSelector((s) => s.users?.userInfo?.token);
-const r3 = useSelector((s) => s.user?.token);
-const token =
-  r1 || r2 || r3 ||
-  localStorage.getItem("token") ||
-  localStorage.getItem("authToken") ||
-  localStorage.getItem("jwt") || "";
+  // Who am I (for filename "reports_<username>_YYYYMMDD.csv")
+  const currentUserId = useSelector(
+    (s) =>
+      s.users?.userInfo?.userId ||
+      s.user?.userData?.userId || // if your other slice stores it here
+      s.user?.userData?.validUserOne?.userId || // legacy shapes
+      "me"
+  );
 
+  // Try Redux first, then localStorage fallbacks
+  const r1 = useSelector((s) => s.users?.token);
+  const r2 = useSelector((s) => s.users?.userInfo?.token);
+  const r3 = useSelector((s) => s.user?.token);
+  const token =
+    r1 ||
+    r2 ||
+    r3 ||
+    localStorage.getItem("token") ||
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("jwt") ||
+    "";
 
   // pull token (adjust if your Redux stores it elsewhere)
-  const reduxToken = useSelector((s) => s.users?.token || s.user?.token);
+  // const reduxToken = useSelector((s) => s.users?.token || s.user?.token);
   // const token = reduxToken || localStorage.getItem("token") || "";
 
   // ----- State -----
@@ -165,7 +176,9 @@ const token =
     let abort = false;
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/reports/users`);
+        const res = await fetch(`${API_URL}/api/reports/users`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const data = await res.json();
         if (!abort) {
           if (res.ok && data?.success !== false) {
@@ -222,52 +235,61 @@ const token =
   };
 
   // --- ONE-CLICK CSV EXPORT for currently selected user (or "me" when role=user)
-  async function downloadReportsCsvForUser({ apiBase, token, userId, displayName }) {
-  try {
-    if (!token) {
-      alert("You are not logged in. Please log in again.");
-      return;
+  async function downloadReportsCsvForUser({
+    apiBase,
+    token,
+    userId,
+    displayName,
+  }) {
+    try {
+      if (!token) {
+        alert("You are not logged in. Please log in again.");
+        return;
+      }
+
+      const url = userId
+        ? `${apiBase}/api/reports/export/user?userId=${encodeURIComponent(
+            userId
+          )}`
+        : `${apiBase}/api/reports/export/user`;
+
+      const resp = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!resp.ok) {
+        // Read any JSON/text error for better debugging
+        const text = await resp.text();
+        throw new Error(text || `HTTP ${resp.status}`);
+      }
+
+      const blob = await resp.blob();
+
+      const cd = resp.headers.get("Content-Disposition") || "";
+      const match = /filename="([^"]+)"/i.exec(cd);
+      const ymd = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const safe = (displayName || userId || "me").replace(
+        /[^A-Za-z0-9_-]+/g,
+        "_"
+      );
+      const fallback = `reports_${safe}_${ymd}.csv`;
+      const filename = match?.[1] || fallback;
+
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+    } catch (e) {
+      console.error("CSV export failed:", e);
+      alert("CSV export failed. See console for details.");
     }
-
-    const url = userId
-      ? `${apiBase}/api/reports/export/user?userId=${encodeURIComponent(userId)}`
-      : `${apiBase}/api/reports/export/user`;
-
-    const resp = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!resp.ok) {
-      // Read any JSON/text error for better debugging
-      const text = await resp.text();
-      throw new Error(text || `HTTP ${resp.status}`);
-    }
-
-    const blob = await resp.blob();
-
-    const cd = resp.headers.get("Content-Disposition") || "";
-    const match = /filename="([^"]+)"/i.exec(cd);
-    const ymd = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    const safe = (displayName || userId || "me").replace(/[^A-Za-z0-9_-]+/g, "_");
-    const fallback = `reports_${safe}_${ymd}.csv`;
-    const filename = match?.[1] || fallback;
-
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(a.href);
-  } catch (e) {
-    console.error("CSV export failed:", e);
-    alert("CSV export failed. See console for details.");
   }
-}
-
 
   const fetchReportsForUser = async (uid) => {
     if (!uid) {
@@ -561,10 +583,18 @@ const token =
                 downloadReportsCsvForUser({
                   apiBase: API_URL,
                   token,
-                  userId: selectedUserId,
-                  displayName: selectedUserId,
+                  userId: selectedUserId, // ✅ export the selected user
+                  displayName: selectedUserId, 
                 })
               }
+              // onClick={() =>
+              //   downloadReportsCsvForUser({
+              //     apiBase: API_URL,
+              //     token,
+              //     userId: selectedUserId,
+              //     displayName: selectedUserId,
+              //   })
+              // }
               title={
                 selectedUserId
                   ? `Download ${selectedUserId}'s Reports`
@@ -691,27 +721,47 @@ const token =
         </div>
       )}
 
-{/* ===== User role: only a single "Download My Reports" button ===== */}
-{isUser && (
-  <div className="mb-4 flex justify-end">
-    <button
-      type="button"
-      className="px-4 py-2 rounded-md bg-[#DC6D18] text-white hover:bg-[#B85B14] shadow-sm"
-      onClick={() =>
-        downloadReportsCsvForUser({
-          apiBase: API_URL,
-          token,
-          userId: null, // server infers "me" from token
-          displayName: (useSelector((s) => s.users?.userInfo?.userId)) || "me",
-        })
-      }
-      title="Download my reports"
-    >
-      Download My Reports
-    </button>
-  </div>
-)}
+      {/* ===== User role: only a single "Download My Reports" button ===== */}
+      {isUser && (
+        <div className="mb-4 flex justify-end">
+          <button
+            type="button"
+            className="px-4 py-2 rounded-md bg-[#DC6D18] text-white hover:bg-[#B85B14] shadow-sm"
+            onClick={() =>
+              downloadReportsCsvForUser({
+                apiBase: API_URL,
+                token,
+                userId: null, // server infers "me"
+                displayName: currentUserId, // use hoisted value
+              })
+            }
+            title="Download my reports"
+          >
+            Download My Reports
+          </button>
+        </div>
+      )}
 
+      {/* {isUser && (
+        <div className="mb-4 flex justify-end">
+          <button
+            type="button"
+            className="px-4 py-2 rounded-md bg-[#DC6D18] text-white hover:bg-[#B85B14] shadow-sm"
+            onClick={() =>
+              downloadReportsCsvForUser({
+                apiBase: API_URL,
+                token,
+                userId: null, // server infers "me" from token
+                displayName:
+                  useSelector((s) => s.users?.userInfo?.userId) || "me",
+              })
+            }
+            title="Download my reports"
+          >
+            Download My Reports
+          </button>
+        </div>
+      )} */}
 
       <form
         className="space-y-6"
