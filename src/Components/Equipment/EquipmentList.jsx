@@ -2,9 +2,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getEquipments } from "../../redux/features/equipment/equipmentSlice";
+import { getAllUsers } from "../../redux/features/users/userSlice"; // Assuming path to your user slice
 import QRCode from "qrcode";
-
-
 
 const EquipmentDetailsRow = ({ item, onDownloadQR }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -130,76 +129,60 @@ const EquipmentDetailsRow = ({ item, onDownloadQR }) => {
 export default function EquipmentList() {
   const dispatch = useDispatch();
   const { list, loading, error } = useSelector((s) => s.equipment);
+  const { userInfo, allUsers: usersList, loading: usersLoading } = useSelector((s) => s.users || {});
 
-  // read role from your Redux (same shape as in EquipmentLayout)
-const { userInfo } = useSelector((s) => s.users || {});
-const roleRaw = (userInfo?.userType || "").toString();
-const isSuperAdmin = roleRaw.toLowerCase() === "admin";
-
+  const roleRaw = (userInfo?.userType || "").toString().toLowerCase();
+  const isSuperAdmin = roleRaw === "super admin";
+  const isAdmin = roleRaw === "admin";
+  const isTechnician = roleRaw === "technician";
+  const shouldShowFilter = isSuperAdmin || isAdmin || isTechnician;
 
   useEffect(() => {
     dispatch(getEquipments());
   }, [dispatch]);
 
-// //search bar
-//   const [searchTerm, setSearchTerm] = useState("");
-
-//   const filteredList = useMemo(() => {
-//     const term = searchTerm.trim().toLowerCase();
-//     if (!term) return list;
-//     return list.filter((item) => {
-//       const name = (item.equipmentName || "").toLowerCase();
-//       const user = (item.userId || item.username || "").toLowerCase();
-//       return name.includes(term) || user.includes(term);
-//     });
-//   }, [searchTerm, list]);
-
-// Build unique user list from the equipment array
-// const userOptions = useMemo(() => {
-//   const map = new Map();
-//   (list || []).forEach((it) => {
-//     const label = (it.username || it.userId || "").trim();
-//     if (label) {
-//       const key = label.toLowerCase();
-//       if (!map.has(key)) map.set(key, label);
-//     }
-//   });
-//   return ["All users", ...Array.from(map.values())];
-// }, [list]);
-
-// Build dropdown of users from the equipments visible to this Admin
-const userOptions = useMemo(() => {
-  const map = new Map();
-  (list || []).forEach((it) => {
-    const label = (it.username || it.userId || "").trim();
-    if (label) {
-      const key = label.toLowerCase();
-      if (!map.has(key)) map.set(key, label);
+  useEffect(() => {
+    if (shouldShowFilter) {
+      dispatch(getAllUsers());
     }
-  });
-  return ["All users", ...Array.from(map.values())];
-}, [list]);
+  }, [dispatch, shouldShowFilter]);
 
+  // Build a map of userId -> user for quick lookup
+  const userMap = useMemo(() => {
+    return new Map(usersList.map((u) => [u.userId, u]));
+  }, [usersList]);
 
-const [selectedUser, setSelectedUser] = useState("All users");
+  // Base filtered list: Only equipments assigned to users with userType === "User"
+  const baseList = useMemo(() => {
+    if (!usersList.length || usersLoading) return list || [];
+    return (list || []).filter((item) => {
+      const assignedUser = userMap.get(item.userId || item.username);
+      return assignedUser && assignedUser.userType === "User";
+    });
+  }, [list, usersList, usersLoading, userMap]);
 
-// Final filtered list (only filter when super admin & admin has selected a specific user)
-const filteredList = useMemo(() => {
-  if (selectedUser === "All users") return list;
-  const target = selectedUser.toLowerCase();
-  return (list || []).filter(
-    (it) => (it.username || it.userId || "").toLowerCase() === target
-  );
-}, [list, selectedUser]);
+  // Build user options: Only users with userType === "User" (for dropdown)
+  const userOptions = useMemo(() => {
+    if (!shouldShowFilter || usersLoading) return [];
+    const userUsers = usersList.filter((u) => u.userType === "User");
+    const options = userUsers.map((u) => ({
+      value: u.userId, // Use custom userId for matching with equipment.userId
+      label: u.firstName ? `${u.firstName} (${u.userId})` : u.userId,
+    }));
+    options.sort((a, b) => a.label.localeCompare(b.label));
+    return [{ value: "", label: "All users" }, ...options];
+  }, [usersList, shouldShowFilter, usersLoading]);
 
-// const filteredList = useMemo(() => {
-//   if (!isSuperAdmin || selectedUser === "All users") return list;
-//   const target = selectedUser.toLowerCase();
-//   return (list || []).filter(
-//     (it) => (it.username || it.userId || "").toLowerCase() === target
-//   );
-// }, [list, selectedUser, isSuperAdmin]);
+  const [selectedUserId, setSelectedUserId] = useState("");
 
+  // Final filtered list: Apply user selection on top of baseList
+  const filteredList = useMemo(() => {
+    if (!selectedUserId) return baseList;
+    // Match by custom userId (assuming equipment stores item.userId as custom userId string)
+    return baseList.filter((item) => 
+      (item.userId || item.username) === selectedUserId
+    );
+  }, [baseList, selectedUserId]);
 
   const handleDownloadQR = async (item) => {
     const payload = JSON.stringify({ equipmentId: item.equipmentId });
@@ -219,35 +202,25 @@ const filteredList = useMemo(() => {
     <div className="w-full max-w-7xl mx-auto">
       <h2 className="text-3xl font-bold text-gray-800 mb-6">Equipment List</h2>
 
-      {/* <div className="relative w-full md:w-1/3 mb-4">
-        <input
-          type="text"
-          placeholder="Search by Equipment or User..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-        />
-      </div> */}
-
-      {(isSuperAdmin || roleRaw.toLowerCase() === "admin") && (
-  <div className="relative w-full md:w-1/3 mb-4">
-    <label className="block text-sm font-medium text-gray-700 mb-1">
-      Filter by user
-    </label>
-    <select
-      value={selectedUser}
-      onChange={(e) => setSelectedUser(e.target.value)}
-      className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-    >
-      {userOptions.map((u) => (
-        <option key={u} value={u}>
-          {u}
-        </option>
-      ))}
-    </select>
-  </div>
-)}
-
+      {shouldShowFilter && (
+        <div className="relative w-full md:w-1/3 mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Filter by user {usersLoading && "(Loading users...)"}
+          </label>
+          <select
+            value={selectedUserId}
+            onChange={(e) => setSelectedUserId(e.target.value)}
+            disabled={usersLoading}
+            className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18] disabled:opacity-50"
+          >
+            {userOptions.map((option) => (
+              <option key={option.value || "all"} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="bg-white shadow-lg rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
@@ -256,6 +229,9 @@ const filteredList = useMemo(() => {
           )}
           {error && (
             <div className="p-3 text-sm text-red-600">Error: {error}</div>
+          )}
+          {!loading && !usersLoading && baseList.length === 0 && (
+            <div className="p-3 text-sm text-gray-600">No equipments found for users.</div>
           )}
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -278,7 +254,7 @@ const filteredList = useMemo(() => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredList && filteredList.length > 0 ? (
+              {filteredList.length > 0 ? (
                 filteredList.map((item) => (
                   <EquipmentDetailsRow
                     key={item._id || item.equipmentId}
