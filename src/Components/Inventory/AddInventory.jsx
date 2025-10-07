@@ -18,13 +18,9 @@ function AddInventory() {
   } = useSelector((s) => s.users || {});
   const { userInfo } = useSelector((state) => state.users);
 
-  // const isAdmin = userInfo?.userType === 'Admin'|| 'Super Admin';
-  // Correct role flag
-const role = (userInfo?.userType || '').toLowerCase();
-// const isAdmin = role === 'admin' || role === 'super admin';
-const isAdmin = role === "admin" || role === "super admin" || role === "technician";
-
-
+  // Correct role flag (includes Technician as per your code)
+  const role = (userInfo?.userType || '').toLowerCase();
+  const isAdmin = role === "admin" || role === "super admin" || role === "technician";
 
   const [formData, setFormData] = useState({
     userId: '',
@@ -35,15 +31,13 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
 
   // If admin, fetch all users on mount (if not already loaded)
   useEffect(() => {
-  if (!userInfo?.token) return; // wait until token ready
-  if (isAdmin) {
-    if (!allUsers || allUsers.length === 0) {
-      dispatch(getAllUsers());
+    if (!userInfo?.token) return; // wait until token ready
+    if (isAdmin) {
+      if (!allUsers || allUsers.length === 0) {
+        dispatch(getAllUsers());
+      }
     }
-  }
-}, [dispatch, isAdmin, userInfo?.token]);
-
-   // don't depend on allUsers to avoid duplicate fetches
+  }, [dispatch, isAdmin, userInfo?.token, allUsers?.length]); // Added allUsers.length to prevent duplicates
 
   // If NOT admin, pre-fill userId with the logged-in user's userId
   useEffect(() => {
@@ -52,21 +46,21 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
     }
   }, [isAdmin, userInfo?.userId]);
 
-  // SweetAlert for inventory add error
+  // SweetAlert for inventory add error (uncomment if you want popup; console for now)
   useEffect(() => {
     if (error) {
+      console.warn("Add inventory failed:", error); // Enhanced logging
+      // Uncomment for popup:
       // Swal.fire({
       //   icon: 'error',
       //   title: 'Failed to Add',
       //   text: error,
       //   confirmButtonText: 'OK',
       // });
-      // Optional: console only
-console.warn("Add inventory failed (popup suppressed)");
     }
   }, [error]);
 
-  // SweetAlert for users fetch error (optional)
+  // SweetAlert for users fetch error
   useEffect(() => {
     if (usersError) {
       Swal.fire({
@@ -87,7 +81,12 @@ console.warn("Add inventory failed (popup suppressed)");
         text: `${lastAdded.skuName} x ${lastAdded.quantity} for ${lastAdded.userId}`,
         timer: 1400,
       });
-      setFormData({ userId: isAdmin ? '' : (userInfo?.userId || ''), skuName: '', quantity: '', date: '' });
+      setFormData({ 
+        userId: isAdmin ? '' : (userInfo?.userId || ''), 
+        skuName: '', 
+        quantity: '', 
+        date: '' 
+      });
       dispatch(resetInventoryState());
     }
   }, [lastAdded, dispatch, isAdmin, userInfo?.userId]);
@@ -119,16 +118,14 @@ console.warn("Add inventory failed (popup suppressed)");
     dispatch(addInventory(payload));
   };
 
-  // Pre-sort users by userId for admin dropdown
- // Pre-sort and filter users by userType for admin dropdown
-const userOptions = useMemo(() => {
-  if (!isAdmin) return [];
-  const arr = Array.isArray(allUsers) ? allUsers : [];
-  return arr
-    .filter(u => u.userType === 'User') // <-- only normal users
-    .sort((a, b) => (a.userId || '').localeCompare(b.userId || ''));
-}, [allUsers, isAdmin]);
-
+  // Pre-sort and filter users by userType === 'User' for admin dropdown
+  const userOptions = useMemo(() => {
+    if (!isAdmin) return [];
+    const arr = Array.isArray(allUsers) ? allUsers : [];
+    return arr
+      .filter(u => u.userType === 'User') // Only normal users (excludes admins/techs)
+      .sort((a, b) => (a.userId || '').localeCompare(b.userId || ''));
+  }, [allUsers, isAdmin]);
 
   return (
     <div className="w-full max-w-4xl mx-auto">
@@ -230,7 +227,7 @@ const userOptions = useMemo(() => {
         <div className="flex justify-center mt-8 gap-3">
           <button
             type="submit"
-            disabled={inventoryLoading || usersLoading}
+            disabled={inventoryLoading || usersLoading || !userInfo?.token} // Added token check for safety
             className="px-7 py-3 md:px-8 bg-[#DC6D18] text-[#FFF7ED] rounded-lg font-semibold shadow-md hover:bg-[#B85B14] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#DC6D18] transition-all duration-200 ease-in-out disabled:opacity-60"
           >
             {inventoryLoading ? 'Adding…' : 'Add Inventory'}

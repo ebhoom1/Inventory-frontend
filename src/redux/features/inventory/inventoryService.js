@@ -2,11 +2,20 @@
 import { API_URL } from '../../../../utils/apiConfig';
 
 const getAuthHeader = (getState) => {
-  // Adjust this to wherever you store the token (e.g. auth.user.token or users.user.token)
-  const token =
-    getState()?.auth?.user?.token ||
-    getState()?.users?.user?.token ||
-    localStorage.getItem('token');
+  // Fixed: Correct path to token in users slice (userInfo, not user)
+  // Fallback to localStorage 'userInfo' for robustness
+  let token = getState()?.users?.userInfo?.token;
+  
+  if (!token) {
+    const userInfoStr = localStorage.getItem('userInfo');
+    if (userInfoStr) {
+      try {
+        token = JSON.parse(userInfoStr).token;
+      } catch (e) {
+        console.warn('Failed to parse userInfo from localStorage');
+      }
+    }
+  }
 
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
@@ -35,6 +44,7 @@ export const listInventoryApi = async (getState) => {
   if (!res.ok) throw new Error(data?.message || 'Failed to fetch inventory');
   return data;
 };
+
 // NEW: log usage
 export const logUsageApi = async (payload, getState) => {
   const res = await fetch(`${API_URL}/api/inventory/use`, {
