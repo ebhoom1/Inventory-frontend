@@ -60,8 +60,12 @@ export const logUsageApi = async (payload, getState) => {
 };
 
 // NEW: summary (added, used, left) per SKU
-export const listSummaryApi = async (getState) => {
-  const res = await fetch(`${API_URL}/api/inventory/summary`, {
+export const listSummaryApi = async (getState, userId = "all") => {
+  const url =
+    userId && userId !== "all"
+      ? `${API_URL}/api/inventory/summary/${encodeURIComponent(userId)}`
+      : `${API_URL}/api/inventory/summary`;
+  const res = await fetch(url, {
     headers: { ...getAuthHeader(getState) },
   });
   const data = await res.json();
