@@ -234,6 +234,39 @@ function RequestService() {
     }
   };
 
+  async function downloadLatestReportsCsv({ apiBase, token, userId }) {
+    try {
+      const url = userId
+        ? `${apiBase}/api/reports/export/latest?userId=${encodeURIComponent(
+            userId
+          )}`
+        : `${apiBase}/api/reports/export/latest`;
+
+      const resp = await fetch(url, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!resp.ok) throw new Error(`Export failed: ${resp.status}`);
+      const blob = await resp.blob();
+
+      const cd = resp.headers.get("Content-Disposition");
+      const filename =
+        (cd && cd.match(/filename="(.+)"/)?.[1]) ||
+        `latest_reports_${userId || "me"}.csv`;
+
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {
+      console.error("Latest CSV export failed:", e);
+      alert("Failed to export CSV. Check console for details.");
+    }
+  }
+
   // --- ONE-CLICK CSV EXPORT for currently selected user (or "me" when role=user)
   async function downloadReportsCsvForUser({
     apiBase,
@@ -301,8 +334,12 @@ function RequestService() {
 
     try {
       const res = await fetch(
-        `${API_URL}/api/reports?userId=${encodeURIComponent(uid)}&limit=100`
+        `${API_URL}/api/reports/latest?userId=${encodeURIComponent(uid)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
+
       const data = await res.json();
 
       // API may return either an array or a {items: []} envelope
@@ -576,32 +613,17 @@ function RequestService() {
 
             {/* Download button, right side */}
             <button
-              type="button"
-              className="ml-auto px-4 py-2 rounded-md bg-[#DC6D18] text-white hover:bg-[#B85B14] shadow-sm"
-              disabled={!selectedUserId}
-              onClick={() =>
-                downloadReportsCsvForUser({
+              onClick={() => {
+                // For admin/superadmin, the target user is the one from the dropdown
+                downloadLatestReportsCsv({
                   apiBase: API_URL,
                   token,
-                  userId: selectedUserId, // ✅ export the selected user
-                  displayName: selectedUserId, 
-                })
-              }
-              // onClick={() =>
-              //   downloadReportsCsvForUser({
-              //     apiBase: API_URL,
-              //     token,
-              //     userId: selectedUserId,
-              //     displayName: selectedUserId,
-              //   })
-              // }
-              title={
-                selectedUserId
-                  ? `Download ${selectedUserId}'s Reports`
-                  : "Select a user first"
-              }
+                  userId: selectedUserId,
+                });
+              }}
+              className="bg-[#DC6D18] text-white font-semibold px-4 py-2 rounded-lg shadow hover:bg-[#c55e12] transition"
             >
-              Download Reports
+              Download Latest Reports CSV
             </button>
           </div>
           {/* Results */}
@@ -728,10 +750,10 @@ function RequestService() {
             type="button"
             className="px-4 py-2 rounded-md bg-[#DC6D18] text-white hover:bg-[#B85B14] shadow-sm"
             onClick={() =>
-              downloadReportsCsvForUser({
+              downloadLatestReportsCsv({
                 apiBase: API_URL,
                 token,
-                userId: null, // server infers "me"
+                userId: currentUserId, // server infers "me"
                 displayName: currentUserId, // use hoisted value
               })
             }

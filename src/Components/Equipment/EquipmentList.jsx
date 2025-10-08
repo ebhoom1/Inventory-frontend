@@ -129,7 +129,11 @@ const EquipmentDetailsRow = ({ item, onDownloadQR }) => {
 export default function EquipmentList() {
   const dispatch = useDispatch();
   const { list, loading, error } = useSelector((s) => s.equipment);
-  const { userInfo, allUsers: usersList, loading: usersLoading } = useSelector((s) => s.users || {});
+  const {
+    userInfo,
+    allUsers: usersList,
+    loading: usersLoading,
+  } = useSelector((s) => s.users || {});
 
   const roleRaw = (userInfo?.userType || "").toString().toLowerCase();
   const isSuperAdmin = roleRaw === "super admin";
@@ -179,8 +183,8 @@ export default function EquipmentList() {
   const filteredList = useMemo(() => {
     if (!selectedUserId) return baseList;
     // Match by custom userId (assuming equipment stores item.userId as custom userId string)
-    return baseList.filter((item) => 
-      (item.userId || item.username) === selectedUserId
+    return baseList.filter(
+      (item) => (item.userId || item.username) === selectedUserId
     );
   }, [baseList, selectedUserId]);
 
@@ -231,7 +235,9 @@ export default function EquipmentList() {
             <div className="p-3 text-sm text-red-600">Error: {error}</div>
           )}
           {!loading && !usersLoading && baseList.length === 0 && (
-            <div className="p-3 text-sm text-gray-600">No equipments found for users.</div>
+            <div className="p-3 text-sm text-gray-600">
+              No equipments found for users.
+            </div>
           )}
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
