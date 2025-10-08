@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { getEquipments } from "../../redux/features/equipment/equipmentSlice";
 import { getAllUsers } from "../../redux/features/users/userSlice"; // Assuming path to your user slice
 import QRCode from "qrcode";
-
+//updated changes
 const EquipmentDetailsRow = ({ item, onDownloadQR }) => {
   const [isOpen, setIsOpen] = useState(false);
   const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "-");
