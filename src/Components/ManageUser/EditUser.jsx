@@ -20,7 +20,7 @@ const initialFormState = {
   mobileNumber: '',
   subscriptionDate: '',
   subscriptionPlan: '',
-  userType: '',
+  userType: '', // This will now be controlled by the dropdown
   adminType: '',
   assignOperators: '',
   assignTerritorialManager: '',
@@ -44,8 +44,14 @@ const EditUser = () => {
   const [form, setForm] = useState(initialFormState);
   const [formError, setFormError] = useState('');
 
-  // ✅ FIX: Destructure the correct 'updateSuccess' flag from Redux
-  const { loading, error, updateSuccess, selectedUser } = useSelector((state) => state.users);
+  // ✅ 1. Get userInfo (logged-in user) AND selectedUser (user being edited)
+  const { loading, error, updateSuccess, selectedUser, userInfo } = useSelector((state) => state.users);
+
+  // ✅ 2. Define role options based on the logged-in user's role
+  const roleOptions =
+    userInfo?.userType === "Admin"
+      ? ["User", "Technician"] // Admins can only add/edit these
+      : ["Admin", "User", "Super Admin", "Technician"]; // Super Admin sees all
 
   // --- SIDE EFFECTS ---
 
@@ -149,7 +155,7 @@ const EditUser = () => {
     });
   };
 
-  // ✅ FIX: Use 'updateSuccess' to handle success/error alerts
+  // Use 'updateSuccess' to handle success/error alerts
   useEffect(() => {
     if (error) {
       Swal.close();
@@ -197,7 +203,6 @@ const EditUser = () => {
   };
 
   // --- RENDER ---
-  // The JSX for the form remains unchanged. I'm including it for completeness.
   return (
     <div className="flex min-h-screen bg-[#DC6D18]">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -224,7 +229,6 @@ const EditUser = () => {
               </div>
             )}
             
-            {/* Form JSX (unchanged) */}
             <form className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8" onSubmit={handleSubmit}>
               {/* User ID */}
               <div className="relative">
@@ -278,9 +282,8 @@ const EditUser = () => {
                 />
               </div>
 
-              {/* ... other form inputs ... */}
-               {/* Additional Emails */}
-               <div className="relative">
+              {/* Additional Emails */}
+              <div className="relative">
                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">Additional Emails</span>
                 <input
                   name="additionalEmails"
@@ -329,17 +332,27 @@ const EditUser = () => {
                 />
               </div>
 
-              {/* User Type */}
+              {/* ✅ 3. MODIFIED User Type (Dropdown) */}
               <div className="relative">
                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">User Type</span>
-                <input
+                <select
                   name="userType"
                   value={form.userType}
                   onChange={handleChange}
-                  placeholder="e.g., Admin, Operator"
-                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18] appearance-none"
                   required
-                />
+                >
+                  <option value="" disabled>Select a user type</option>
+                  {roleOptions.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+                {/* Custom dropdown arrow */}
+                <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
+                  <svg className="w-5 h-5 text-[#DC6D18]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
               </div>
 
               {/* Admin Type */}
