@@ -127,7 +127,7 @@ const Account = () => {
 
               <div className="flex items-center gap-3">
                 <span className="font-semibold">Password:</span> ************
-                <Link to="/reset">
+                <Link to="/resetpassword">
                   <button className="ml-2 bg-[#DC6D18] text-white px-4 py-1 rounded hover:bg-[#B85B14] transition">
                     Change Password
                   </button>

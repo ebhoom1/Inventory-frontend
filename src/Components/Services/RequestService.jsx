@@ -922,8 +922,8 @@ function RequestService() {
               {/* Dropdowns */}
               {[
                 ["tag", "Tag", ["yes", "no", "na"]],
-                ["safetyPin", "Safety Pin", ["yes", "no", "na"]],
-                ["pressureGauge", "Pressure Gauge", ["Green", "Red", "na"]],
+                ["safetyPin", "Safety Pin", ["Green", "Red", "na"]],
+                ["pressureGauge", "Pressure Gauge", ["Yes", "No", "na"]],
                 ["valveSupport", "Valve Support", ["yes", "no", "na"]],
                 [
                   "corrosion",

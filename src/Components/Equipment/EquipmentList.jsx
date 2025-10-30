@@ -1,17 +1,48 @@
 // src/pages/EquipmentList.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getEquipments } from "../../redux/features/equipment/equipmentSlice";
-import { getAllUsers } from "../../redux/features/users/userSlice"; // Assuming path to your user slice
+import {
+  getEquipments,
+  updateEquipment, // <-- Import your update thunk
+} from "../../redux/features/equipment/equipmentSlice";
+import { getAllUsers } from "../../redux/features/users/userSlice";
 import QRCode from "qrcode";
-//updated changes
-const EquipmentDetailsRow = ({ item, onDownloadQR }) => {
+import EditEquipmentModal from "./EditEquipmentModal"; // <-- Make sure this path is correct
+import logo from '../../assets/safetik.png'
+
+/**
+ * Updated EquipmentDetailsRow
+ * - Contains the main row with the Edit button
+ * - Contains the NEW redesigned expanded details section
+ */
+const EquipmentDetailsRow = ({
+  item,
+  onDownloadQR,
+  onEdit,
+  canEdit,
+  numCols,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "-");
 
+  // Helper to format month-year string
+const safeMonth = (m) => {
+    if (!m) return "-";
+    try {
+      // Handles "YYYY-MM" format or full dates
+      return new Date(m).toLocaleString("default", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC", // Add timezone to prevent off-by-one day issues
+      });
+    } catch (e) {
+      return m; // Fallback to the original string if it's not a parseable date
+    }
+  };
+
   return (
     <>
-      {/* Main Row */}
+      {/* Main Row (Includes Edit Button) */}
       <tr className="hover:bg-orange-50/50">
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm font-bold text-gray-900">
@@ -41,105 +72,176 @@ const EquipmentDetailsRow = ({ item, onDownloadQR }) => {
             Download QR
           </button>
         </td>
+        {/* --- Edit Button Column --- */}
+        {canEdit && (
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+            <button
+              onClick={() => onEdit(item)}
+              className="text-orange-600 hover:text-blue-800 font-semibold"
+            >
+              Edit
+            </button>
+          </td>
+        )}
       </tr>
 
-      {/* Expanded Details */}
+      {/* --- REDESIGNED Expanded Details --- */}
       {isOpen && (
-        <tr className="bg-orange-50/20">
-          <td colSpan="5" className="px-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Column 1 */}
-              <div className="space-y-1 pb-2 border-b md:border-b-0 md:border-r md:pr-4">
-                <h4 className="text-base font-bold text-gray-800 mb-2">
+        <tr className="bg-orange-50/30">
+          <td
+            colSpan={numCols} // <-- Uses dynamic numCols
+            className="px-6 py-1 border-t border-orange-100"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+              {/* Column 1: Specifications */}
+              <div className="space-y-4 pb-4 border-b border-dotted border-orange-200 md:border-b-0 md:border-r md:border-dotted md:pr-6">
+                <h4 className="text-xs font-semibold text-orange-800/80 uppercase tracking-wider">
                   Specifications
                 </h4>
-                <p>
-                  <span className="font-medium text-gray-700">Capacity:</span>{" "}
-                  <span className="text-gray-600">{item.capacity}</span>
-                </p>
-                <p>
-                  <span className="font-medium text-gray-700">
-                    Rate Loaded:
-                  </span>{" "}
-                  <span className="text-gray-600">{item.rateLoaded}</span>
-                </p>
-                <p>
-                  <span className="font-medium text-gray-700">
-                    Gross Weight:
-                  </span>{" "}
-                  <span className="text-gray-600">{item.grossWeight}</span>
-                </p>
-                <p>
-                  <span className="font-medium text-gray-700">Content:</span>{" "}
-                  <span className="text-gray-600">{item.content}</span>
-                </p>
-                <p>
-                  <span className="font-medium text-gray-700">
-                    Fire Rating:
-                  </span>{" "}
-                  <span className="text-gray-600">{item.fireRating}</span>
-                </p>
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-xs font-medium text-gray-500">
+                      Capacity
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {item.capacity || "-"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-500">
+                      Rate Loaded
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {item.rateLoaded || "-"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-500">
+                      Gross Weight
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {item.grossWeight || "-"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-500">
+                      Content
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {item.content || "-"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-500">
+                      Fire Rating
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {item.fireRating || "-"}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Column 2 */}
-              <div className="space-y-1 py-2 border-b md:border-b-0 md:border-r md:px-4">
-                <h4 className="text-base font-bold text-gray-800 mb-2">
+              {/* Column 2: Manufacturing Info */}
+              <div className="space-y-4 pb-4 border-b border-dotted border-orange-200 md:border-b-0 md:border-r md:border-dotted md:px-6">
+                <h4 className="text-xs font-semibold text-orange-800/80 uppercase tracking-wider">
                   Manufacturing Info
                 </h4>
-                <p>
-                  <span className="font-medium text-gray-700">Batch No:</span>{" "}
-                  <span className="text-gray-600">{item.batchNo}</span>
-                </p>
-                <p>
-                  <span className="font-medium text-gray-700">Serial No:</span>{" "}
-                  <span className="text-gray-600">{item.serialNumber}</span>
-                </p>
-                <p>
-                  <span className="font-medium text-gray-700">MFG Month:</span>{" "}
-                  <span className="text-gray-600">{item.mfgMonth}</span>
-                </p>
-                <p>
-                  <span className="font-medium text-gray-700">REF Due:</span>{" "}
-                  <span className="text-gray-600">{safeDate(item.refDue)}</span>
-                </p>
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-xs font-medium text-gray-500">
+                      Batch No
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {item.batchNo || "-"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-500">
+                      Serial No
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {item.serialNumber || "-"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-500">
+                      MFG Month
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {safeMonth(item.mfgMonth)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-500">
+                      REF Due
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {safeDate(item.refDue)}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Column 3 */}
-              <div className="space-y-1 pt-2 md:pl-4">
-                <h4 className="text-base font-bold text-gray-800 mb-2">
+              {/* Column 3: Other Details */}
+              <div className="space-y-4 md:pl-6">
+                <h4 className="text-xs font-semibold text-orange-800/80 uppercase tracking-wider">
                   Other Details
                 </h4>
-                <p>
-                  <span className="font-medium text-gray-700">Location:</span>{" "}
-                  <span className="text-gray-600">{item.location || "-"}</span>
-                </p>
-                <p>
-                  <span className="font-medium text-gray-700">Notes:</span>{" "}
-                  <span className="text-gray-600">{item.notes || "-"}</span>
-                </p>
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-xs font-medium text-gray-500">
+                      Location
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {item.location || "-"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-500">
+                      Notes
+                    </div>
+                    <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+                      {item.notes || "-"}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </td>
         </tr>
       )}
+      {/* --- END of Redesign --- */}
     </>
   );
 };
 
 export default function EquipmentList() {
   const dispatch = useDispatch();
-  const { list, loading, error } = useSelector((s) => s.equipment);
+  const {
+    list,
+    loading,
+    error,
+    loadingUpdate, // <-- Assuming your slice has this
+  } = useSelector((s) => s.equipment);
   const {
     userInfo,
     allUsers: usersList,
     loading: usersLoading,
   } = useSelector((s) => s.users || {});
 
+  // --- Added Modal State ---
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState(null);
+
   const roleRaw = (userInfo?.userType || "").toString().toLowerCase();
   const isSuperAdmin = roleRaw === "super admin";
   const isAdmin = roleRaw === "admin";
   const isTechnician = roleRaw === "technician";
-  const shouldShowFilter = isSuperAdmin || isAdmin || isTechnician;
+  const shouldShowFilter = isSuperAdmin || isAdmin || isTechnician; // Same logic for filtering and editing
+
+  // --- Added Dynamic Column Count ---
+  const numCols = 5 + (shouldShowFilter ? 1 : 0);
 
   useEffect(() => {
     dispatch(getEquipments());
@@ -188,18 +290,182 @@ export default function EquipmentList() {
     );
   }, [baseList, selectedUserId]);
 
+  // --- UPDATED QR DOWNLOAD HANDLER ---
   const handleDownloadQR = async (item) => {
     const payload = JSON.stringify({ equipmentId: item.equipmentId });
-    const qrDataUrl = await QRCode.toDataURL(payload, {
-      errorCorrectionLevel: "H",
-      margin: 1,
-      scale: 10,
-    });
+    const equipmentName = item.equipmentName || "Equipment";
 
-    const link = document.createElement("a");
-    link.href = qrDataUrl;
-    link.download = `${item.equipmentName || "equipment"}-qr.png`;
-    link.click();
+    // --- Get and Format Installation Date ---
+    // (Helper function duplicated from EquipmentDetailsRow for use here)
+    const safeDateForQR = (d) => (d ? new Date(d).toLocaleDateString() : "-");
+    const installationDate = safeDateForQR(item.installationDate);
+    const dateText = `Installed: ${installationDate}`;
+
+    // --- 1. Define Layout Constants ---
+    const padding = 20;
+    const logoHeight = 40;
+    
+    const nameFont = "16px Arial";
+    const nameLineHeight = 20; // Approx height for the font
+    
+    const dateFont = "14px Arial";
+    const dateLineHeight = 16; // Approx height for this font
+
+    const logoMarginBottom = 10;
+    const nameMarginBottom = 8; // Margin between name and date
+    const dateMarginBottom = 15; // Margin between date and QR
+    
+    const qrSize = 250; // Fixed size for the QR code itself
+
+    try {
+      // --- 2. Generate QR Code Data URL ---
+      const qrDataUrl = await QRCode.toDataURL(payload, {
+        errorCorrectionLevel: "H",
+        margin: 1,
+        width: qrSize,
+      });
+
+      // --- 3. Load Images (QR and Logo) ---
+      const loadImg = (src) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = (err) => reject(new Error(`Failed to load image: ${src}`));
+          img.src = src;
+        });
+      };
+
+      // Load both images
+      const [qrImg, logoImg] = await Promise.all([
+        loadImg(qrDataUrl),
+        loadImg(logo), // 'logo' is the imported image from assets
+      ]);
+
+      // --- 4. Calculate Canvas Dimensions ---
+
+      // Calculate logo dimensions (maintain aspect ratio)
+      const logoAspectRatio = logoImg.width / logoImg.height;
+      const finalLogoWidth = logoHeight * logoAspectRatio;
+      const finalLogoHeight = logoHeight;
+
+      // Calculate text widths (using a temp canvas)
+      const canvasTemp = document.createElement("canvas");
+      const ctxTemp = canvasTemp.getContext("2d");
+      
+      ctxTemp.font = nameFont;
+      const nameMetrics = ctxTemp.measureText(equipmentName);
+      const nameWidth = nameMetrics.width;
+
+      ctxTemp.font = dateFont;
+      const dateMetrics = ctxTemp.measureText(dateText);
+      const dateWidth = dateMetrics.width;
+
+      // Determine final canvas size
+      const canvasWidth = Math.max(qrSize, finalLogoWidth, nameWidth, dateWidth) + padding * 2;
+      
+      // Calculate Y positions for each element
+      const logoY = padding;
+      const nameY = logoY + finalLogoHeight + logoMarginBottom;
+      const dateY = nameY + nameLineHeight + nameMarginBottom;
+      const qrY = dateY + dateLineHeight + dateMarginBottom;
+      
+      // Calculate final canvas height
+      const canvasHeight = qrY + qrSize + padding;
+
+      // --- 5. Create and Draw on Canvas ---
+      const canvas = document.createElement("canvas");
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      const ctx = canvas.getContext("2d");
+
+      // Fill background
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+      
+      // Set common text alignment
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top"; // Align text from its top edge
+      const textX = canvasWidth / 2; // Common X for all centered items
+
+
+      // Draw Logo (Top-Center)
+      const logoX = (canvasWidth - finalLogoWidth) / 2;
+      ctx.drawImage(logoImg, logoX, logoY, finalLogoWidth, finalLogoHeight);
+
+      // Draw Equipment Name (Center)
+      ctx.fillStyle = "black";
+      ctx.font = nameFont;
+      ctx.fillText(equipmentName, textX, nameY);
+      
+      // Draw Installation Date (Center)
+      ctx.fillStyle = "#555"; // Slightly lighter color for the date
+      ctx.font = dateFont;
+      ctx.fillText(dateText, textX, dateY);
+
+      // Draw QR Code (Center)
+      const qrX = (canvasWidth - qrSize) / 2;
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+
+      // --- 6. Trigger Download ---
+      const finalDataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = finalDataUrl;
+      link.download = `${equipmentName}-qr.png`;
+      link.click();
+
+    } catch (err) {
+      console.error("Failed to generate custom QR code:", err);
+      // Fallback: Just download the plain QR if canvas fails
+      try {
+          const qrDataUrl = await QRCode.toDataURL(payload, {
+              errorCorrectionLevel: "H",
+              margin: 1,
+              scale: 10,
+          });
+          const link = document.createElement("a");
+          link.href = qrDataUrl;
+          link.download = `${equipmentName}-qr.png`;
+          link.click();
+      } catch (fallbackErr) {
+          console.error("Failed to generate fallback QR code:", fallbackErr);
+          alert("Could not generate QR code.");
+      }
+    }
+  };
+  // --- END OF UPDATED HANDLER ---
+
+
+  // --- Added Modal Handlers ---
+  const handleEdit = (equipment) => {
+    setSelectedEquipment(equipment);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedEquipment(null);
+  };
+
+  const handleSaveUpdate = async (formData) => {
+    if (!selectedEquipment) return;
+
+    // Get the ID for the API call (use _id if available, fallback to equipmentId)
+    const id = selectedEquipment._id || selectedEquipment.equipmentId;
+
+    // Prepare the update payload
+    // We remove internal IDs from the payload, just sending the changed data
+    const { _id, equipmentId, ...updatePayload } = formData;
+
+    try {
+      // Dispatch the thunk with { id, updates }
+      await dispatch(updateEquipment({ id, updates: updatePayload })).unwrap();
+      handleCloseModal();
+      // Note: Your slice should handle updating the `list` state,
+      // which will cause the table to re-render.
+    } catch (err) {
+      console.error("Failed to update equipment:", err);
+      // You could pass an error message back to the modal to display
+    }
   };
 
   return (
@@ -257,6 +523,12 @@ export default function EquipmentList() {
                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   QR
                 </th>
+                {/* --- Added Edit Header --- */}
+                {shouldShowFilter && (
+                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Edit
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -266,12 +538,20 @@ export default function EquipmentList() {
                     key={item._id || item.equipmentId}
                     item={item}
                     onDownloadQR={handleDownloadQR}
+                    onEdit={handleEdit} // <-- Pass handler
+                    canEdit={shouldShowFilter} // <-- Pass permission
+                    numCols={numCols} // <-- Pass col count
                   />
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="text-center py-10 text-gray-500">
-                    {loading ? "Loading…" : "No equipment found"}
+                  <td
+                    colSpan={numCols} // <-- Use dynamic col count
+                    className="text-center py-10 text-gray-500"
+                  >
+                    {loading || usersLoading
+                      ? "Loading…"
+                      : "No equipment found"}
                   </td>
                 </tr>
               )}
@@ -279,6 +559,17 @@ export default function EquipmentList() {
           </table>
         </div>
       </div>
+
+      {/* --- Render Modal --- */}
+      {isEditModalOpen && (
+        <EditEquipmentModal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseModal}
+          equipment={selectedEquipment}
+          onSave={handleSaveUpdate}
+          isLoading={loadingUpdate} // <-- Pass loading state to modal
+        />
+      )}
     </div>
   );
 }
