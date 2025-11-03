@@ -107,14 +107,14 @@ const safeMonth = (m) => {
                       {item.capacity || "-"}
                     </div>
                   </div>
-                  <div>
+                  {/* <div>
                     <div className="text-xs font-medium text-gray-500">
                       Rate Loaded
                     </div>
                     <div className="text-sm text-gray-800">
                       {item.rateLoaded || "-"}
                     </div>
-                  </div>
+                  </div> */}
                   <div>
                     <div className="text-xs font-medium text-gray-500">
                       Gross Weight
@@ -131,14 +131,14 @@ const safeMonth = (m) => {
                       {item.content || "-"}
                     </div>
                   </div>
-                  <div>
+                  {/* <div>
                     <div className="text-xs font-medium text-gray-500">
                       Fire Rating
                     </div>
                     <div className="text-sm text-gray-800">
                       {item.fireRating || "-"}
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 
