@@ -174,7 +174,9 @@ export default function EditEquipmentModal({
                 label="User ID"
                 name="userId"
                 value={formData.userId}
-                onChange={handleChange}
+                readOnly
+                disabled
+                // onChange={handleChange}
                 // Note: You might want to make this a <select> dropdown
                 // Or disable it if it shouldn't be changed
                 // disabled={true} 

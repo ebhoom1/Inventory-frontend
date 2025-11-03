@@ -100,6 +100,11 @@ const safeMonth = (m) => {
                 </h4>
                 <div className="space-y-3">
                   <div>
+  <div className="text-xs font-medium text-gray-500">Brand</div>
+  <div className="text-sm text-gray-800">{item.brand || "-"}</div>
+</div>
+
+                  <div>
                     <div className="text-xs font-medium text-gray-500">
                       Capacity
                     </div>
