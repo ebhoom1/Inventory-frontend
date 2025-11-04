@@ -23,6 +23,7 @@ const getInitialFormState = () => ({
   spNumber: "", // For "Existing"
   mfgMonth: "",
   refDue: "",
+  expiryDate: "",
   notes: "",
   location: "",
   equipmentType: "new", // 'new' or 'existing'
@@ -72,6 +73,10 @@ function AddEquipment() {
     }
     if (!formData.userId) {
       Swal.fire({ icon: "warning", title: "Please select a user" });
+      return;
+    }
+    if (!formData.expiryDate) {
+      Swal.fire({ icon: "warning", title: "Expiry date is required" });
       return;
     }
 
@@ -346,6 +351,19 @@ function AddEquipment() {
               value={formData.batchNo}
               onChange={handleChange}
               placeholder="e.g., BT-2025-08"
+              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+            />
+          </div>
+          {/* --- expiry date- */}
+          <div className="relative">
+            <span className="absolute -top-3 left-5 bg-gradient-to-r from-[#FFF] to-[#FFF7ED] px-2 text-sm font-semibold text-[#DC6D18] z-10">
+              Expiry Date
+            </span>
+            <input
+              type="date"
+              name="expiryDate"
+              value={formData.expiryDate}
+              onChange={handleChange}
               className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
             />
           </div>

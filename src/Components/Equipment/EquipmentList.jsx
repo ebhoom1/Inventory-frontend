@@ -23,7 +23,16 @@ const EquipmentDetailsRow = ({
   numCols,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "-");
+  const safeDate = (d) => {
+    if (!d) return "-";
+    try {
+      const date = new Date(d);
+      if (isNaN(date.getTime())) return "-";
+      return date.toLocaleDateString();
+    } catch (error) {
+      return "-";
+    }
+  };
 
   // Helper to format month-year string
 const safeMonth = (m) => {
@@ -100,11 +109,6 @@ const safeMonth = (m) => {
                 </h4>
                 <div className="space-y-3">
                   <div>
-  <div className="text-xs font-medium text-gray-500">Brand</div>
-  <div className="text-sm text-gray-800">{item.brand || "-"}</div>
-</div>
-
-                  <div>
                     <div className="text-xs font-medium text-gray-500">
                       Capacity
                     </div>
@@ -112,14 +116,14 @@ const safeMonth = (m) => {
                       {item.capacity || "-"}
                     </div>
                   </div>
-                  {/* <div>
+                  <div>
                     <div className="text-xs font-medium text-gray-500">
                       Rate Loaded
                     </div>
                     <div className="text-sm text-gray-800">
                       {item.rateLoaded || "-"}
                     </div>
-                  </div> */}
+                  </div>
                   <div>
                     <div className="text-xs font-medium text-gray-500">
                       Gross Weight
@@ -136,14 +140,14 @@ const safeMonth = (m) => {
                       {item.content || "-"}
                     </div>
                   </div>
-                  {/* <div>
+                  <div>
                     <div className="text-xs font-medium text-gray-500">
                       Fire Rating
                     </div>
                     <div className="text-sm text-gray-800">
                       {item.fireRating || "-"}
                     </div>
-                  </div> */}
+                  </div>
                 </div>
               </div>
 
@@ -185,9 +189,18 @@ const safeMonth = (m) => {
                       {safeDate(item.refDue)}
                     </div>
                   </div>
+                   {/* --- ADDED EXPIRY DATE --- */}
+                  <div>
+                    <div className="text-xs font-medium text-gray-500">
+                      Expiry Date
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {safeDate(item.expiryDate)}
+                    </div>
+                  </div>
                 </div>
               </div>
-
+           
               {/* Column 3: Other Details */}
               <div className="space-y-4 md:pl-6">
                 <h4 className="text-xs font-semibold text-orange-800/80 uppercase tracking-wider">
@@ -225,9 +238,9 @@ export default function EquipmentList() {
   const dispatch = useDispatch();
   const {
     list,
-    loading,
+    loading, // <-- ⭐ FIX: Use this variable
     error,
-    loadingUpdate, // <-- Assuming your slice has this
+    // loadingUpdate, // <-- This variable does not exist in your slice
   } = useSelector((s) => s.equipment);
   const {
     userInfo,
@@ -295,16 +308,23 @@ export default function EquipmentList() {
     );
   }, [baseList, selectedUserId]);
 
-  // --- UPDATED QR DOWNLOAD HANDLER ---
+  // --- UPDATED QR DOWNLOAD HANDLER WITH ALL REQUIRED FIELDS ---
   const handleDownloadQR = async (item) => {
-    const payload = JSON.stringify({ equipmentId: item.equipmentId });
+    // Include all required fields in the QR code payload
+    const payload = JSON.stringify({
+      equipmentId: item.equipmentId,
+      installationDate: item.installationDate,
+      expiryDate: item.expiryDate,
+      capacity: item.capacity
+    });
     const equipmentName = item.equipmentName || "Equipment";
 
-    // --- Get and Format Installation Date ---
-    // (Helper function duplicated from EquipmentDetailsRow for use here)
+    // Format dates for display
     const safeDateForQR = (d) => (d ? new Date(d).toLocaleDateString() : "-");
     const installationDate = safeDateForQR(item.installationDate);
-    const dateText = `Installed: ${installationDate}`;
+    const expiryDate = safeDateForQR(item.expiryDate);
+    const dateText = `Installed: ${installationDate} | Expires: ${expiryDate}`;
+    const capacityText = `Capacity: ${item.capacity || '-'}`;
 
     // --- 1. Define Layout Constants ---
     const padding = 20;
@@ -374,8 +394,9 @@ export default function EquipmentList() {
       const dateY = nameY + nameLineHeight + nameMarginBottom;
       const qrY = dateY + dateLineHeight + dateMarginBottom;
       
-      // Calculate final canvas height
-      const canvasHeight = qrY + qrSize + padding;
+      // Calculate final canvas height with increased bottom padding
+      const bottomPadding = 60; // Increased bottom padding
+      const canvasHeight = qrY + qrSize + bottomPadding;
 
       // --- 5. Create and Draw on Canvas ---
       const canvas = document.createElement("canvas");
@@ -407,9 +428,15 @@ export default function EquipmentList() {
       ctx.font = dateFont;
       ctx.fillText(dateText, textX, dateY);
 
+      // Draw Capacity Text (Center)
+      ctx.fillStyle = "#555";
+      ctx.font = dateFont;
+      ctx.fillText(capacityText, textX, dateY + dateLineHeight + 4); // Add small gap
+      
       // Draw QR Code (Center)
       const qrX = (canvasWidth - qrSize) / 2;
-      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+      const updatedQrY = qrY + dateLineHeight + 4; // Adjust QR position to account for capacity text
+      ctx.drawImage(qrImg, qrX, updatedQrY, qrSize, qrSize);
 
       // --- 6. Trigger Download ---
       const finalDataUrl = canvas.toDataURL("image/png");
@@ -442,6 +469,8 @@ export default function EquipmentList() {
 
   // --- Added Modal Handlers ---
   const handleEdit = (equipment) => {
+    // Debug: log the equipment object passed to the edit modal
+    console.log("[EquipmentList] handleEdit - equipment passed to modal:", equipment);
     setSelectedEquipment(equipment);
     setIsEditModalOpen(true);
   };
@@ -572,7 +601,7 @@ export default function EquipmentList() {
           onClose={handleCloseModal}
           equipment={selectedEquipment}
           onSave={handleSaveUpdate}
-          isLoading={loadingUpdate} // <-- Pass loading state to modal
+          isLoading={loading} // <--  FIX: Pass correct loading state
         />
       )}
     </div>

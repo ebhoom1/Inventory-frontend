@@ -240,7 +240,6 @@ const EditUser = () => {
                   placeholder="Enter User ID"
                   className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
                   required
-                  disabled
                 />
               </div>
 

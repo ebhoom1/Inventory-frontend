@@ -330,7 +330,7 @@ const canSeeInventory = isAdmin || isSuperAdmin || isTechnician;
           </li>
 
           <li className={navItemClasses} onClick={() => navigate("/equipment")}>
-            <span className="mr-4 text-xl" />
+            <span className="mr-4 text-xl" />                 
             <span>Equipments</span>
           </li>
           <li className={navItemClasses} onClick={() => navigate("/account")}>
