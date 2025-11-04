@@ -101,6 +101,7 @@ export default function EditEquipmentModal({
         ...equipment,
         installationDate: formatDateForInput(equipment.installationDate),
         refDue: formatDateForInput(equipment.refDue),
+        expiryDate: formatDateForInput(equipment.expiryDate),
         mfgMonth: formatMonthForInput(equipment.mfgMonth), // Use month formatter
       });
     } else {
@@ -240,6 +241,14 @@ export default function EditEquipmentModal({
                 name="serialNumber"
                 value={formData.serialNumber}
                 onChange={handleChange}
+              />
+                 {/* --- EXPIRY DATE INPUT --- */}
+              <FormInput
+                label="Expiry Date"
+                name="expiryDate"
+                value={formData.expiryDate}
+                onChange={handleChange}
+                type="date"
               />
                {/* This field was not in your list, but in your details view. Add if needed.
                <FormInput

@@ -23,6 +23,17 @@ const EquipmentDetailsRow = ({
   numCols,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  //   const safeDate = (d) => {
+  //   if (!d) return "-";
+  //   try {
+  //     const date = new Date(d);
+  //     if (isNaN(date.getTime())) return "-";
+  //     return date.toLocaleDateString();
+  //   } catch (error) {
+  //     return "-";
+  //   }
+  // };
+
   const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "-");
 
   // Helper to format month-year string
@@ -185,6 +196,15 @@ const safeMonth = (m) => {
                       {safeDate(item.refDue)}
                     </div>
                   </div>
+                      {/* --- ADDED EXPIRY DATE --- */}
+                  <div>
+                    <div className="text-xs font-medium text-gray-500">
+                      Expiry Date
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {safeDate(item.expiryDate)}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -297,14 +317,23 @@ export default function EquipmentList() {
 
   // --- UPDATED QR DOWNLOAD HANDLER ---
   const handleDownloadQR = async (item) => {
-    const payload = JSON.stringify({ equipmentId: item.equipmentId });
+ // Include all required fields in the QR code payload
+    const payload = JSON.stringify({
+      equipmentId: item.equipmentId,
+      installationDate: item.installationDate,
+      expiryDate: item.expiryDate,
+      capacity: item.capacity
+    });
+  
     const equipmentName = item.equipmentName || "Equipment";
 
     // --- Get and Format Installation Date ---
     // (Helper function duplicated from EquipmentDetailsRow for use here)
     const safeDateForQR = (d) => (d ? new Date(d).toLocaleDateString() : "-");
     const installationDate = safeDateForQR(item.installationDate);
-    const dateText = `Installed: ${installationDate}`;
+    const expiryDate = safeDateForQR(item.expiryDate);
+    const dateText = `Installed: ${installationDate} | Expires: ${expiryDate}`;
+    const capacityText = `Capacity: ${item.capacity || '-'}`;
 
     // --- 1. Define Layout Constants ---
     const padding = 20;
@@ -402,14 +431,22 @@ export default function EquipmentList() {
       ctx.font = nameFont;
       ctx.fillText(equipmentName, textX, nameY);
       
-      // Draw Installation Date (Center)
-      ctx.fillStyle = "#555"; // Slightly lighter color for the date
-      ctx.font = dateFont;
-      ctx.fillText(dateText, textX, dateY);
 
-      // Draw QR Code (Center)
-      const qrX = (canvasWidth - qrSize) / 2;
-      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+    // Draw Installation/Expiry Date (Center)
+    ctx.fillStyle = "#555"; // Slightly lighter color for the date
+    ctx.font = dateFont;
+    ctx.fillText(dateText, textX, dateY);
+
+    // Draw Capacity (Center, below date)
+    const capacityY = dateY + dateLineHeight + 4;
+    ctx.fillStyle = "#333";
+    ctx.font = dateFont;
+    ctx.fillText(capacityText, textX, capacityY);
+
+    // Draw QR Code (Center, below capacity)
+    const qrX = (canvasWidth - qrSize) / 2;
+    const qrYWithCapacity = capacityY + dateLineHeight + 10;
+    ctx.drawImage(qrImg, qrX, qrYWithCapacity, qrSize, qrSize);
 
       // --- 6. Trigger Download ---
       const finalDataUrl = canvas.toDataURL("image/png");

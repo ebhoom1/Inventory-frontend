@@ -43,6 +43,7 @@ function formatISTDateTime(value) {
 
 const DATE_ONLY_FIELDS = new Set([
   "installationDate",
+  "expiryDate",
   "refillingDue",
   "nextServiceDate",
 ]);
@@ -358,7 +359,7 @@ function RequestService() {
     ["Equipment ID", "equipmentId"],
     ["Equipment Name", "equipmentName"],
     ["Model / Series", "modelSeries"], // ✅ Add this line
-    ["Added By (User ID)", "userId"], // âœ… NEW
+    ["Added By (User ID)", "userId"],
     ["Service Type", "serviceType"],
     ["Date", "date"],
     ["Branch/Location", "branchLocation"],
@@ -369,6 +370,7 @@ function RequestService() {
     ["Type", "type"],
     ["Capacity", "capacity"],
     ["Installation Date", "installationDate"],
+    ["Expiry Date", "expiryDate"],
     ["Can Serial Number", "canSerialNumber"],
     ["Next Service Date", "nextServiceDate"],
 
@@ -422,16 +424,34 @@ function RequestService() {
 
         const eq = data.equipment || data;
 
-        // Prefill IDs & name
-        setFormData((prev) => ({
+        // Format dates for input fields (YYYY-MM-DD format)
+        const formatDateForInput = (dateString) => {
+          if (!dateString) return "";
+          try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return "";
+            return date.toISOString().split('T')[0];
+          } catch (error) {
+            console.error("Date formatting error:", error);
+            return "";
+          }
+        };
+
+           setFormData((prev) => ({
           ...prev,
           equipmentId: eq.equipmentId || prev.equipmentId,
           equipmentName: eq.equipmentName || prev.equipmentName,
-          modelSeries: eq.modelSeries || prev.modelSeries,
           userId: eq.userId || prev.userId,
-          location: eq.location || prev.location, // âœ… NEW
+          location: eq.location || prev.location,
+          // Add the new fields from QR code with proper date formatting
+          installationDate: formatDateForInput(scanned.installationDate) || 
+                          formatDateForInput(eq.installationDate) || 
+                          prev.installationDate,
+          expiryDate: formatDateForInput(scanned.expiryDate) || 
+                     formatDateForInput(eq.expiryDate) || 
+                     prev.expiryDate,
+          capacity: scanned.capacity || eq.capacity || prev.capacity,
         }));
-
         Swal.fire({
           title: "Scanned!",
           text: eq.equipmentName || eq.equipmentId || "QR read",
@@ -900,6 +920,18 @@ function RequestService() {
                   type="date"
                   name="installationDate"
                   value={formData.installationDate}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
+              <div className="relative">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18]">
+                  Expiry Date
+                </span>
+                <input
+                  type="date"
+                  name="expiryDate"
+                  value={formData.expiryDate || ''}
                   onChange={handleChange}
                   className={inputClass}
                 />
