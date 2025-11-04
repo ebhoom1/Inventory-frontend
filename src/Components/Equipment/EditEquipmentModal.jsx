@@ -101,7 +101,6 @@ export default function EditEquipmentModal({
         ...equipment,
         installationDate: formatDateForInput(equipment.installationDate),
         refDue: formatDateForInput(equipment.refDue),
-        expiryDate: formatDateForInput(equipment.expiryDate),
         mfgMonth: formatMonthForInput(equipment.mfgMonth), // Use month formatter
       });
     } else {
@@ -175,7 +174,9 @@ export default function EditEquipmentModal({
                 label="User ID"
                 name="userId"
                 value={formData.userId}
-                onChange={handleChange}
+                readOnly
+                disabled
+                // onChange={handleChange}
                 // Note: You might want to make this a <select> dropdown
                 // Or disable it if it shouldn't be changed
                 // disabled={true} 
@@ -240,15 +241,6 @@ export default function EditEquipmentModal({
                 value={formData.serialNumber}
                 onChange={handleChange}
               />
-
-                 {/* --- EXPIRY DATE INPUT --- */}
-              <FormInput
-                label="Expiry Date"
-                name="expiryDate"
-                value={formData.expiryDate}
-                onChange={handleChange}
-                type="date"
-              />
                {/* This field was not in your list, but in your details view. Add if needed.
                <FormInput
                 label="Fire Rating"
@@ -264,7 +256,6 @@ export default function EditEquipmentModal({
                 type="date"
               />
             </div>
-          
 
             {/* --- Full-width fields for Location and Notes --- */}
             <FormInput

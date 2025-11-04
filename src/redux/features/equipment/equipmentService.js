@@ -44,10 +44,6 @@ export const getEquipmentsApi = async (getState) => {
     headers: { "Content-Type": "application/json", ...getAuthHeader(getState) },
   });
   const data = await res.json();
-  
-  // Debug: log the raw API response
-  console.log("[equipmentService] getEquipmentsApi response:", data);
-  
   if (!res.ok) throw new Error(data?.message || "Failed to fetch equipments");
   return data; // array
 };
