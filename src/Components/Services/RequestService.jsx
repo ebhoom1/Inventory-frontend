@@ -441,6 +441,7 @@ function RequestService() {
           ...prev,
           equipmentId: eq.equipmentId || prev.equipmentId,
           equipmentName: eq.equipmentName || prev.equipmentName,
+          modelSeries: eq.modelSeries || prev.modelSeries,
           userId: eq.userId || prev.userId,
           location: eq.location || prev.location,
           // Add the new fields from QR code with proper date formatting
