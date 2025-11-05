@@ -430,14 +430,14 @@ function RequestService() {
           try {
             const date = new Date(dateString);
             if (isNaN(date.getTime())) return "";
-            return date.toISOString().split('T')[0];
+            return date.toISOString().split("T")[0];
           } catch (error) {
             console.error("Date formatting error:", error);
             return "";
           }
         };
 
-           setFormData((prev) => ({
+        setFormData((prev) => ({
           ...prev,
           equipmentId: eq.equipmentId || prev.equipmentId,
           equipmentName: eq.equipmentName || prev.equipmentName,
@@ -445,13 +445,32 @@ function RequestService() {
           userId: eq.userId || prev.userId,
           location: eq.location || prev.location,
           // Add the new fields from QR code with proper date formatting
-          installationDate: formatDateForInput(scanned.installationDate) || 
-                          formatDateForInput(eq.installationDate) || 
-                          prev.installationDate,
-          expiryDate: formatDateForInput(scanned.expiryDate) || 
-                     formatDateForInput(eq.expiryDate) || 
-                     prev.expiryDate,
+          installationDate:
+            formatDateForInput(scanned.installationDate) ||
+            formatDateForInput(eq.installationDate) ||
+            prev.installationDate,
+          expiryDate:
+            formatDateForInput(scanned.expiryDate) ||
+            formatDateForInput(eq.expiryDate) ||
+            prev.expiryDate,
           capacity: scanned.capacity || eq.capacity || prev.capacity,
+
+          // NEW: brand (QR → equipment → previous)
+          brand: scanned.brand || eq.brand || prev.brand,
+
+          // NEW: Can Serial Number (QR.serialNumber/QR.canSerialNumber → equipment.canSerialNumber/serialNumber → previous)
+          canSerialNumber:
+            scanned.canSerialNumber ||
+            scanned.serialNumber ||
+            eq.canSerialNumber ||
+            eq.serialNumber ||
+            prev.canSerialNumber,
+
+          // NEW: Refilling Due (QR.refillingDue → equipment.refillingDue/refDue → previous)
+          refillingDue:
+            formatDateForInput(scanned.refillingDue) ||
+            formatDateForInput(eq.refillingDue || eq.refDue) ||
+            prev.refillingDue,
         }));
         Swal.fire({
           title: "Scanned!",
@@ -932,7 +951,7 @@ function RequestService() {
                 <input
                   type="date"
                   name="expiryDate"
-                  value={formData.expiryDate || ''}
+                  value={formData.expiryDate || ""}
                   onChange={handleChange}
                   className={inputClass}
                 />
