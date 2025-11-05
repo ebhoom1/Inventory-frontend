@@ -23,17 +23,7 @@ const EquipmentDetailsRow = ({
   numCols,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  //   const safeDate = (d) => {
-  //   if (!d) return "-";
-  //   try {
-  //     const date = new Date(d);
-  //     if (isNaN(date.getTime())) return "-";
-  //     return date.toLocaleDateString();
-  //   } catch (error) {
-  //     return "-";
-  //   }
-  // };
-
+  
   const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "-");
 
   // Helper to format month-year string
