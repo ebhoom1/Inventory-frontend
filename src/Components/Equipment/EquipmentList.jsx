@@ -3,12 +3,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getEquipments,
-  updateEquipment, // <-- Import your update thunk
+  updateEquipment,
+  resetEquipmentState, // <-- Import your update thunk
 } from "../../redux/features/equipment/equipmentSlice";
 import { getAllUsers } from "../../redux/features/users/userSlice";
 import QRCode from "qrcode";
 import EditEquipmentModal from "./EditEquipmentModal"; // <-- Make sure this path is correct
-import logo from '../../assets/safetik.png'
+import logo from "../../assets/safetik.png";
+import Swal from "sweetalert2"; // add this at the top (or use your toast lib)
 
 /**
  * Updated EquipmentDetailsRow
@@ -23,11 +25,11 @@ const EquipmentDetailsRow = ({
   numCols,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "-");
 
   // Helper to format month-year string
-const safeMonth = (m) => {
+  const safeMonth = (m) => {
     if (!m) return "-";
     try {
       // Handles "YYYY-MM" format or full dates
@@ -101,9 +103,13 @@ const safeMonth = (m) => {
                 </h4>
                 <div className="space-y-3">
                   <div>
-  <div className="text-xs font-medium text-gray-500">Brand</div>
-  <div className="text-sm text-gray-800">{item.brand || "-"}</div>
-</div>
+                    <div className="text-xs font-medium text-gray-500">
+                      Brand
+                    </div>
+                    <div className="text-sm text-gray-800">
+                      {item.brand || "-"}
+                    </div>
+                  </div>
 
                   <div>
                     <div className="text-xs font-medium text-gray-500">
@@ -186,7 +192,7 @@ const safeMonth = (m) => {
                       {safeDate(item.refDue)}
                     </div>
                   </div>
-                      {/* --- ADDED EXPIRY DATE --- */}
+                  {/* --- ADDED EXPIRY DATE --- */}
                   <div>
                     <div className="text-xs font-medium text-gray-500">
                       Expiry Date
@@ -307,14 +313,14 @@ export default function EquipmentList() {
 
   // --- UPDATED QR DOWNLOAD HANDLER ---
   const handleDownloadQR = async (item) => {
- // Include all required fields in the QR code payload
+    // Include all required fields in the QR code payload
     const payload = JSON.stringify({
       equipmentId: item.equipmentId,
       installationDate: item.installationDate,
       expiryDate: item.expiryDate,
-      capacity: item.capacity
+      capacity: item.capacity,
     });
-  
+
     const equipmentName = item.equipmentName || "Equipment";
 
     // --- Get and Format Installation Date ---
@@ -323,22 +329,22 @@ export default function EquipmentList() {
     const installationDate = safeDateForQR(item.installationDate);
     const expiryDate = safeDateForQR(item.expiryDate);
     const dateText = `Installed: ${installationDate} | Expires: ${expiryDate}`;
-    const capacityText = `Capacity: ${item.capacity || '-'}`;
+    const capacityText = `Capacity: ${item.capacity || "-"}`;
 
     // --- 1. Define Layout Constants ---
     const padding = 20;
     const logoHeight = 40;
-    
+
     const nameFont = "16px Arial";
     const nameLineHeight = 20; // Approx height for the font
-    
+
     const dateFont = "14px Arial";
     const dateLineHeight = 16; // Approx height for this font
 
     const logoMarginBottom = 10;
     const nameMarginBottom = 8; // Margin between name and date
     const dateMarginBottom = 15; // Margin between date and QR
-    
+
     const qrSize = 250; // Fixed size for the QR code itself
 
     try {
@@ -354,7 +360,8 @@ export default function EquipmentList() {
         return new Promise((resolve, reject) => {
           const img = new Image();
           img.onload = () => resolve(img);
-          img.onerror = (err) => reject(new Error(`Failed to load image: ${src}`));
+          img.onerror = (err) =>
+            reject(new Error(`Failed to load image: ${src}`));
           img.src = src;
         });
       };
@@ -375,7 +382,7 @@ export default function EquipmentList() {
       // Calculate text widths (using a temp canvas)
       const canvasTemp = document.createElement("canvas");
       const ctxTemp = canvasTemp.getContext("2d");
-      
+
       ctxTemp.font = nameFont;
       const nameMetrics = ctxTemp.measureText(equipmentName);
       const nameWidth = nameMetrics.width;
@@ -385,14 +392,15 @@ export default function EquipmentList() {
       const dateWidth = dateMetrics.width;
 
       // Determine final canvas size
-      const canvasWidth = Math.max(qrSize, finalLogoWidth, nameWidth, dateWidth) + padding * 2;
-      
+      const canvasWidth =
+        Math.max(qrSize, finalLogoWidth, nameWidth, dateWidth) + padding * 2;
+
       // Calculate Y positions for each element
       const logoY = padding;
       const nameY = logoY + finalLogoHeight + logoMarginBottom;
       const dateY = nameY + nameLineHeight + nameMarginBottom;
       const qrY = dateY + dateLineHeight + dateMarginBottom;
-      
+
       // Calculate final canvas height
       const canvasHeight = qrY + qrSize + padding;
 
@@ -405,12 +413,11 @@ export default function EquipmentList() {
       // Fill background
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-      
+
       // Set common text alignment
       ctx.textAlign = "center";
       ctx.textBaseline = "top"; // Align text from its top edge
       const textX = canvasWidth / 2; // Common X for all centered items
-
 
       // Draw Logo (Top-Center)
       const logoX = (canvasWidth - finalLogoWidth) / 2;
@@ -420,23 +427,22 @@ export default function EquipmentList() {
       ctx.fillStyle = "black";
       ctx.font = nameFont;
       ctx.fillText(equipmentName, textX, nameY);
-      
 
-    // Draw Installation/Expiry Date (Center)
-    ctx.fillStyle = "#555"; // Slightly lighter color for the date
-    ctx.font = dateFont;
-    ctx.fillText(dateText, textX, dateY);
+      // Draw Installation/Expiry Date (Center)
+      ctx.fillStyle = "#555"; // Slightly lighter color for the date
+      ctx.font = dateFont;
+      ctx.fillText(dateText, textX, dateY);
 
-    // Draw Capacity (Center, below date)
-    const capacityY = dateY + dateLineHeight + 4;
-    ctx.fillStyle = "#333";
-    ctx.font = dateFont;
-    ctx.fillText(capacityText, textX, capacityY);
+      // Draw Capacity (Center, below date)
+      const capacityY = dateY + dateLineHeight + 4;
+      ctx.fillStyle = "#333";
+      ctx.font = dateFont;
+      ctx.fillText(capacityText, textX, capacityY);
 
-    // Draw QR Code (Center, below capacity)
-    const qrX = (canvasWidth - qrSize) / 2;
-    const qrYWithCapacity = capacityY + dateLineHeight + 10;
-    ctx.drawImage(qrImg, qrX, qrYWithCapacity, qrSize, qrSize);
+      // Draw QR Code (Center, below capacity)
+      const qrX = (canvasWidth - qrSize) / 2;
+      const qrYWithCapacity = capacityY + dateLineHeight + 10;
+      ctx.drawImage(qrImg, qrX, qrYWithCapacity, qrSize, qrSize);
 
       // --- 6. Trigger Download ---
       const finalDataUrl = canvas.toDataURL("image/png");
@@ -444,28 +450,26 @@ export default function EquipmentList() {
       link.href = finalDataUrl;
       link.download = `${equipmentName}-qr.png`;
       link.click();
-
     } catch (err) {
       console.error("Failed to generate custom QR code:", err);
       // Fallback: Just download the plain QR if canvas fails
       try {
-          const qrDataUrl = await QRCode.toDataURL(payload, {
-              errorCorrectionLevel: "H",
-              margin: 1,
-              scale: 10,
-          });
-          const link = document.createElement("a");
-          link.href = qrDataUrl;
-          link.download = `${equipmentName}-qr.png`;
-          link.click();
+        const qrDataUrl = await QRCode.toDataURL(payload, {
+          errorCorrectionLevel: "H",
+          margin: 1,
+          scale: 10,
+        });
+        const link = document.createElement("a");
+        link.href = qrDataUrl;
+        link.download = `${equipmentName}-qr.png`;
+        link.click();
       } catch (fallbackErr) {
-          console.error("Failed to generate fallback QR code:", fallbackErr);
-          alert("Could not generate QR code.");
+        console.error("Failed to generate fallback QR code:", fallbackErr);
+        alert("Could not generate QR code.");
       }
     }
   };
   // --- END OF UPDATED HANDLER ---
-
 
   // --- Added Modal Handlers ---
   const handleEdit = (equipment) => {
@@ -478,27 +482,67 @@ export default function EquipmentList() {
     setSelectedEquipment(null);
   };
 
+  // EquipmentList.jsx
+
   const handleSaveUpdate = async (formData) => {
     if (!selectedEquipment) return;
 
-    // Get the ID for the API call (use _id if available, fallback to equipmentId)
+    // Use Mongo _id if present, else fall back to equipmentId
     const id = selectedEquipment._id || selectedEquipment.equipmentId;
 
-    // Prepare the update payload
-    // We remove internal IDs from the payload, just sending the changed data
-    const { _id, equipmentId, ...updatePayload } = formData;
+    // Build payload: strip server-managed fields
+    const { _id, equipmentId, createdAt, updatedAt, __v, ...updatePayload } =
+      formData;
 
     try {
-      // Dispatch the thunk with { id, updates }
       await dispatch(updateEquipment({ id, updates: updatePayload })).unwrap();
+
+      // ✅ Toast only after a successful Save click
+      Swal.fire({
+        title: "Updated",
+        text: "Equipment updated successfully",
+        icon: "success",
+        timer: 1400,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
+
+      // Close the modal immediately
       handleCloseModal();
-      // Note: Your slice should handle updating the `list` state,
-      // which will cause the table to re-render.
+
+      // Clear global success so switching tabs won’t retrigger toasts
+      dispatch(resetEquipmentState());
     } catch (err) {
       console.error("Failed to update equipment:", err);
-      // You could pass an error message back to the modal to display
+      Swal.fire({
+        title: "Update failed",
+        text: String(err),
+        icon: "error",
+      });
     }
   };
+
+  // const handleSaveUpdate = async (formData) => {
+  //   if (!selectedEquipment) return;
+
+  //   // Get the ID for the API call (use _id if available, fallback to equipmentId)
+  //   const id = selectedEquipment._id || selectedEquipment.equipmentId;
+
+  //   // Prepare the update payload
+  //   // We remove internal IDs from the payload, just sending the changed data
+  //   const { _id, equipmentId, ...updatePayload } = formData;
+
+  //   try {
+  //     // Dispatch the thunk with { id, updates }
+  //     await dispatch(updateEquipment({ id, updates: updatePayload })).unwrap();
+  //     handleCloseModal();
+  //     // Note: Your slice should handle updating the `list` state,
+  //     // which will cause the table to re-render.
+  //   } catch (err) {
+  //     console.error("Failed to update equipment:", err);
+  //     // You could pass an error message back to the modal to display
+  //   }
+  // };
 
   return (
     <div className="w-full max-w-7xl mx-auto">
@@ -599,7 +643,8 @@ export default function EquipmentList() {
           onClose={handleCloseModal}
           equipment={selectedEquipment}
           onSave={handleSaveUpdate}
-          isLoading={loadingUpdate} // <-- Pass loading state to modal
+          // isLoading={loadingUpdate} // <-- Pass loading state to modal
+          isLoading={loading} // from Redux selector
         />
       )}
     </div>
