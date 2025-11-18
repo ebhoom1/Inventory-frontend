@@ -1,5 +1,5 @@
 // AddEquipment.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Swal from "sweetalert2";
 import {
@@ -23,7 +23,6 @@ const getInitialFormState = () => ({
   refDue: "",
   expiryDate: "",
   notes: "",
-  equipmentLocations: [""], // CHANGED: Dynamic equipment locations array with one empty field
   quantity: " ", // NEW: Quantity field with default value
   equipmentType: "new", // 'new' or 'existing'
 });
@@ -34,66 +33,14 @@ function AddEquipment() {
   const { userInfo } = useSelector((s) => s.users);
 
   const [formData, setFormData] = useState(getInitialFormState());
-  const [availableLocations, setAvailableLocations] = useState([]); // NEW: Store fetched locations
-  const [locationsLoading, setLocationsLoading] = useState(false); // NEW: Loading state for locations
-  const [locationsError, setLocationsError] = useState(null); // NEW: Error state for locations
-
-  // Fetch available locations on component mount
-  useEffect(() => {
-    const fetchAvailableLocations = async () => {
-      try {
-        setLocationsLoading(true);
-        setLocationsError(null);
-        const token = localStorage.getItem("token");
-        const response = await fetch("/api/equipment/locations/all", {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
-        });
-        const data = await response.json();
-        if (response.ok) {
-          setAvailableLocations(Array.isArray(data) ? data : []);
-        } else {
-          setLocationsError(data?.message || "Failed to fetch locations");
-        }
-      } catch (err) {
-        setLocationsError(err.message || "Failed to fetch locations");
-      } finally {
-        setLocationsLoading(false);
-      }
-    };
-    
-    fetchAvailableLocations();
-  }, []);
+  // equipmentLocations removed: locations are not collected on add form
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // CHANGED: Handle equipment location field changes
-  const handleEquipmentLocationChange = (index, value) => {
-    const updatedLocations = [...formData.equipmentLocations];
-    updatedLocations[index] = value;
-    setFormData((prev) => ({ ...prev, equipmentLocations: updatedLocations }));
-  };
-
-  // CHANGED: Add a new blank equipment location field
-  const handleAddEquipmentLocation = () => {
-    setFormData((prev) => ({
-      ...prev,
-      equipmentLocations: [...prev.equipmentLocations, ""],
-    }));
-  };
-
-  // CHANGED: Remove an equipment location field
-  const handleRemoveEquipmentLocation = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      equipmentLocations: prev.equipmentLocations.filter((_, i) => i !== index),
-    }));
-  };
+  // equipment location handlers removed (field removed from UI)
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -170,27 +117,13 @@ function AddEquipment() {
       return;
     }
 
-    // Validate at least one equipment location
-    const validLocations = (formData.equipmentLocations || []).filter(Boolean);
-    if (validLocations.length === 0) {
-      Swal.fire({ icon: "warning", title: "At least one equipment location is required" });
-      return;
-    }
-
     // Create a copy to manipulate for submission
     const payload = { ...formData };
 
-    // Add userId from Redux (CRITICAL FIX)
+    // Add userId from Redux
     payload.userId = userInfo._id;
 
-    // Filter out empty strings from equipmentLocations and map to 'locations' for backend
-    payload.locations = validLocations;
-    
-    // Set primary location as first location
-    payload.location = payload.locations[0];
-    
-    // Remove equipmentLocations since backend uses 'locations' and 'location'
-    delete payload.equipmentLocations;
+    // Location is no longer collected on add form; backend accepts missing/empty location
 
     // --- Conditional Validation and Payload Cleanup ---
     if (payload.equipmentType === "new") {
@@ -372,44 +305,7 @@ function AddEquipment() {
             />
           </div>
 
-          {/* Equipment Locations - Dynamic Fields */}
-          <div className="relative md:col-span-2">
-            <span className="absolute -top-3 left-5 bg-gradient-to-r from-[#FFF] to-[#FFF7ED] px-2 text-sm font-semibold text-[#DC6D18] z-10">
-              Equipment Locations
-            </span>
-            <div className="space-y-2 mt-3">
-              {(formData.equipmentLocations || ['']).map((loc, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    name={`equipmentLocation-${idx}`}
-                    value={loc}
-                    onChange={(e) => handleEquipmentLocationChange(idx, e.target.value)}
-                    placeholder={`e.g., Ground Floor, Plant Room - Location ${idx + 1}`}
-                    className="flex-1 border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-                  />
-                  <button 
-                    type="button" 
-                    onClick={() => handleRemoveEquipmentLocation(idx)} 
-                    title="Remove location"
-                    className="text-red-500 hover:text-red-700 px-3 font-bold transition-colors"
-                  >
-                    <i className="fa-solid fa-minus" />
-                  </button>
-                  {idx === (formData.equipmentLocations || []).length - 1 && (
-                    <button 
-                      type="button" 
-                      onClick={handleAddEquipmentLocation} 
-                      title="Add location"
-                      className="text-green-600 hover:text-green-700 px-3 font-bold transition-colors"
-                    >
-                      <i className="fa-solid fa-plus" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Equipment Locations field removed from Add Equipment form */}
 
           {/* Brand */}
           <div className="relative">

@@ -3,17 +3,15 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getEquipments,
-  updateEquipment, // <-- Import your update thunk
+  updateEquipment,
 } from "../../redux/features/equipment/equipmentSlice";
 import { getAllUsers } from "../../redux/features/users/userSlice";
 import QRCode from "qrcode";
-import EditEquipmentModal from "./EditEquipmentModal"; // <-- Make sure this path is correct
-import logo from '../../assets/safetik.png'
+import EditEquipmentModal from "./EditEquipmentModal";
+import logo from '../../assets/safetik.png';
 
 /**
- * Updated EquipmentDetailsRow
- * - Contains the main row with the Edit button
- * - Contains the NEW redesigned expanded details section
+ * EquipmentDetailsRow Component
  */
 const EquipmentDetailsRow = ({
   item,
@@ -25,24 +23,21 @@ const EquipmentDetailsRow = ({
   const [isOpen, setIsOpen] = useState(false);
   const safeDate = (d) => (d ? new Date(d).toLocaleDateString() : "-");
 
-  // Helper to format month-year string
-const safeMonth = (m) => {
+  const safeMonth = (m) => {
     if (!m) return "-";
     try {
-      // Handles "YYYY-MM" format or full dates
       return new Date(m).toLocaleString("default", {
         month: "long",
         year: "numeric",
-        timeZone: "UTC", // Add timezone to prevent off-by-one day issues
+        timeZone: "UTC",
       });
     } catch (e) {
-      return m; // Fallback to the original string if it's not a parseable date
+      return m;
     }
   };
 
   return (
     <>
-      {/* Main Row (Includes Edit Button) */}
       <tr className="hover:bg-orange-50/50">
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm font-bold text-gray-900">
@@ -72,7 +67,6 @@ const safeMonth = (m) => {
             Download QR
           </button>
         </td>
-        {/* --- Edit Button Column --- */}
         {canEdit && (
           <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
             <button
@@ -85,13 +79,10 @@ const safeMonth = (m) => {
         )}
       </tr>
 
-      {/* --- REDESIGNED Expanded Details --- */}
+      {/* Expanded Details Section */}
       {isOpen && (
         <tr className="bg-orange-50/30">
-          <td
-            colSpan={numCols} // <-- Uses dynamic numCols
-            className="px-6 py-1 border-t border-orange-100"
-          >
+          <td colSpan={numCols} className="px-6 py-1 border-t border-orange-100">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
               {/* Column 1: Specifications */}
               <div className="space-y-4 pb-4 border-b border-dotted border-orange-200 md:border-b-0 md:border-r md:border-dotted md:pr-6">
@@ -100,44 +91,24 @@ const safeMonth = (m) => {
                 </h4>
                 <div className="space-y-3">
                   <div>
-                    <div className="text-xs font-medium text-gray-500">
-                      Capacity
-                    </div>
-                    <div className="text-sm text-gray-800">
-                      {item.capacity || "-"}
-                    </div>
+                    <div className="text-xs font-medium text-gray-500">Capacity</div>
+                    <div className="text-sm text-gray-800">{item.capacity || "-"}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-500">
-                      Rate Loaded
-                    </div>
-                    <div className="text-sm text-gray-800">
-                      {item.rateLoaded || "-"}
-                    </div>
+                    <div className="text-xs font-medium text-gray-500">Rate Loaded</div>
+                    <div className="text-sm text-gray-800">{item.rateLoaded || "-"}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-500">
-                      Gross Weight
-                    </div>
-                    <div className="text-sm text-gray-800">
-                      {item.grossWeight || "-"}
-                    </div>
+                    <div className="text-xs font-medium text-gray-500">Gross Weight</div>
+                    <div className="text-sm text-gray-800">{item.grossWeight || "-"}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-500">
-                      Content
-                    </div>
-                    <div className="text-sm text-gray-800">
-                      {item.content || "-"}
-                    </div>
+                    <div className="text-xs font-medium text-gray-500">Content</div>
+                    <div className="text-sm text-gray-800">{item.content || "-"}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-500">
-                      Fire Rating
-                    </div>
-                    <div className="text-sm text-gray-800">
-                      {item.fireRating || "-"}
-                    </div>
+                    <div className="text-xs font-medium text-gray-500">Fire Rating</div>
+                    <div className="text-sm text-gray-800">{item.fireRating || "-"}</div>
                   </div>
                 </div>
               </div>
@@ -149,49 +120,28 @@ const safeMonth = (m) => {
                 </h4>
                 <div className="space-y-3">
                   <div>
-                    <div className="text-xs font-medium text-gray-500">
-                      Batch No
-                    </div>
-                    <div className="text-sm text-gray-800">
-                      {item.batchNo || "-"}
-                    </div>
+                    <div className="text-xs font-medium text-gray-500">Batch No</div>
+                    <div className="text-sm text-gray-800">{item.batchNo || "-"}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-500">
-                      Serial No
-                    </div>
-                    <div className="text-sm text-gray-800">
-                      {item.serialNumber || "-"}
-                    </div>
+                    <div className="text-xs font-medium text-gray-500">Serial No</div>
+                    <div className="text-sm text-gray-800">{item.serialNumber || "-"}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-500">
-                      MFG Month
-                    </div>
-                    <div className="text-sm text-gray-800">
-                      {safeMonth(item.mfgMonth)}
-                    </div>
+                    <div className="text-xs font-medium text-gray-500">MFG Month</div>
+                    <div className="text-sm text-gray-800">{safeMonth(item.mfgMonth)}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-500">
-                      REF Due
-                    </div>
-                    <div className="text-sm text-gray-800">
-                      {safeDate(item.refDue)}
-                    </div>
+                    <div className="text-xs font-medium text-gray-500">REF Due</div>
+                    <div className="text-sm text-gray-800">{safeDate(item.refDue)}</div>
                   </div>
-                   {/* --- ADDED EXPIRY DATE --- */}
                   <div>
-                    <div className="text-xs font-medium text-gray-500">
-                      Expiry Date
-                    </div>
-                    <div className="text-sm text-gray-800">
-                      {safeDate(item.expiryDate)}
-                    </div>
+                    <div className="text-xs font-medium text-gray-500">Expiry Date</div>
+                    <div className="text-sm text-gray-800">{safeDate(item.expiryDate)}</div>
                   </div>
                 </div>
               </div>
-           
+
               {/* Column 3: Other Details */}
               <div className="space-y-4 md:pl-6">
                 <h4 className="text-xs font-semibold text-orange-800/80 uppercase tracking-wider">
@@ -199,17 +149,11 @@ const safeMonth = (m) => {
                 </h4>
                 <div className="space-y-3">
                   <div>
-                    <div className="text-xs font-medium text-gray-500">
-                      Location
-                    </div>
-                    <div className="text-sm text-gray-800">
-                      {item.location || "-"}
-                    </div>
+                    <div className="text-xs font-medium text-gray-500">Location</div>
+                    <div className="text-sm text-gray-800">{item.location || "-"}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-500">
-                      Notes
-                    </div>
+                    <div className="text-xs font-medium text-gray-500">Notes</div>
                     <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
                       {item.notes || "-"}
                     </div>
@@ -220,18 +164,20 @@ const safeMonth = (m) => {
           </td>
         </tr>
       )}
-      {/* --- END of Redesign --- */}
     </>
   );
 };
 
+/**
+ * Main EquipmentList Component
+ */
 export default function EquipmentList() {
   const dispatch = useDispatch();
   const {
     list,
     loading,
     error,
-    loadingUpdate, // <-- Assuming your slice has this
+    loadingUpdate,
   } = useSelector((s) => s.equipment);
   const {
     userInfo,
@@ -239,17 +185,15 @@ export default function EquipmentList() {
     loading: usersLoading,
   } = useSelector((s) => s.users || {});
 
-  // --- Added Modal State ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [selectedUserId, setSelectedUserId] = useState("");
 
   const roleRaw = (userInfo?.userType || "").toString().toLowerCase();
   const isSuperAdmin = roleRaw === "super admin";
   const isAdmin = roleRaw === "admin";
   const isTechnician = roleRaw === "technician";
-  const shouldShowFilter = isSuperAdmin || isAdmin || isTechnician; // Same logic for filtering and editing
-
-  // --- Added Dynamic Column Count ---
+  const shouldShowFilter = isSuperAdmin || isAdmin || isTechnician;
   const numCols = 5 + (shouldShowFilter ? 1 : 0);
 
   useEffect(() => {
@@ -262,12 +206,10 @@ export default function EquipmentList() {
     }
   }, [dispatch, shouldShowFilter]);
 
-  // Build a map of userId -> user for quick lookup
   const userMap = useMemo(() => {
     return new Map(usersList.map((u) => [u.userId, u]));
   }, [usersList]);
 
-  // Base filtered list: Only equipments assigned to users with userType === "User"
   const baseList = useMemo(() => {
     if (!usersList.length || usersLoading) return list || [];
     return (list || []).filter((item) => {
@@ -276,175 +218,280 @@ export default function EquipmentList() {
     });
   }, [list, usersList, usersLoading, userMap]);
 
-  // Build user options: Only users with userType === "User" (for dropdown)
   const userOptions = useMemo(() => {
     if (!shouldShowFilter || usersLoading) return [];
     const userUsers = usersList.filter((u) => u.userType === "User");
     const options = userUsers.map((u) => ({
-      value: u.userId, // Use custom userId for matching with equipment.userId
+      value: u.userId,
       label: u.firstName ? `${u.firstName} (${u.userId})` : u.userId,
     }));
     options.sort((a, b) => a.label.localeCompare(b.label));
     return [{ value: "", label: "All users" }, ...options];
   }, [usersList, shouldShowFilter, usersLoading]);
 
-  const [selectedUserId, setSelectedUserId] = useState("");
-
-  // Final filtered list: Apply user selection on top of baseList
   const filteredList = useMemo(() => {
     if (!selectedUserId) return baseList;
-    // Match by custom userId (assuming equipment stores item.userId as custom userId string)
     return baseList.filter(
       (item) => (item.userId || item.username) === selectedUserId
     );
   }, [baseList, selectedUserId]);
 
-  // --- UPDATED QR DOWNLOAD HANDLER ---
+
+  // --- UPDATED QR DOWNLOAD HANDLER (EXACT DESIGN) ---
   const handleDownloadQR = async (item) => {
-    const payload = JSON.stringify({ equipmentId: item.equipmentId });
-    const equipmentName = item.equipmentName || "Equipment";
-
-    // --- Get and Format Installation Date ---
-    // (Helper function duplicated from EquipmentDetailsRow for use here)
-    const safeDateForQR = (d) => (d ? new Date(d).toLocaleDateString() : "-");
-    const installationDate = safeDateForQR(item.installationDate);
-    const dateText = `Installed: ${installationDate}`;
-
-    // --- 1. Define Layout Constants ---
-    const padding = 20;
-    const logoHeight = 40;
-    
-    const nameFont = "16px Arial";
-    const nameLineHeight = 20; // Approx height for the font
-    
-    const dateFont = "14px Arial";
-    const dateLineHeight = 16; // Approx height for this font
-
-    const logoMarginBottom = 10;
-    const nameMarginBottom = 8; // Margin between name and date
-    const dateMarginBottom = 15; // Margin between date and QR
-    
-    const qrSize = 250; // Fixed size for the QR code itself
-
     try {
-      // --- 2. Generate QR Code Data URL ---
-      const qrDataUrl = await QRCode.toDataURL(payload, {
-        errorCorrectionLevel: "H",
-        margin: 1,
-        width: qrSize,
-      });
-
-      // --- 3. Load Images (QR and Logo) ---
-      const loadImg = (src) => {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => resolve(img);
-          img.onerror = (err) => reject(new Error(`Failed to load image: ${src}`));
-          img.src = src;
-        });
+      // 1. Prepare Data
+      const qrPayload = JSON.stringify({ equipmentId: item.equipmentId });
+      
+      const formatDate = (d) => {
+        if (!d) return "";
+        const dateObj = new Date(d);
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const year = dateObj.getFullYear();
+        return `${day}.${month}.${year}`;
       };
 
-      // Load both images
-      const [qrImg, logoImg] = await Promise.all([
-        loadImg(qrDataUrl),
-        loadImg(logo), // 'logo' is the imported image from assets
-      ]);
-
-      // --- 4. Calculate Canvas Dimensions ---
-
-      // Calculate logo dimensions (maintain aspect ratio)
-      const logoAspectRatio = logoImg.width / logoImg.height;
-      const finalLogoWidth = logoHeight * logoAspectRatio;
-      const finalLogoHeight = logoHeight;
-
-      // Calculate text widths (using a temp canvas)
-      const canvasTemp = document.createElement("canvas");
-      const ctxTemp = canvasTemp.getContext("2d");
-      
-      ctxTemp.font = nameFont;
-      const nameMetrics = ctxTemp.measureText(equipmentName);
-      const nameWidth = nameMetrics.width;
-
-      ctxTemp.font = dateFont;
-      const dateMetrics = ctxTemp.measureText(dateText);
-      const dateWidth = dateMetrics.width;
-
-      // Determine final canvas size
-      const canvasWidth = Math.max(qrSize, finalLogoWidth, nameWidth, dateWidth) + padding * 2;
-      
-      // Calculate Y positions for each element
-      const logoY = padding;
-      const nameY = logoY + finalLogoHeight + logoMarginBottom;
-      const dateY = nameY + nameLineHeight + nameMarginBottom;
-      const qrY = dateY + dateLineHeight + dateMarginBottom;
-      
-      // Calculate final canvas height
-      const canvasHeight = qrY + qrSize + padding;
-
-      // --- 5. Create and Draw on Canvas ---
+      // 2. Canvas Setup (Landscape, High Res for Print)
+      // Aspect ratio similar to the image (approx 1.5 : 1)
+      const canvasWidth = 1200; 
+      const canvasHeight = 800; 
       const canvas = document.createElement("canvas");
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
       const ctx = canvas.getContext("2d");
 
-      // Fill background
+      // 3. Fonts & Colors
+      const fontBold = "bold 36px Arial, sans-serif";
+      const fontRegular = "36px Arial, sans-serif";
+      const fontSmall = "24px Arial, sans-serif";
+      const fontSmallBold = "bold 24px Arial, sans-serif";
+      
+      const colorBlack = "#1A1A1A";
+      const colorGrey = "#4A4A4A";
+      const colorRed = "#C1272D";   // From the graphic
+      const colorOrange = "#F15A24"; // From the logo/graphic
+      
+      // Clear Background (White)
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      // 4. Draw Main Border (Rounded Rectangle)
+      const padding = 40;
+      const borderRadius = 50;
+      const contentW = canvasWidth - (padding * 2);
+      const contentH = canvasHeight - (padding * 2);
+      const startX = padding;
+      const startY = padding;
+
+      ctx.beginPath();
+      ctx.roundRect(startX, startY, contentW, contentH, borderRadius);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#000000";
+      ctx.stroke();
+
+      // 5. Top Right Decoration (Geometric Shape)
+      // The red/orange polygon in the top right corner
+      const decoSize = 250;
+      const cornerX = startX + contentW; // Right edge
+      const cornerY = startY; // Top edge
       
-      // Set common text alignment
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top"; // Align text from its top edge
-      const textX = canvasWidth / 2; // Common X for all centered items
+      // Draw the Orange/Red shape - carefully calculated to match image
+      ctx.save();
+      // Clip to the rounded border so shapes don't bleed out
+      ctx.beginPath();
+      ctx.roundRect(startX, startY, contentW, contentH, borderRadius);
+      ctx.clip();
+
+      // The Red Polygon
+      ctx.beginPath();
+      ctx.moveTo(cornerX - 200, cornerY);
+      ctx.lineTo(cornerX, cornerY);
+      ctx.lineTo(cornerX, cornerY + 60);
+      ctx.lineTo(cornerX - 160, cornerY + 60);
+      ctx.closePath();
+      ctx.fillStyle = colorRed;
+      ctx.fill();
+
+      // The Orange Polygon (overlapping)
+      ctx.beginPath();
+      ctx.moveTo(cornerX - 160, cornerY + 60);
+      ctx.lineTo(cornerX, cornerY + 60);
+      ctx.lineTo(cornerX, cornerY + 90);
+      ctx.lineTo(cornerX - 120, cornerY + 90); // Slant
+      ctx.closePath();
+      ctx.fillStyle = colorOrange;
+      ctx.fill();
+      ctx.restore();
 
 
-      // Draw Logo (Top-Center)
-      const logoX = (canvasWidth - finalLogoWidth) / 2;
-      ctx.drawImage(logoImg, logoX, logoY, finalLogoWidth, finalLogoHeight);
+      // 6. Header Section
+      const headerY = startY + 50;
+      const leftMargin = startX + 40;
 
-      // Draw Equipment Name (Center)
-      ctx.fillStyle = "black";
-      ctx.font = nameFont;
-      ctx.fillText(equipmentName, textX, nameY);
+      // Load Logo
+      const loadImg = (src) => new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = "Anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("Failed to load image"));
+          img.src = src;
+      });
+
+      try {
+        const logoImg = await loadImg(logo);
+        // Maintain aspect ratio, height approx 90px
+        const lHeight = 90;
+        const lWidth = (logoImg.width / logoImg.height) * lHeight;
+        ctx.drawImage(logoImg, leftMargin, headerY - 10, lWidth, lHeight);
+
+        // "Safetik" Text
+        const textOffsetX = leftMargin + lWidth + 20;
+        ctx.fillStyle = colorBlack;
+        ctx.font = "bold 55px Arial, sans-serif";
+        ctx.fillText("Safetik", textOffsetX, headerY + 30);
+        
+        ctx.font = "bold 20px Arial, sans-serif";
+        ctx.fillText("Safety Solutions Pvt.Ltd.", textOffsetX, headerY + 60);
+
+        // Address Line
+        ctx.font = "bold 18px Arial, sans-serif"; // Slightly bolder as in image
+        ctx.fillText("1st floor Aiswarya bldg, S.A. Road, Valanjambalam, Cochin 16.", leftMargin, headerY + 100);
+
+        // Contact Info (Right Side)
+        const rightAlignX = startX + contentW - 50; // Padding from right border
+        ctx.textAlign = "right";
+        
+        // Phone numbers
+        ctx.font = "bold 24px Arial, sans-serif";
+        ctx.fillText("📞 0484 4117109 | 9846196537", rightAlignX, headerY + 40);
+        ctx.fillText("9895039921", rightAlignX, headerY + 75);
+        
+        // Email / Web
+        ctx.font = "bold 18px Arial, sans-serif";
+        ctx.fillText("✉ info@safetik.in | 🌐 www.safetik.in", rightAlignX, headerY + 100);
+        ctx.textAlign = "left"; // Reset
+
+      } catch (e) {
+        console.warn("Logo load failed", e);
+      }
+
+
+      // 7. Content Lines (The Form Fields)
+      // Setup for drawing dotted lines
+      const drawDottedLine = (x1, y1, x2) => {
+          ctx.save();
+          ctx.beginPath();
+          ctx.setLineDash([3, 3]); // Dotted pattern
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = "#333";
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y1);
+          ctx.stroke();
+          ctx.restore();
+      };
+
+      // Helper to draw a field
+      const drawField = (label, value, x, y, width) => {
+          // Draw Label
+          ctx.fillStyle = colorBlack;
+          ctx.font = fontRegular; // "Type" looks standard weight in image, maybe slightly bold
+          ctx.fillText(label, x, y);
+
+          // Measure label width to position value if needed, 
+          // but usually value sits above the line or to the right.
+          // In the image, it looks like a form. We will print the value 
+          // slightly above the dotted line.
+          
+          const lineY = y + 10; // Line is slightly below text baseline
+          const lineStartX = x + ctx.measureText(label).width + 10;
+          const lineEndX = x + width;
+
+          // Draw Value (if exists)
+          if (value) {
+             ctx.font = "bold 34px Courier New, monospace"; // Typewriter look for filled data
+             ctx.fillStyle = "#000";
+             // Center value on the line roughly
+             ctx.fillText(value, lineStartX + 10, y); 
+          }
+
+          // Draw Line
+          drawDottedLine(lineStartX, lineY, lineEndX);
+      };
+
+      let currentY = startY + 220; // Start below header
+      const rowHeight = 90;
+      const fullLineW = contentW - 80;
+
+      // --- Row 1: Type ---
+      // Mapping: Type = equipmentName
+      drawField("Type", item.equipmentName || "", leftMargin, currentY, fullLineW);
       
-      // Draw Installation Date (Center)
-      ctx.fillStyle = "#555"; // Slightly lighter color for the date
-      ctx.font = dateFont;
-      ctx.fillText(dateText, textX, dateY);
+      // --- Row 2: Capacity ---
+      currentY += rowHeight;
+      drawField("Capacity", item.capacity || "", leftMargin, currentY, fullLineW);
 
-      // Draw QR Code (Center)
-      const qrX = (canvasWidth - qrSize) / 2;
+      // --- Row 3: Refilled on | Exp. on ---
+      currentY += rowHeight;
+      const halfWidth = (fullLineW / 2) - 20;
+      
+      // Left: Refilled on (Leave blank or map if you have data)
+      drawField("Refilled on", "", leftMargin, currentY, halfWidth);
+      
+      // Right: Exp. on -> Mapped to expiryDate
+      const rightColStart = leftMargin + halfWidth + 40;
+      drawField("Exp. on", formatDate(item.expiryDate), rightColStart, currentY, halfWidth);
+
+      // --- Row 4: H.P.Tested on | Next due ---
+      currentY += rowHeight;
+      
+      // Left: H.P.Tested on (Leave blank)
+      drawField("H.P.Tested on", "", leftMargin, currentY, halfWidth);
+      
+      // Right: Next due -> Mapped to refDue
+      drawField("Next due", formatDate(item.refDue), rightColStart, currentY, halfWidth);
+
+
+      // 8. QR Code Generation
+      // The image doesn't show a QR, but this is a digital tag. 
+      // We place it in the bottom right corner, unobtrusively.
+      const qrSize = 150;
+      const qrX = startX + contentW - qrSize - 25;
+      const qrY = startY + contentH - qrSize - 25;
+
+      const qrDataUrl = await QRCode.toDataURL(qrPayload, {
+        errorCorrectionLevel: "H",
+        margin: 0,
+        width: qrSize,
+        color: {
+            dark: "#000000",
+            light: "#FFFFFF00" // Transparent bg
+        }
+      });
+
+      const qrImg = await loadImg(qrDataUrl);
       ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-      // --- 6. Trigger Download ---
+      // Optional: Add ID below QR
+      ctx.font = "12px Arial";
+      ctx.fillStyle = "#666";
+      ctx.textAlign = "center";
+      ctx.fillText(item.equipmentId || "", qrX + (qrSize/2), qrY + qrSize + 15);
+
+      // 9. Download
       const finalDataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.href = finalDataUrl;
-      link.download = `${equipmentName}-qr.png`;
+      link.download = `Label-${item.equipmentName}-${item.equipmentId}.png`;
       link.click();
 
     } catch (err) {
-      console.error("Failed to generate custom QR code:", err);
-      // Fallback: Just download the plain QR if canvas fails
-      try {
-          const qrDataUrl = await QRCode.toDataURL(payload, {
-              errorCorrectionLevel: "H",
-              margin: 1,
-              scale: 10,
-          });
-          const link = document.createElement("a");
-          link.href = qrDataUrl;
-          link.download = `${equipmentName}-qr.png`;
-          link.click();
-      } catch (fallbackErr) {
-          console.error("Failed to generate fallback QR code:", fallbackErr);
-          alert("Could not generate QR code.");
-      }
+      console.error("Failed to generate QR label:", err);
+      alert("Could not generate QR label. Please check console.");
     }
   };
-  // --- END OF UPDATED HANDLER ---
+  // --- END UPDATED HANDLER ---
 
-
-  // --- Added Modal Handlers ---
   const handleEdit = (equipment) => {
     setSelectedEquipment(equipment);
     setIsEditModalOpen(true);
@@ -457,23 +504,14 @@ export default function EquipmentList() {
 
   const handleSaveUpdate = async (formData) => {
     if (!selectedEquipment) return;
-
-    // Get the ID for the API call (use _id if available, fallback to equipmentId)
     const id = selectedEquipment._id || selectedEquipment.equipmentId;
-
-    // Prepare the update payload
-    // We remove internal IDs from the payload, just sending the changed data
     const { _id, equipmentId, ...updatePayload } = formData;
 
     try {
-      // Dispatch the thunk with { id, updates }
       await dispatch(updateEquipment({ id, updates: updatePayload })).unwrap();
       handleCloseModal();
-      // Note: Your slice should handle updating the `list` state,
-      // which will cause the table to re-render.
     } catch (err) {
       console.error("Failed to update equipment:", err);
-      // You could pass an error message back to the modal to display
     }
   };
 
@@ -532,7 +570,6 @@ export default function EquipmentList() {
                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   QR
                 </th>
-                {/* --- Added Edit Header --- */}
                 {shouldShowFilter && (
                   <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Edit
@@ -547,15 +584,15 @@ export default function EquipmentList() {
                     key={item._id || item.equipmentId}
                     item={item}
                     onDownloadQR={handleDownloadQR}
-                    onEdit={handleEdit} // <-- Pass handler
-                    canEdit={shouldShowFilter} // <-- Pass permission
-                    numCols={numCols} // <-- Pass col count
+                    onEdit={handleEdit}
+                    canEdit={shouldShowFilter}
+                    numCols={numCols}
                   />
                 ))
               ) : (
                 <tr>
                   <td
-                    colSpan={numCols} // <-- Use dynamic col count
+                    colSpan={numCols}
                     className="text-center py-10 text-gray-500"
                   >
                     {loading || usersLoading
@@ -569,14 +606,13 @@ export default function EquipmentList() {
         </div>
       </div>
 
-      {/* --- Render Modal --- */}
       {isEditModalOpen && (
         <EditEquipmentModal
           isOpen={isEditModalOpen}
           onClose={handleCloseModal}
           equipment={selectedEquipment}
           onSave={handleSaveUpdate}
-          isLoading={loadingUpdate} // <-- Pass loading state to modal
+          isLoading={loadingUpdate}
         />
       )}
     </div>

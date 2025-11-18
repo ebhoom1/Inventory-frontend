@@ -76,26 +76,26 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
     }
   }, [dispatch, isAdmin]);
 
-  // Non-admin: fetch user-specific inventory SKUs
+    // Non-admin: fetch ALL inventory (not just user-specific)
   useEffect(() => {
     const fetchUserSkus = async () => {
-      if (isAdmin) return; // admin doesn’t need this
+      if (isAdmin) return; // admin doesn't need this
       if (!userInfo?.userId) return;
       try {
         setUserSkuLoading(true);
         setUserSkuError(null);
 
+        // ✅ UPDATED: Changed from /api/inventory/user/:userId to /api/inventory
+        // Now fetches ALL inventory items for all users
         const res = await fetch(
-          `${API_URL}/api/inventory/user/${encodeURIComponent(
-            userInfo.userId
-          )}`,
+          `${API_URL}/api/inventory`,
           {
             headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
           }
         );
         const data = await res.json();
         if (!res.ok) {
-          throw new Error(data?.message || "Failed to load inventory for user");
+          throw new Error(data?.message || "Failed to load inventory");
         }
 
         // Expecting an array of inventory records, each with a skuName
@@ -116,7 +116,7 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
     };
 
     fetchUserSkus();
-  }, [API_URL, authToken, isAdmin, userInfo?.userId]);
+  }, [API_URL, authToken, isAdmin]);
 
   // Handle inventory usage errors
   useEffect(() => {
@@ -165,29 +165,20 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
   // =============== Derived Options ===============
 
   // Admin SKU options from Redux inventory list
-  // const adminSkuOptions = useMemo(() => {
-  //   if (!isAdmin) return [];
-  //   const names = (allInventoryItems || [])
-  //     .map((it) => it?.skuName)
-  //     .filter(Boolean);
-  //   return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
-  // }, [isAdmin, allInventoryItems]);
+  // ✅ UPDATED: Show ALL inventory items, not filtered by user
   const adminSkuOptions = useMemo(() => {
     if (!isAdmin) return [];
-    if (!selectedUserId) return []; // don't show SKUs until a user is chosen
+    // Show all SKUs from all users - no userId filtering
     const names = (allInventoryItems || [])
-      .filter((it) => (it?.userId || "").trim() === selectedUserId.trim())
       .map((it) => it?.skuName)
       .filter(Boolean);
     
     console.log("Admin SKU Options Debug:");
-    console.log("  Selected User ID:", selectedUserId);
     console.log("  All Inventory Items:", allInventoryItems);
-    console.log("  Filtered Inventory:", (allInventoryItems || []).filter((it) => (it?.userId || "").trim() === selectedUserId.trim()));
     console.log("  SKU Names:", names);
     
     return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
-  }, [isAdmin, allInventoryItems, selectedUserId]);
+  }, [isAdmin, allInventoryItems]);
 
   // Admin user options from Redux users list
   const userOptions = useMemo(() => {
@@ -248,15 +239,8 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
   // const skuError = isAdmin ? null : userSkuError;
   // const skuOptions = isAdmin ? adminSkuOptions : userSkuOptions;
   const skuLoading = isAdmin ? listLoading : userSkuLoading;
-  const skuError = isAdmin ? (!selectedUserId ? null : null) : userSkuError;
+  const skuError = isAdmin ? null : userSkuError;
   const skuOptions = isAdmin ? adminSkuOptions : userSkuOptions;
-
-  // Clear SKU when the selected user changes (admin flow)
-  useEffect(() => {
-    if (isAdmin) {
-      setFormData((p) => ({ ...p, skuName: "" }));
-    }
-  }, [isAdmin, formData.userId]);
 
   // Fetch location options based on selected user
   useEffect(() => {
@@ -317,13 +301,11 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
               onChange={handleChange}
               className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
               required
-              disabled={skuLoading || (isAdmin && !selectedUserId)}
+              disabled={skuLoading}
             >
               <option value="">
                 {skuLoading
                   ? "Loading inventory…"
-                  : isAdmin && !selectedUserId
-                  ? "Select a user first"
                   : skuError
                   ? "Failed to load inventory"
                   : "Select inventory"}
