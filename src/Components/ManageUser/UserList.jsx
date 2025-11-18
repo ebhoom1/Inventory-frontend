@@ -92,9 +92,14 @@ const UserList = () => {
     navigate(`/view-user/${userId}`);
   };
 
-  const handleEdit = (userId) => {
-    if (!userId) return;
-    navigate(`/edit-user/${userId}`);
+  const handleEdit = (userOrId) => {
+    if (!userOrId) return;
+    // If caller passed the full user object, include it in navigation state
+    if (typeof userOrId === 'object' && userOrId._id) {
+      navigate(`/edit-user/${userOrId._id}`, { state: { user: userOrId } });
+    } else {
+      navigate(`/edit-user/${userOrId}`);
+    }
   };
 
   const handleDelete = async (userId, userName) => {
@@ -185,7 +190,7 @@ const UserList = () => {
 
   return (
     <div className="mt-10">
-      <style jsx>{`
+      <style>{`
         .swal2-popup-custom {
           border-radius: 16px !important;
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
@@ -389,7 +394,7 @@ const UserList = () => {
 
                         <button
                           className="text-green-600 hover:text-white hover:bg-green-600 transition-all duration-200 p-3 rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-110"
-                          onClick={() => handleEdit(user._id)}
+                          onClick={() => handleEdit(user)}
                           title="Edit"
                           disabled={isDeleting}
                         >

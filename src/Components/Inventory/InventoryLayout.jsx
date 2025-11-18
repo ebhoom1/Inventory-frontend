@@ -7,15 +7,15 @@ import Header from '../Header/Header';
 
 // Tabs
 import InventoryList from './InventoryList';
-import AddInventory from './AddInventory';
-import UseInventory from './UseInventory';
+import AddEquipment from './AddEquipment';
+import AssignInventory from './AssignInventory';
 import RequestInventory from './RequestInventory';
 import RequestHistory from './RequestHistory';
 
 const TABS = {
   inventoryList: { label: 'Inventory List', component: InventoryList },
-  addInventory: { label: 'Add Inventory', component: AddInventory },
-  useInventory: { label: 'Use Inventory', component: UseInventory },
+  addInventory: { label: 'Add Equipment', component: AddEquipment },
+  useInventory: { label: 'Assign Inventory', component: AssignInventory },
   requestInventory: { label: 'Request Inventory', component: RequestInventory },
   requestHistory: { label: 'Request History', component: RequestHistory },
 };

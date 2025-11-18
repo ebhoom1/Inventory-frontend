@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
 // Redux actions
@@ -30,6 +30,7 @@ const initialFormState = {
   address: '',
   latitude: '',
   longitude: '',
+  equipmentLocations: [''],
 };
 
 const EditUser = () => {
@@ -46,6 +47,7 @@ const EditUser = () => {
 
   // ✅ 1. Get userInfo (logged-in user) AND selectedUser (user being edited)
   const { loading, error, updateSuccess, selectedUser, userInfo } = useSelector((state) => state.users);
+  const location = useLocation();
 
   // ✅ 2. Define role options based on the logged-in user's role
   const roleOptions =
@@ -81,6 +83,7 @@ const EditUser = () => {
 
     // This condition is now robust. It populates the form initially and also
     // repopulates it with the fresh data after a successful update.
+    // If we have a selectedUser from the API and it matches the route ID, use it
     if (selectedUser && String(selectedUser._id) === String(id)) {
       console.log('Populating form with selected user data:', selectedUser);
 
@@ -113,12 +116,56 @@ const EditUser = () => {
         assignTechnicians: Array.isArray(selectedUser.assignTechnicians)
           ? selectedUser.assignTechnicians.join(', ')
           : (selectedUser.assignTechnicians || ''),
+        equipmentLocations: Array.isArray(selectedUser.equipmentLocations) &&
+          selectedUser.equipmentLocations.length > 0
+            ? selectedUser.equipmentLocations
+            : [""],
       });
     } else if (selectedUser && String(selectedUser._id) !== String(id)) {
       // This log is still useful for catching other potential logic errors
       console.warn('Stale user data detected. The selectedUser in Redux does not match the route ID.');
+    } else if (!selectedUser) {
+      // Fallback: if the route navigation included the user object in state, use it
+      const navUser = location?.state?.user;
+      if (navUser && String(navUser._id) === String(id)) {
+        console.log('Populating form from navigation state user:', navUser);
+
+        const formattedDate = navUser.subscriptionDate
+          ? new Date(navUser.subscriptionDate).toISOString().split('T')[0]
+          : '';
+
+        setForm({
+          userId: navUser.userId || '',
+          companyName: navUser.companyName || '',
+          firstName: navUser.firstName || '',
+          email: navUser.email || '',
+          mobileNumber: navUser.mobileNumber || '',
+          subscriptionPlan: navUser.subscriptionPlan || '',
+          userType: navUser.userType || '',
+          adminType: navUser.adminType || '',
+          assignTerritorialManager: navUser.assignTerritorialManager || '',
+          district: navUser.district || '',
+          state: navUser.state || '',
+          address: navUser.address || '',
+          latitude: navUser.latitude ? String(navUser.latitude) : '',
+          longitude: navUser.longitude ? String(navUser.longitude) : '',
+          subscriptionDate: formattedDate,
+          additionalEmails: Array.isArray(navUser.additionalEmails)
+            ? navUser.additionalEmails.join(', ')
+            : (navUser.additionalEmails || ''),
+          assignOperators: Array.isArray(navUser.assignOperators)
+            ? navUser.assignOperators.join(', ')
+            : (navUser.assignOperators || ''),
+          assignTechnicians: Array.isArray(navUser.assignTechnicians)
+            ? navUser.assignTechnicians.join(', ')
+            : (navUser.assignTechnicians || ''),
+          equipmentLocations: Array.isArray(navUser.equipmentLocations) && navUser.equipmentLocations.length > 0
+            ? navUser.equipmentLocations
+            : [''],
+        });
+      }
     }
-  }, [selectedUser, id]);
+  }, [selectedUser, id, location]);
 
   // --- SweetAlerts ---
 
@@ -178,6 +225,27 @@ const EditUser = () => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  // Equipment Locations handlers
+  const handleEquipmentLocationChange = (index, value) => {
+    setForm((prev) => {
+      const equipmentLocations = Array.isArray(prev.equipmentLocations) ? [...prev.equipmentLocations] : [''];
+      equipmentLocations[index] = value;
+      return { ...prev, equipmentLocations };
+    });
+  };
+
+  const addEquipmentLocationField = () => {
+    setForm((prev) => ({ ...prev, equipmentLocations: [...(prev.equipmentLocations || []), ''] }));
+  };
+
+  const removeEquipmentLocationField = (index) => {
+    setForm((prev) => {
+      const equipmentLocations = [...(prev.equipmentLocations || [])];
+      equipmentLocations.splice(index, 1);
+      return { ...prev, equipmentLocations: equipmentLocations.length ? equipmentLocations : [''] };
+    });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setFormError(''); // Clear previous local errors
@@ -188,6 +256,7 @@ const EditUser = () => {
 
     const processedFormData = {
       ...form,
+      equipmentLocations: form.equipmentLocations ? form.equipmentLocations.filter(Boolean) : [],
       additionalEmails: form.additionalEmails
         ? form.additionalEmails.split(',').map((email) => email.trim()).filter(Boolean)
         : [],
@@ -198,6 +267,9 @@ const EditUser = () => {
         ? form.assignTechnicians.split(',').map((tech) => tech.trim()).filter(Boolean)
         : [],
     };
+
+    
+    console.log("handle submit",processedFormData);
 
     dispatch(updateUser({ id, updatedData: processedFormData }));
   };
@@ -402,6 +474,32 @@ const EditUser = () => {
                   placeholder="Enter Technician IDs"
                   className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
                 />
+              </div>
+
+              {/* Equipment Locations (dynamic) */}
+              <div className="relative md:col-span-2">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">Equipment Locations</span>
+                <div className="space-y-2 mt-3">
+                  {(form.equipmentLocations || ['']).map((loc, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        name={`equipmentLocation-${idx}`}
+                        value={loc}
+                        onChange={(e) => handleEquipmentLocationChange(idx, e.target.value)}
+                        placeholder={`Equipment Location ${idx + 1}`}
+                        className="flex-1 border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                      />
+                      <button type="button" onClick={() => removeEquipmentLocationField(idx)} title="Remove" className="text-red-500 px-3">
+                        <i className="fa-solid fa-minus" />
+                      </button>
+                      {idx === (form.equipmentLocations || []).length - 1 && (
+                        <button type="button" onClick={addEquipmentLocationField} title="Add" className="text-green-600 px-3">
+                          <i className="fa-solid fa-plus" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* District */}

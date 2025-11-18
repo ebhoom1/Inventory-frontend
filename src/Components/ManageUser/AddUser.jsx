@@ -24,6 +24,7 @@ const initialFormState = {
   address: "",
   latitude: "",
   longitude: "",
+  equipmentLocations: [""],
 };
 
 const AddUser = () => {
@@ -112,6 +113,27 @@ const AddUser = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // Equipment Locations handlers
+  const handleEquipmentLocationChange = (index, value) => {
+    setForm((prev) => {
+      const equipmentLocations = Array.isArray(prev.equipmentLocations) ? [...prev.equipmentLocations] : [""];
+      equipmentLocations[index] = value;
+      return { ...prev, equipmentLocations };
+    });
+  };
+
+  const addEquipmentLocationField = () => {
+    setForm((prev) => ({ ...prev, equipmentLocations: [...(prev.equipmentLocations || []), ""] }));
+  };
+
+  const removeEquipmentLocationField = (index) => {
+    setForm((prev) => {
+      const equipmentLocations = [...(prev.equipmentLocations || [])];
+      equipmentLocations.splice(index, 1);
+      return { ...prev, equipmentLocations: equipmentLocations.length ? equipmentLocations : [""] };
+    });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setFormError("");
@@ -126,7 +148,10 @@ const AddUser = () => {
       });
       return;
     }
-    dispatch(registerUser(form));
+    dispatch(registerUser({
+      ...form,
+      equipmentLocations: form.equipmentLocations ? form.equipmentLocations.filter(Boolean) : [],
+    }));
   };
 
   const roleOptions =
@@ -399,6 +424,34 @@ const AddUser = () => {
             placeholder="Enter Technician IDs"
             className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
           />
+        </div>
+
+        {/* Equipment Locations (dynamic) */}
+        <div className="relative md:col-span-2">
+          <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+            Equipment Locations
+          </span>
+          <div className="space-y-2 mt-3">
+            {(form.equipmentLocations || [""]).map((loc, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <input
+                  name={`equipmentLocation-${idx}`}
+                  value={loc}
+                  onChange={(e) => handleEquipmentLocationChange(idx, e.target.value)}
+                  placeholder={`Equipment Location ${idx + 1}`}
+                  className="flex-1 border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                />
+                <button type="button" onClick={() => removeEquipmentLocationField(idx)} title="Remove" className="text-red-500 px-3">
+                  <i className="fa-solid fa-minus" />
+                </button>
+                {idx === (form.equipmentLocations || []).length - 1 && (
+                  <button type="button" onClick={addEquipmentLocationField} title="Add" className="text-green-600 px-3">
+                    <i className="fa-solid fa-plus" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* District */}

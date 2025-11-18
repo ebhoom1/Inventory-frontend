@@ -6,12 +6,10 @@ import {
   createEquipment,
   resetEquipmentState,
 } from "../../redux/features/equipment/equipmentSlice";
-import { getAllUsers } from "../../redux/features/users/userSlice"; // <-- fetch users for dropdown
 
 // Define the initial state structure for easy reset
 const getInitialFormState = () => ({
   equipmentName: "",
-  userId: "",
   modelSeries: "",
   capacity: "",
   brand: "",
@@ -25,64 +23,174 @@ const getInitialFormState = () => ({
   refDue: "",
   expiryDate: "",
   notes: "",
-  location: "",
+  equipmentLocations: [""], // CHANGED: Dynamic equipment locations array with one empty field
+  quantity: " ", // NEW: Quantity field with default value
   equipmentType: "new", // 'new' or 'existing'
 });
 
 function AddEquipment() {
   const dispatch = useDispatch();
   const { loading, error, successMessage } = useSelector((s) => s.equipment);
-  const { allUsers } = useSelector((s) => s.users); // <-- list of users
+  const { userInfo } = useSelector((s) => s.users);
 
   const [formData, setFormData] = useState(getInitialFormState());
+  const [availableLocations, setAvailableLocations] = useState([]); // NEW: Store fetched locations
+  const [locationsLoading, setLocationsLoading] = useState(false); // NEW: Loading state for locations
+  const [locationsError, setLocationsError] = useState(null); // NEW: Error state for locations
 
+  // Fetch available locations on component mount
   useEffect(() => {
-    dispatch(getAllUsers()); // populate user dropdown
-  }, [dispatch]);
-
-  // Only show users with role "User"; display companyName instead of email
-  const userOptions = useMemo(() => {
-    const arr = Array.isArray(allUsers) ? allUsers : [];
-    return arr
-      .filter((u) => (u?.userType || "").toString().toLowerCase() === "user")
-      .map((u) => ({
-        value: u.userId || u._id, // what we submit
-        label:
-          u.companyName ||
-          u.name ||
-          u.firstName ||
-          u.userName ||
-          u.userId ||
-          u._id, // show companyName if present
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [allUsers]);
+    const fetchAvailableLocations = async () => {
+      try {
+        setLocationsLoading(true);
+        setLocationsError(null);
+        const token = localStorage.getItem("token");
+        const response = await fetch("/api/equipment/locations/all", {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setAvailableLocations(Array.isArray(data) ? data : []);
+        } else {
+          setLocationsError(data?.message || "Failed to fetch locations");
+        }
+      } catch (err) {
+        setLocationsError(err.message || "Failed to fetch locations");
+      } finally {
+        setLocationsLoading(false);
+      }
+    };
+    
+    fetchAvailableLocations();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // CHANGED: Handle equipment location field changes
+  const handleEquipmentLocationChange = (index, value) => {
+    const updatedLocations = [...formData.equipmentLocations];
+    updatedLocations[index] = value;
+    setFormData((prev) => ({ ...prev, equipmentLocations: updatedLocations }));
+  };
+
+  // CHANGED: Add a new blank equipment location field
+  const handleAddEquipmentLocation = () => {
+    setFormData((prev) => ({
+      ...prev,
+      equipmentLocations: [...prev.equipmentLocations, ""],
+    }));
+  };
+
+  // CHANGED: Remove an equipment location field
+  const handleRemoveEquipmentLocation = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      equipmentLocations: prev.equipmentLocations.filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Validate user is logged in
+    if (!userInfo || !userInfo._id) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "User not authenticated. Please login again.",
+      });
+      return;
+    }
 
     // --- Start Validation ---
     if (!formData.equipmentName?.trim()) {
       Swal.fire({ icon: "warning", title: "Equipment name required" });
       return;
     }
-    if (!formData.userId) {
-      Swal.fire({ icon: "warning", title: "Please select a user" });
-      return;
-    }
-    if (!formData.expiryDate) {
-      Swal.fire({ icon: "warning", title: "Expiry date is required" });
+    
+    if (!formData.modelSeries?.trim()) {
+      Swal.fire({ icon: "warning", title: "Model/Series required" });
       return;
     }
 
+    if (!formData.capacity?.trim()) {
+      Swal.fire({ icon: "warning", title: "Capacity required" });
+      return;
+    }
+
+    if (!formData.brand?.trim()) {
+      Swal.fire({ icon: "warning", title: "Brand required" });
+      return;
+    }
+
+    if (!formData.installationDate?.trim()) {
+      Swal.fire({ icon: "warning", title: "Installation Date required" });
+      return;
+    }
+
+    if (!formData.grossWeight?.trim()) {
+      Swal.fire({ icon: "warning", title: "Gross Weight required" });
+      return;
+    }
+
+    if (!formData.content?.trim()) {
+      Swal.fire({ icon: "warning", title: "Content required" });
+      return;
+    }
+
+    if (!formData.batchNo?.trim()) {
+      Swal.fire({ icon: "warning", title: "Batch Number required" });
+      return;
+    }
+
+    if (!formData.mfgMonth?.trim()) {
+      Swal.fire({ icon: "warning", title: "MFG Month required" });
+      return;
+    }
+
+    if (!formData.expiryDate?.trim()) {
+      Swal.fire({ icon: "warning", title: "Expiry Date required" });
+      return;
+    }
+
+    if (!formData.refDue?.trim()) {
+      Swal.fire({ icon: "warning", title: "REF Due required" });
+      return;
+    }
+    
+    // Validate quantity
+    if (!formData.quantity || formData.quantity < 1) {
+      Swal.fire({ icon: "warning", title: "Quantity must be at least 1" });
+      return;
+    }
+
+    // Validate at least one equipment location
+    const validLocations = (formData.equipmentLocations || []).filter(Boolean);
+    if (validLocations.length === 0) {
+      Swal.fire({ icon: "warning", title: "At least one equipment location is required" });
+      return;
+    }
 
     // Create a copy to manipulate for submission
     const payload = { ...formData };
+
+    // Add userId from Redux (CRITICAL FIX)
+    payload.userId = userInfo._id;
+
+    // Filter out empty strings from equipmentLocations and map to 'locations' for backend
+    payload.locations = validLocations;
+    
+    // Set primary location as first location
+    payload.location = payload.locations[0];
+    
+    // Remove equipmentLocations since backend uses 'locations' and 'location'
+    delete payload.equipmentLocations;
 
     // --- Conditional Validation and Payload Cleanup ---
     if (payload.equipmentType === "new") {
@@ -112,6 +220,7 @@ function AddEquipment() {
     delete payload.equipmentType;
     // --- End Validation ---
 
+    console.log("Submitting equipment payload:", payload);
     dispatch(createEquipment(payload));
   };
 
@@ -164,25 +273,21 @@ function AddEquipment() {
             />
           </div>
 
-          {/* User (dropdown) */}
+          {/* Quantity */}
           <div className="relative">
             <span className="absolute -top-3 left-5 bg-gradient-to-r from-[#FFF] to-[#FFF7ED] px-2 text-sm font-semibold text-[#DC6D18] z-10">
-              User
+              Quantity
             </span>
-            <select
-              name="userId"
-              value={formData.userId}
+            <input
+              type="number"
+              name="quantity"
+              value={formData.quantity}
               onChange={handleChange}
+              placeholder="e.g., 5"
+              min="1"
               className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-              required // Keep basic HTML required for this
-            >
-              <option value="">Select user</option>
-              {userOptions.map((u) => (
-                <option key={u.value} value={u.value}>
-                  {u.label}
-                </option>
-              ))}
-            </select>
+              required
+            />
           </div>
 
           {/* --- NEW: Equipment Type Selector --- */}
@@ -267,19 +372,43 @@ function AddEquipment() {
             />
           </div>
 
-          {/* Location */}
-          <div className="relative">
+          {/* Equipment Locations - Dynamic Fields */}
+          <div className="relative md:col-span-2">
             <span className="absolute -top-3 left-5 bg-gradient-to-r from-[#FFF] to-[#FFF7ED] px-2 text-sm font-semibold text-[#DC6D18] z-10">
-              Location
+              Equipment Locations
             </span>
-            <input
-              type="text"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-              placeholder="e.g., Ground Floor, Plant Room"
-              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-            />
+            <div className="space-y-2 mt-3">
+              {(formData.equipmentLocations || ['']).map((loc, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    name={`equipmentLocation-${idx}`}
+                    value={loc}
+                    onChange={(e) => handleEquipmentLocationChange(idx, e.target.value)}
+                    placeholder={`e.g., Ground Floor, Plant Room - Location ${idx + 1}`}
+                    className="flex-1 border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => handleRemoveEquipmentLocation(idx)} 
+                    title="Remove location"
+                    className="text-red-500 hover:text-red-700 px-3 font-bold transition-colors"
+                  >
+                    <i className="fa-solid fa-minus" />
+                  </button>
+                  {idx === (formData.equipmentLocations || []).length - 1 && (
+                    <button 
+                      type="button" 
+                      onClick={handleAddEquipmentLocation} 
+                      title="Add location"
+                      className="text-green-600 hover:text-green-700 px-3 font-bold transition-colors"
+                    >
+                      <i className="fa-solid fa-plus" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Brand */}
@@ -355,7 +484,7 @@ function AddEquipment() {
               className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
             />
           </div>
-           {/* --- expiry date- */}
+          {/* --- expiry date- */}
           <div className="relative">
             <span className="absolute -top-3 left-5 bg-gradient-to-r from-[#FFF] to-[#FFF7ED] px-2 text-sm font-semibold text-[#DC6D18] z-10">
               Expiry Date

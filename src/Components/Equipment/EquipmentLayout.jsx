@@ -1,14 +1,12 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import EquipmentList from "./EquipmentList";
-import AddEquipment from "./AddEquipment";
 import Sidebar from "../Sidebar/Sidebar";
 import Header from "../Header/Header";
 
 // Base config for all possible tabs
 const TABS = {
   equipmentList: { label: "Equipment List", component: EquipmentList },
-  addEquipment: { label: "Add Equipment", component: AddEquipment },
 };
 
 function EquipmentLayout() {
@@ -17,29 +15,15 @@ function EquipmentLayout() {
 
   // Read role from Redux (adjust selector if your slice differs)
   const { userInfo } = useSelector((state) => state.users || {});
-  const roleRaw = (userInfo?.userType || "").toString();
-  const role = roleRaw.toLowerCase();
-
-  const isAdmin = role === "admin";
-  const isSuperAdmin = role === "super admin";
-  const isTechnician = role === "technician";
-  const isUser = role === "user";
-
-  // Tabs available based on role: hide Add tab for 'user'
-  const AVAILABLE_TABS = useMemo(() => {
-    const base = { equipmentList: TABS.equipmentList };
-    if (isAdmin || isSuperAdmin ||isTechnician) base.addEquipment = TABS.addEquipment;
-    return base;
-  }, [isAdmin, isSuperAdmin]);
 
   // If current active tab isn't allowed anymore, reset to equipmentList
   useEffect(() => {
-    if (!Object.prototype.hasOwnProperty.call(AVAILABLE_TABS, activeTab)) {
+    if (!Object.prototype.hasOwnProperty.call(TABS, activeTab)) {
       setActiveTab("equipmentList");
     }
-  }, [AVAILABLE_TABS, activeTab]);
+  }, [activeTab]);
 
-  const ActiveComponent = AVAILABLE_TABS[activeTab].component;
+  const ActiveComponent = TABS[activeTab].component;
 
   return (
     <div className="flex min-h-screen bg-[#DC6D18]">
@@ -54,7 +38,7 @@ function EquipmentLayout() {
             <div className="border-b-2 border-[#FFEFE1] mb-6">
               <div className="overflow-x-auto">
                 <nav className="flex space-x-2 sm:space-x-4 -mb-0.5" aria-label="Tabs">
-                  {Object.keys(AVAILABLE_TABS).map((tabKey) => (
+                  {Object.keys(TABS).map((tabKey) => (
                     <button
                       key={tabKey}
                       onClick={() => setActiveTab(tabKey)}
@@ -64,7 +48,7 @@ function EquipmentLayout() {
                           : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                       }`}
                     >
-                      {AVAILABLE_TABS[tabKey].label}
+                      {TABS[tabKey].label}
                     </button>
                   ))}
                 </nav>

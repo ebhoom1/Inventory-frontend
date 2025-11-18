@@ -137,6 +137,8 @@ export const updateUser = createAsyncThunk(
   'users/update',
   async ({ id, updatedData }, { rejectWithValue, getState }) => {
     try {
+      console.log("user slice",updatedData);
+      
       const { userInfo } = getState().users;
       const config = {
         headers: {

@@ -43,7 +43,6 @@ function formatISTDateTime(value) {
 
 const DATE_ONLY_FIELDS = new Set([
   "installationDate",
-  "expiryDate",
   "refillingDue",
   "nextServiceDate",
 ]);
@@ -105,7 +104,6 @@ function RequestService() {
   const [formData, setFormData] = useState({
     equipmentId: "",
     equipmentName: "",
-    modelSeries: "",
     userId: "",
     serviceType: "",
     date: "",
@@ -135,6 +133,7 @@ function RequestService() {
 
   const [isScannerVisible, setScannerVisible] = useState(false);
   const [scannerInstance, setScannerInstance] = useState(null);
+  const [cameraFacing, setCameraFacing] = useState("user");
   const [reportHistory, setReportHistory] = useState([]);
 
   const [selectedReport, setSelectedReport] = useState(null);
@@ -270,61 +269,61 @@ function RequestService() {
   }
 
   // --- ONE-CLICK CSV EXPORT for currently selected user (or "me" when role=user)
-  // async function downloadReportsCsvForUser({
-  //   apiBase,
-  //   token,
-  //   userId,
-  //   displayName,
-  // }) {
-  //   try {
-  //     if (!token) {
-  //       alert("You are not logged in. Please log in again.");
-  //       return;
-  //     }
+  async function downloadReportsCsvForUser({
+    apiBase,
+    token,
+    userId,
+    displayName,
+  }) {
+    try {
+      if (!token) {
+        alert("You are not logged in. Please log in again.");
+        return;
+      }
 
-  //     const url = userId
-  //       ? `${apiBase}/api/reports/export/user?userId=${encodeURIComponent(
-  //           userId
-  //         )}`
-  //       : `${apiBase}/api/reports/export/user`;
+      const url = userId
+        ? `${apiBase}/api/reports/export/user?userId=${encodeURIComponent(
+            userId
+          )}`
+        : `${apiBase}/api/reports/export/user`;
 
-  //     const resp = await fetch(url, {
-  //       method: "GET",
-  //       headers: {
-  //         Authorization: `Bearer ${token}`,
-  //       },
-  //     });
+      const resp = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-  //     if (!resp.ok) {
-  //       // Read any JSON/text error for better debugging
-  //       const text = await resp.text();
-  //       throw new Error(text || `HTTP ${resp.status}`);
-  //     }
+      if (!resp.ok) {
+        // Read any JSON/text error for better debugging
+        const text = await resp.text();
+        throw new Error(text || `HTTP ${resp.status}`);
+      }
 
-  //     const blob = await resp.blob();
+      const blob = await resp.blob();
 
-  //     const cd = resp.headers.get("Content-Disposition") || "";
-  //     const match = /filename="([^"]+)"/i.exec(cd);
-  //     const ymd = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  //     const safe = (displayName || userId || "me").replace(
-  //       /[^A-Za-z0-9_-]+/g,
-  //       "_"
-  //     );
-  //     const fallback = `reports_${safe}_${ymd}.csv`;
-  //     const filename = match?.[1] || fallback;
+      const cd = resp.headers.get("Content-Disposition") || "";
+      const match = /filename="([^"]+)"/i.exec(cd);
+      const ymd = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const safe = (displayName || userId || "me").replace(
+        /[^A-Za-z0-9_-]+/g,
+        "_"
+      );
+      const fallback = `reports_${safe}_${ymd}.csv`;
+      const filename = match?.[1] || fallback;
 
-  //     const a = document.createElement("a");
-  //     a.href = URL.createObjectURL(blob);
-  //     a.download = filename;
-  //     document.body.appendChild(a);
-  //     a.click();
-  //     a.remove();
-  //     URL.revokeObjectURL(a.href);
-  //   } catch (e) {
-  //     console.error("CSV export failed:", e);
-  //     alert("CSV export failed. See console for details.");
-  //   }
-  // }
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+    } catch (e) {
+      console.error("CSV export failed:", e);
+      alert("CSV export failed. See console for details.");
+    }
+  }
 
   const fetchReportsForUser = async (uid) => {
     if (!uid) {
@@ -358,8 +357,7 @@ function RequestService() {
   const REPORT_FIELDS = [
     ["Equipment ID", "equipmentId"],
     ["Equipment Name", "equipmentName"],
-    ["Model / Series", "modelSeries"], // ✅ Add this line
-    ["Added By (User ID)", "userId"],
+    ["Added By (User ID)", "userId"], // âœ… NEW
     ["Service Type", "serviceType"],
     ["Date", "date"],
     ["Branch/Location", "branchLocation"],
@@ -370,10 +368,7 @@ function RequestService() {
     ["Type", "type"],
     ["Capacity", "capacity"],
     ["Installation Date", "installationDate"],
-    ["Expiry Date", "expiryDate"],
     ["Can Serial Number", "canSerialNumber"],
-    ["Next Service Date", "nextServiceDate"],
-
     ["Refilling Due", "refillingDue"],
     ["Product", "product"],
     ["Others", "others"],
@@ -424,54 +419,15 @@ function RequestService() {
 
         const eq = data.equipment || data;
 
-        // Format dates for input fields (YYYY-MM-DD format)
-        const formatDateForInput = (dateString) => {
-          if (!dateString) return "";
-          try {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return "";
-            return date.toISOString().split("T")[0];
-          } catch (error) {
-            console.error("Date formatting error:", error);
-            return "";
-          }
-        };
-
+        // Prefill IDs & name
         setFormData((prev) => ({
           ...prev,
           equipmentId: eq.equipmentId || prev.equipmentId,
           equipmentName: eq.equipmentName || prev.equipmentName,
-          modelSeries: eq.modelSeries || prev.modelSeries,
           userId: eq.userId || prev.userId,
-          location: eq.location || prev.location,
-          // Add the new fields from QR code with proper date formatting
-          installationDate:
-            formatDateForInput(scanned.installationDate) ||
-            formatDateForInput(eq.installationDate) ||
-            prev.installationDate,
-          expiryDate:
-            formatDateForInput(scanned.expiryDate) ||
-            formatDateForInput(eq.expiryDate) ||
-            prev.expiryDate,
-          capacity: scanned.capacity || eq.capacity || prev.capacity,
-
-          // NEW: brand (QR → equipment → previous)
-          brand: scanned.brand || eq.brand || prev.brand,
-
-          // NEW: Can Serial Number (QR.serialNumber/QR.canSerialNumber → equipment.canSerialNumber/serialNumber → previous)
-          canSerialNumber:
-            scanned.canSerialNumber ||
-            scanned.serialNumber ||
-            eq.canSerialNumber ||
-            eq.serialNumber ||
-            prev.canSerialNumber,
-
-          // NEW: Refilling Due (QR.refillingDue → equipment.refillingDue/refDue → previous)
-          refillingDue:
-            formatDateForInput(scanned.refillingDue) ||
-            formatDateForInput(eq.refillingDue || eq.refDue) ||
-            prev.refillingDue,
+          location: eq.location || prev.location, // âœ… NEW
         }));
+
         Swal.fire({
           title: "Scanned!",
           text: eq.equipmentName || eq.equipmentId || "QR read",
@@ -551,7 +507,7 @@ function RequestService() {
       setScannerVisible(false);
     };
 
-    scanner.start({ facingMode: "user" }, qrConfig, onSuccess).catch(() => {
+    scanner.start({ facingMode: cameraFacing }, qrConfig, onSuccess).catch(() => {
       Swal.fire({
         title: "Camera Error",
         text: "Grant camera permission.",
@@ -563,7 +519,7 @@ function RequestService() {
     return () => {
       scanner.stop().catch(() => {});
     };
-  }, [isScannerVisible, isAdmin, isTechnician]);
+  }, [isScannerVisible, isAdmin, isTechnician, cameraFacing]);
 
   // ----- Submission feedback -----
   useEffect(() => {
@@ -613,7 +569,8 @@ function RequestService() {
     const payload = {
       ...formData,
       date: formData?.date || new Date().toISOString(),
-      nextServiceDate: formData?.nextServiceDate || null,
+      nextServiceDate:
+        formData?.nextServiceDate || formData?.refillingDue || null,
     };
     dispatch(createServiceRequest(payload));
   };
@@ -621,12 +578,6 @@ function RequestService() {
   const inputClass =
     "w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg " +
     "bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:border-solid focus:ring-2 focus:ring-[#DC6D18]";
-
-  // Uniform action buttons: same width on all screens
-  const actionBtnBase =
-    "w-40 text-center whitespace-nowrap px-3 py-2 rounded-md"; // w-40 ≈ 10rem
-  const actionBtnPrimary = `${actionBtnBase} bg-[#DC6D18] text-white hover:bg-[#B85B14]`;
-  const actionBtnOutline = `${actionBtnBase} border border-gray-300 hover:bg-gray-50`;
 
   return (
     <div className="w-full max-w-5xl mx-auto">
@@ -739,7 +690,7 @@ function RequestService() {
                                   onClick={() => {
                                     openReportModal(rep);
                                   }}
-                                  className={actionBtnPrimary}
+                                  className="px-3 py-1 rounded-md bg-[#DC6D18] text-white hover:bg-[#B85B14]"
                                 >
                                   View Report
                                 </button>
@@ -763,7 +714,7 @@ function RequestService() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={(e) => e.stopPropagation()}
-                                  className={actionBtnOutline}
+                                  className="px-3 py-1 rounded-md border border-gray-300 hover:bg-gray-50 inline-block"
                                 >
                                   Download PDF
                                 </a>
@@ -775,7 +726,7 @@ function RequestService() {
                                   rel="noopener noreferrer"
                                   download
                                   onClick={(e) => e.stopPropagation()}
-                                  className={actionBtnOutline}
+                                  className="px-3 py-1 rounded-md border border-gray-300 hover:bg-gray-50 inline-block"
                                 >
                                   Download CSV
                                 </a>
@@ -858,18 +809,33 @@ function RequestService() {
               required
             />
           </div>
-          <button
-            type="button"
-            onClick={() => setScannerVisible(!isScannerVisible)}
-            className={`h-[52px] px-6 rounded-lg font-semibold shadow-md whitespace-nowrap 
-              ${
-                isScannerVisible
-                  ? "bg-red-600 text-white hover:bg-red-700"
-                  : "bg-[#DC6D18] text-[#FFF7ED] hover:bg-[#B85B14]"
-              }`}
-          >
-            {isScannerVisible ? "Close Scanner" : "Scan QR Code"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setScannerVisible(!isScannerVisible)}
+              className={`h-[52px] px-6 rounded-lg font-semibold shadow-md whitespace-nowrap 
+                ${
+                  isScannerVisible
+                    ? "bg-red-600 text-white hover:bg-red-700"
+                    : "bg-[#DC6D18] text-[#FFF7ED] hover:bg-[#B85B14]"
+                }`}
+            >
+              {isScannerVisible ? "Close Scanner" : "Scan QR Code"}
+            </button>
+
+            {isScannerVisible && (
+              <button
+                type="button"
+                onClick={() =>
+                  setCameraFacing((p) => (p === "user" ? "environment" : "user"))
+                }
+                className="h-[52px] px-4 rounded-lg font-semibold shadow-md bg-white border border-gray-200 hover:bg-gray-50"
+                title="Flip camera"
+              >
+                {cameraFacing === "user" ? "Front" : "Back"}
+              </button>
+            )}
+          </div>
         </div>
 
         {isScannerVisible && (
@@ -946,18 +912,6 @@ function RequestService() {
               </div>
               <div className="relative">
                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18]">
-                  Expiry Date
-                </span>
-                <input
-                  type="date"
-                  name="expiryDate"
-                  value={formData.expiryDate || ""}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-              <div className="relative">
-                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18]">
                   Refilling Due
                 </span>
                 <input
@@ -978,7 +932,6 @@ function RequestService() {
                   value={formData.nextServiceDate}
                   onChange={handleChange}
                   className={inputClass}
-                  // required
                 />
               </div>
 
@@ -1133,7 +1086,7 @@ function RequestService() {
                         e.stopPropagation();
                         openReportModal(rep);
                       }}
-                      className={actionBtnPrimary}
+                      className="px-4 py-2 rounded-lg bg-[#DC6D18] text-white hover:bg-[#B85B14] shadow-sm"
                     >
                       View report
                     </button>
@@ -1171,7 +1124,7 @@ function RequestService() {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className={`${actionBtnBase} bg-gray-800 text-white hover:bg-black`}
+                        className="px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-black shadow-sm inline-block"
                         title="Download PDF"
                       >
                         Download PDF
@@ -1184,7 +1137,7 @@ function RequestService() {
                         rel="noopener noreferrer"
                         download
                         onClick={(e) => e.stopPropagation()}
-                        className={`${actionBtnBase} bg-gray-200 text-gray-800 hover:bg-gray-300`}
+                        className="px-4 py-2 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 shadow-sm inline-block"
                         title="Download CSV"
                       >
                         Download CSV
