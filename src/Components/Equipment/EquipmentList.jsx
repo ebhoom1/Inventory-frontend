@@ -16,8 +16,8 @@ import logo from '../../assets/safetik.png';
 const EquipmentDetailsRow = ({
   item,
   onDownloadQR,
-  onEdit,
-  canEdit,
+  onEdit,    // <-- Verified: Prop is received here
+  canEdit,   // <-- Verified: Prop is received here
   numCols,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -67,6 +67,8 @@ const EquipmentDetailsRow = ({
             Download QR
           </button>
         </td>
+        
+        {/* --- Restored Edit Button Logic from Old Code --- */}
         {canEdit && (
           <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
             <button
@@ -177,7 +179,7 @@ export default function EquipmentList() {
     list,
     loading,
     error,
-    loadingUpdate,
+    loadingUpdate, // <-- Ensure this is available in your slice
   } = useSelector((s) => s.equipment);
   const {
     userInfo,
@@ -194,6 +196,7 @@ export default function EquipmentList() {
   const isAdmin = roleRaw === "admin";
   const isTechnician = roleRaw === "technician";
   const shouldShowFilter = isSuperAdmin || isAdmin || isTechnician;
+  
   const numCols = 5 + (shouldShowFilter ? 1 : 0);
 
   useEffect(() => {
@@ -237,10 +240,9 @@ export default function EquipmentList() {
   }, [baseList, selectedUserId]);
 
 
-  // --- UPDATED QR DOWNLOAD HANDLER (EXACT DESIGN) ---
+  // --- UPDATED QR DOWNLOAD HANDLER (From Updated Code) ---
   const handleDownloadQR = async (item) => {
     try {
-      // 1. Prepare Data
       const qrPayload = JSON.stringify({ equipmentId: item.equipmentId });
       
       const formatDate = (d) => {
@@ -252,8 +254,6 @@ export default function EquipmentList() {
         return `${day}.${month}.${year}`;
       };
 
-      // 2. Canvas Setup (Landscape, High Res for Print)
-      // Aspect ratio similar to the image (approx 1.5 : 1)
       const canvasWidth = 1200; 
       const canvasHeight = 800; 
       const canvas = document.createElement("canvas");
@@ -261,22 +261,15 @@ export default function EquipmentList() {
       canvas.height = canvasHeight;
       const ctx = canvas.getContext("2d");
 
-      // 3. Fonts & Colors
       const fontBold = "bold 36px Arial, sans-serif";
       const fontRegular = "36px Arial, sans-serif";
-      const fontSmall = "24px Arial, sans-serif";
-      const fontSmallBold = "bold 24px Arial, sans-serif";
-      
       const colorBlack = "#1A1A1A";
-      const colorGrey = "#4A4A4A";
-      const colorRed = "#C1272D";   // From the graphic
-      const colorOrange = "#F15A24"; // From the logo/graphic
+      const colorRed = "#C1272D";   
+      const colorOrange = "#F15A24"; 
       
-      // Clear Background (White)
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-      // 4. Draw Main Border (Rounded Rectangle)
       const padding = 40;
       const borderRadius = 50;
       const contentW = canvasWidth - (padding * 2);
@@ -290,20 +283,14 @@ export default function EquipmentList() {
       ctx.strokeStyle = "#000000";
       ctx.stroke();
 
-      // 5. Top Right Decoration (Geometric Shape)
-      // The red/orange polygon in the top right corner
-      const decoSize = 250;
-      const cornerX = startX + contentW; // Right edge
-      const cornerY = startY; // Top edge
+      const cornerX = startX + contentW; 
+      const cornerY = startY; 
       
-      // Draw the Orange/Red shape - carefully calculated to match image
       ctx.save();
-      // Clip to the rounded border so shapes don't bleed out
       ctx.beginPath();
       ctx.roundRect(startX, startY, contentW, contentH, borderRadius);
       ctx.clip();
 
-      // The Red Polygon
       ctx.beginPath();
       ctx.moveTo(cornerX - 200, cornerY);
       ctx.lineTo(cornerX, cornerY);
@@ -313,23 +300,19 @@ export default function EquipmentList() {
       ctx.fillStyle = colorRed;
       ctx.fill();
 
-      // The Orange Polygon (overlapping)
       ctx.beginPath();
       ctx.moveTo(cornerX - 160, cornerY + 60);
       ctx.lineTo(cornerX, cornerY + 60);
       ctx.lineTo(cornerX, cornerY + 90);
-      ctx.lineTo(cornerX - 120, cornerY + 90); // Slant
+      ctx.lineTo(cornerX - 120, cornerY + 90); 
       ctx.closePath();
       ctx.fillStyle = colorOrange;
       ctx.fill();
       ctx.restore();
 
-
-      // 6. Header Section
       const headerY = startY + 50;
       const leftMargin = startX + 40;
 
-      // Load Logo
       const loadImg = (src) => new Promise((resolve, reject) => {
           const img = new Image();
           img.crossOrigin = "Anonymous";
@@ -340,12 +323,10 @@ export default function EquipmentList() {
 
       try {
         const logoImg = await loadImg(logo);
-        // Maintain aspect ratio, height approx 90px
         const lHeight = 90;
         const lWidth = (logoImg.width / logoImg.height) * lHeight;
         ctx.drawImage(logoImg, leftMargin, headerY - 10, lWidth, lHeight);
 
-        // "Safetik" Text
         const textOffsetX = leftMargin + lWidth + 20;
         ctx.fillStyle = colorBlack;
         ctx.font = "bold 55px Arial, sans-serif";
@@ -354,35 +335,28 @@ export default function EquipmentList() {
         ctx.font = "bold 20px Arial, sans-serif";
         ctx.fillText("Safety Solutions Pvt.Ltd.", textOffsetX, headerY + 60);
 
-        // Address Line
-        ctx.font = "bold 18px Arial, sans-serif"; // Slightly bolder as in image
+        ctx.font = "bold 18px Arial, sans-serif"; 
         ctx.fillText("1st floor Aiswarya bldg, S.A. Road, Valanjambalam, Cochin 16.", leftMargin, headerY + 100);
 
-        // Contact Info (Right Side)
-        const rightAlignX = startX + contentW - 50; // Padding from right border
+        const rightAlignX = startX + contentW - 50;
         ctx.textAlign = "right";
         
-        // Phone numbers
         ctx.font = "bold 24px Arial, sans-serif";
         ctx.fillText("📞 0484 4117109 | 9846196537", rightAlignX, headerY + 40);
         ctx.fillText("9895039921", rightAlignX, headerY + 75);
         
-        // Email / Web
         ctx.font = "bold 18px Arial, sans-serif";
         ctx.fillText("✉ info@safetik.in | 🌐 www.safetik.in", rightAlignX, headerY + 100);
-        ctx.textAlign = "left"; // Reset
+        ctx.textAlign = "left"; 
 
       } catch (e) {
         console.warn("Logo load failed", e);
       }
 
-
-      // 7. Content Lines (The Form Fields)
-      // Setup for drawing dotted lines
       const drawDottedLine = (x1, y1, x2) => {
           ctx.save();
           ctx.beginPath();
-          ctx.setLineDash([3, 3]); // Dotted pattern
+          ctx.setLineDash([3, 3]); 
           ctx.lineWidth = 1;
           ctx.strokeStyle = "#333";
           ctx.moveTo(x1, y1);
@@ -391,71 +365,46 @@ export default function EquipmentList() {
           ctx.restore();
       };
 
-      // Helper to draw a field
       const drawField = (label, value, x, y, width) => {
-          // Draw Label
           ctx.fillStyle = colorBlack;
-          ctx.font = fontRegular; // "Type" looks standard weight in image, maybe slightly bold
+          ctx.font = fontRegular; 
           ctx.fillText(label, x, y);
-
-          // Measure label width to position value if needed, 
-          // but usually value sits above the line or to the right.
-          // In the image, it looks like a form. We will print the value 
-          // slightly above the dotted line.
           
-          const lineY = y + 10; // Line is slightly below text baseline
+          const lineY = y + 10; 
           const lineStartX = x + ctx.measureText(label).width + 10;
           const lineEndX = x + width;
 
-          // Draw Value (if exists)
           if (value) {
-             ctx.font = "bold 34px Courier New, monospace"; // Typewriter look for filled data
+             ctx.font = "bold 34px Courier New, monospace";
              ctx.fillStyle = "#000";
-             // Center value on the line roughly
              ctx.fillText(value, lineStartX + 10, y); 
           }
 
-          // Draw Line
           drawDottedLine(lineStartX, lineY, lineEndX);
       };
 
-      let currentY = startY + 220; // Start below header
+      let currentY = startY + 220; 
       const rowHeight = 90;
       const fullLineW = contentW - 80;
 
-      // --- Row 1: Type ---
-      // Mapping: Type = equipmentName
       drawField("Type", item.equipmentName || "", leftMargin, currentY, fullLineW);
       
-      // --- Row 2: Capacity ---
       currentY += rowHeight;
       drawField("Capacity", item.capacity || "", leftMargin, currentY, fullLineW);
 
-      // --- Row 3: Refilled on | Exp. on ---
       currentY += rowHeight;
       const halfWidth = (fullLineW / 2) - 20;
       
-      // Left: Refilled on (Leave blank or map if you have data)
       drawField("Refilled on", "", leftMargin, currentY, halfWidth);
-      
-      // Right: Exp. on -> Mapped to expiryDate
       const rightColStart = leftMargin + halfWidth + 40;
       drawField("Exp. on", formatDate(item.expiryDate), rightColStart, currentY, halfWidth);
 
-      // --- Row 4: H.P.Tested on | Next due ---
       currentY += rowHeight;
       
-      // Left: H.P.Tested on (Leave blank)
       drawField("H.P.Tested on", "", leftMargin, currentY, halfWidth);
-      
-      // Right: Next due -> Mapped to refDue
       drawField("Next due", formatDate(item.refDue), rightColStart, currentY, halfWidth);
 
-
-      // 8. QR Code Generation
-      // The image doesn't show a QR, but this is a digital tag. 
-      // We place it in the bottom right corner, unobtrusively.
-      const qrSize = 150;
+      const qrSize = 180;
       const qrX = startX + contentW - qrSize - 25;
       const qrY = startY + contentH - qrSize - 25;
 
@@ -465,20 +414,18 @@ export default function EquipmentList() {
         width: qrSize,
         color: {
             dark: "#000000",
-            light: "#FFFFFF00" // Transparent bg
+            light: "#FFFFFF00" 
         }
       });
 
       const qrImg = await loadImg(qrDataUrl);
       ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-      // Optional: Add ID below QR
       ctx.font = "12px Arial";
       ctx.fillStyle = "#666";
       ctx.textAlign = "center";
       ctx.fillText(item.equipmentId || "", qrX + (qrSize/2), qrY + qrSize + 15);
 
-      // 9. Download
       const finalDataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.href = finalDataUrl;
@@ -490,8 +437,8 @@ export default function EquipmentList() {
       alert("Could not generate QR label. Please check console.");
     }
   };
-  // --- END UPDATED HANDLER ---
 
+  // --- RESTORED EDIT HANDLERS FROM OLD CODE ---
   const handleEdit = (equipment) => {
     setSelectedEquipment(equipment);
     setIsEditModalOpen(true);
@@ -504,14 +451,23 @@ export default function EquipmentList() {
 
   const handleSaveUpdate = async (formData) => {
     if (!selectedEquipment) return;
+
+    // Get the ID for the API call (use _id if available, fallback to equipmentId)
     const id = selectedEquipment._id || selectedEquipment.equipmentId;
+
+    // Prepare the update payload
+    // We remove internal IDs from the payload, just sending the changed data
     const { _id, equipmentId, ...updatePayload } = formData;
 
     try {
+      // Dispatch the thunk with { id, updates }
       await dispatch(updateEquipment({ id, updates: updatePayload })).unwrap();
       handleCloseModal();
+      // Note: Your slice should handle updating the `list` state,
+      // which will cause the table to re-render.
     } catch (err) {
       console.error("Failed to update equipment:", err);
+      // You could pass an error message back to the modal to display
     }
   };
 
@@ -584,8 +540,8 @@ export default function EquipmentList() {
                     key={item._id || item.equipmentId}
                     item={item}
                     onDownloadQR={handleDownloadQR}
-                    onEdit={handleEdit}
-                    canEdit={shouldShowFilter}
+                    onEdit={handleEdit} // <-- Verified passed to child
+                    canEdit={shouldShowFilter} // <-- Verified passed to child
                     numCols={numCols}
                   />
                 ))

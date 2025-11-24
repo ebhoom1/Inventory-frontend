@@ -22,13 +22,10 @@ function RequestInventory() {
 
   // Logged-in user
   const { userInfo, allUsers, loading: usersLoading } = useSelector((s) => s.users || {});
-  const role = (userInfo?.userType || "").toLowerCase();
-  // const isAdmin = role === "admin" || role === "super admin";
-  // const isSuperAdmin = role === "super admin";
-  // const isRequesterUser = role === "user";
-  const isAdmin = role === "admin" || role === "super admin" || role === "technician";
-const isSuperAdmin = role === "super admin";
-const isRequesterUser = role === "user";
+  const role = (userInfo?.userType || "").toString().trim().toLowerCase();
+  const isTechnician = role === "technician";
+  const isSuperAdmin = role === "super admin";
+  const isRequesterUser = role === "user";
 
 
   const currentUserId = userInfo?._id || userInfo?.id;
@@ -103,12 +100,12 @@ const isRequesterUser = role === "user";
     })();
   }, [userInfo]);
 
-  // Load users list only for Admin/Super Admin
+  // Load users list only for Technicians (they create requests)
   useEffect(() => {
-    if (isAdmin) {
+    if (isTechnician) {
       dispatch(getAllUsers());
     }
-  }, [dispatch, isAdmin]);
+  }, [dispatch, isTechnician]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -130,7 +127,7 @@ const isRequesterUser = role === "user";
       Swal.fire({ icon: "warning", text: "Please choose a required date." });
       return;
     }
-    if (isAdmin && !selectedUserId) {
+    if (isTechnician && !selectedUserId) {
       Swal.fire({ icon: "warning", text: "Please select a user to request for." });
       return;
     }
@@ -139,7 +136,7 @@ const isRequesterUser = role === "user";
     let targetUserId = currentUserId;
     let targetUserName = currentDisplayName;
 
-    if (isAdmin) {
+    if (isTechnician) {
       const chosen = selectableUsers.find((u) => u.id === selectedUserId);
       if (!chosen) {
         Swal.fire({ icon: "warning", text: "Selected user not found." });
@@ -205,7 +202,7 @@ const isRequesterUser = role === "user";
       <form className="space-y-10" onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-10">
           {/* Admin/Super Admin: select user to request for */}
-          {isAdmin && (
+          {isTechnician && (
             <div className="relative flex items-center md:col-span-2">
               <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
                 Request For (User)

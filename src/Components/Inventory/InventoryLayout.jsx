@@ -11,6 +11,7 @@ import AddEquipment from './AddEquipment';
 import AssignInventory from './AssignInventory';
 import RequestInventory from './RequestInventory';
 import RequestHistory from './RequestHistory';
+import AssignedUsers from './AssignedUsers';
 
 const TABS = {
   inventoryList: { label: 'Inventory List', component: InventoryList },
@@ -18,9 +19,10 @@ const TABS = {
   useInventory: { label: 'Assign Inventory', component: AssignInventory },
   requestInventory: { label: 'Request Inventory', component: RequestInventory },
   requestHistory: { label: 'Request History', component: RequestHistory },
+  assignedUsers: { label: 'Assigned Users', component: AssignedUsers },
 };
 
-const TAB_ORDER = ['inventoryList', 'addInventory', 'useInventory', 'requestInventory', 'requestHistory'];
+const TAB_ORDER = ['inventoryList', 'addInventory', 'useInventory', 'requestInventory', 'requestHistory', 'assignedUsers'];
 
 function InventoryLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -38,15 +40,21 @@ const isTechnician = role === 'technician';
 // Visible tabs based on role
 const visibleTabKeys = useMemo(() => {
   return TAB_ORDER.filter((key) => {
-    // 🔸 SuperAdmin: only show Inventory List + Request History
-    if (isSuperAdmin) {
-      return key === 'inventoryList' || key === 'requestHistory';
-    }
+      // 🔸 Request Inventory tab: only technicians should see this
+      if (key === 'requestInventory') {
+        return isTechnician;
+      }
 
-    // 🔸 Admin / Technician: can view Request tabs + everything else
-    if (isAdmin || isTechnician) {
-      return true;
-    }
+          // 🔸 Assigned Users tab: only admin and super admin should see this
+          if (key === 'assignedUsers') {
+            return isSuperAdmin || isAdmin;
+          }
+
+      // 🔸 Admin and SuperAdmin: full access to other inventory tabs
+      if (isSuperAdmin || isAdmin) return true;
+
+      // 🔸 Technician: access to all other tabs
+      if (isTechnician) return true;
 
     // 🔸 Normal user: hide request tabs
     if (key === 'requestInventory' || key === 'requestHistory') {

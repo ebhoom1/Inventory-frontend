@@ -285,7 +285,7 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
   return (
     <div className="w-full max-w-4xl mx-auto">
       <h2 className="text-3xl font-bold text-center text-[#DC6D18] mb-10">
-        Log Inventory Usage
+        Assign Inventory Usage
       </h2>
 
       <form className="space-y-10" onSubmit={handleSubmit}>
@@ -438,7 +438,7 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
         <div className="flex justify-center mt-8">
           <button
             type="submit"
-            disabled={usageLoading || skuLoading || (isAdmin && usersLoading)}
+            disabled={usageLoading || skuLoading || (isAdmin && usersLoading) || !formData.location}
             className="px-8 py-3 bg-[#DC6D18] text-[#FFF7ED] rounded-lg font-semibold shadow-md hover:bg-[#B85B14] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#DC6D18] transition-all duration-200 ease-in-out disabled:opacity-60"
           >
             {usageLoading ? "Logging…" : "Log Usage"}
