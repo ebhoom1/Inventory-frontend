@@ -7,6 +7,7 @@ import {
   resetInventoryState,
   fetchInventory,
 } from "../../redux/features/inventory/inventorySlice";
+import { getEquipments, updateEquipment } from "../../redux/features/equipment/equipmentSlice";
 import { getAllUsers } from "../../redux/features/users/userSlice";
 import { API_URL } from "../../../utils/apiConfig";
 
@@ -36,6 +37,7 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
   // const isAdmin =
   //   userInfo?.userType === "Admin" || userInfo?.userType === "Super Admin";
   const authToken = userInfo?.token || localStorage.getItem("token");
+  const equipmentItems = useSelector((s) => s.equipment?.list || []);
 
   // Local state
   const [formData, setFormData] = useState({
@@ -73,6 +75,8 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
         dispatch(getAllUsers());
       }
       dispatch(fetchInventory());
+      // also fetch equipments to include unassigned equipment names in SKU dropdown
+      dispatch(getEquipments());
     }
   }, [dispatch, isAdmin]);
 
@@ -172,13 +176,29 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
     const names = (allInventoryItems || [])
       .map((it) => it?.skuName)
       .filter(Boolean);
-    
-    console.log("Admin SKU Options Debug:");
-    console.log("  All Inventory Items:", allInventoryItems);
-    console.log("  SKU Names:", names);
-    
-    return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
-  }, [isAdmin, allInventoryItems]);
+
+    // Combine with unassigned equipment names so new equipment shows in the list
+    const unassignedEquipmentList = (equipmentItems || [])
+      .filter((e) => !e.userId || e.userId === "" || e.userId === null)
+      .filter(Boolean);
+
+    // Combine all options
+    const allOptions = [
+      ...[...new Set(names)].map((n) => ({ type: 'sku', label: n, value: `sku:${n}`, skuName: n })),
+      ...unassignedEquipmentList.map((e) => ({ type: 'equipment', label: e.equipmentName, value: `eq:${e._id}`, equipmentId: e._id, equipmentName: e.equipmentName }))
+    ];
+
+    // Deduplicate by label (equipment/inventory name)
+    const dedupedOptions = [];
+    const seenLabels = new Set();
+    for (const opt of allOptions) {
+      if (opt.label && !seenLabels.has(opt.label)) {
+        dedupedOptions.push(opt);
+        seenLabels.add(opt.label);
+      }
+    }
+    return dedupedOptions.sort((a, b) => a.label.localeCompare(b.label));
+  }, [isAdmin, allInventoryItems, equipmentItems]);
 
   // Admin user options from Redux users list
   const userOptions = useMemo(() => {
@@ -186,8 +206,9 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
     const arr = Array.isArray(allUsers) ? allUsers : [];
     // ✅ Show all users (including Technicians, Users, etc.) for Admin/Super Admin
     // Create a copy before sorting to avoid mutating the Redux state
-    return [...arr]
-      .sort((a, b) => (a.userId || "").localeCompare(b.userId || ""));
+    // Remove Super Admin from the list for assignment
+    const filtered = arr.filter((u) => (u.userType || "").toLowerCase() !== "super admin");
+    return [...filtered].sort((a, b) => (a.userId || "").localeCompare(b.userId || ""));
   }, [isAdmin, allUsers]);
 
   // =============== Handlers ===============
@@ -199,8 +220,24 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // parse sku selection: admin options are in the format 'sku:name' or 'eq:id'
+    const rawSku = formData.skuName || '';
+    let skuType = 'sku';
+    let skuName = rawSku;
+    let matchedEquipmentId = null;
+    if (rawSku.startsWith('eq:')) {
+      skuType = 'equipment';
+      matchedEquipmentId = rawSku.slice(3);
+      // find equipment name for logging
+      const eq = equipmentItems.find((e) => (e._id || e.equipmentId) === matchedEquipmentId);
+      skuName = (eq && eq.equipmentName) || '';
+    } else if (rawSku.startsWith('sku:')) {
+      skuType = 'sku';
+      skuName = rawSku.slice(4);
+    }
+
     const payload = {
-      skuName: formData.skuName?.trim(),
+      skuName: skuName?.trim(),
       userId: (isAdmin ? formData.userId : userInfo?.userId)?.trim(),
       quantityUsed: Number(formData.quantityUsed),
       date: formData.date,
@@ -230,7 +267,45 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
       });
       return;
     }
-    dispatch(logInventoryUsage(payload));
+    // Optimistic update: create a temporary item and notify AssignedUsers to prepend it
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    const optimisticItem = {
+      _tempId: tempId,
+      userId: payload.userId,
+      username: payload.userId,
+      companyName: (isAdmin ? (userOptions.find(u => u.userId === payload.userId)?.companyName || '') : userInfo?.companyName) || '',
+      skuName: payload.skuName,
+      location: payload.location || '',
+      totalUsed: payload.quantityUsed,
+      lastUsedAt: payload.date || new Date().toISOString(),
+      // createdAt not set; AssignedUsers will treat lastUsedAt
+    };
+
+    try {
+      window.dispatchEvent(new CustomEvent('inventory:optimisticAdd', { detail: optimisticItem }));
+
+      // If the selection is an equipment, update that equipment to assign it
+      if (skuType === 'equipment' && matchedEquipmentId) {
+        try {
+          dispatch(updateEquipment({ id: matchedEquipmentId, updates: { userId: payload.userId } }));
+        } catch (err) {
+          console.warn('Failed to update equipment assignment', err);
+        }
+      }
+
+      // perform actual API call
+      dispatch(logInventoryUsage(payload)).unwrap().then((res) => {
+        // res expected to have { usage }
+        const usage = res?.usage || res;
+        window.dispatchEvent(new CustomEvent('inventory:confirmAdd', { detail: { tempId, usage } }));
+      }).catch((err) => {
+        // rollback optimistic item
+        window.dispatchEvent(new CustomEvent('inventory:rollbackAdd', { detail: { tempId } }));
+      });
+    } catch (err) {
+      console.error('Optimistic add failed', err);
+      window.dispatchEvent(new CustomEvent('inventory:rollbackAdd', { detail: { tempId } }));
+    }
   };
 
   // =============== UI ===============
@@ -311,11 +386,13 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
                   : "Select inventory"}
               </option>
               {!skuLoading && !skuError &&
-                skuOptions.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
+                  skuOptions.map((opt) => (
+                    typeof opt === 'string' ? (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ) : (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    )
+                  ))}
             </select>
           </div>
 

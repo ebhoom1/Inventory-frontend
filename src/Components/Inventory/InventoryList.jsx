@@ -16,169 +16,28 @@ function InventoryList() {
     error: reduxError,
   } = useSelector((s) => s.inventory || {});
 
-  // Auth / Users
-  const {
-    userInfo,
-    allUsers = [],
-    loading: usersLoading,
-    error: usersError,
-  } = useSelector((s) => s.users || {});
-
-  // ---- Role flags (Admin, Super Admin, Technician act as "admin" for this page) ----
-  const role = (userInfo?.userType || "").toLowerCase();
-  const isAdmin =
-    role === "admin" || role === "super admin" || role === "technician";
-
-  // After (treat Technician like Admin for list view)
-  // const isAdmin =
-  //   userInfo?.userType === 'Admin' ||
-  //   userInfo?.userType === 'Super Admin' ||
-  //   userInfo?.userType === 'Technician';
-
-  const userId = userInfo?.userId;
-  const token = userInfo?.token || localStorage.getItem("token");
-
-  const [userSummary, setUserSummary] = useState([]);
-  const [userLoading, setUserLoading] = useState(false);
-  const [userError, setUserError] = useState(null);
-
-  const [selectedUserId, setSelectedUserId] = useState("all");
-  const [adminUserSummary, setAdminUserSummary] = useState([]);
-  const [adminUserLoading, setAdminUserLoading] = useState(false);
-  const [adminUserError, setAdminUserError] = useState(null);
-
+  // ...existing code...
   const [filter, setFilter] = useState({ month: "all", year: "all" });
-
-  // 🔹 raw inventory data
-  const [allInventories, setAllInventories] = useState([]);
 
   // ---------- Data fetching ----------
   useEffect(() => {
-    if (!userInfo?.token) return;
-if (isAdmin) {
-  dispatch(fetchInventorySummary("all")); // ✅ fetch all by default
-  if (!allUsers || allUsers.length === 0) {
-    dispatch(getAllUsers());
-  }
-} else if (userId) {
-      const ac = new AbortController();
-      (async () => {
-        try {
-          setUserLoading(true);
-          setUserError(null);
-          const res = await fetch(
-            `${API_URL}/api/inventory/summary/${encodeURIComponent(userId)}`,
-            {
-              headers: token ? { Authorization: `Bearer ${token}` } : {},
-              signal: ac.signal,
-            }
-          );
-          const data = await res.json();
-          if (!res.ok)
-            throw new Error(data?.message || "Failed to load summary");
-          setUserSummary(Array.isArray(data) ? data : []);
-        } catch (e) {
-          if (e.name !== "AbortError")
-            setUserError(e.message || "Failed to load summary");
-        } finally {
-          setUserLoading(false);
-        }
-      })();
-      return () => ac.abort();
-    }
-  }, [dispatch, isAdmin, userId, userInfo, token, allUsers?.length]);
+    dispatch(fetchInventorySummary("all"));
+  }, [dispatch]);
 
   useEffect(() => {
-    if (!userInfo?.token) return;
-    if (!isAdmin) return;
-    if (selectedUserId === "all") {
-  // ✅ Fetch all users summary when "All" is selected
-  dispatch(fetchInventorySummary("all"));
-  setAdminUserError(null);
-  setAdminUserLoading(false);
-  return;
-}
-
-
-    const ac = new AbortController();
-    (async () => {
-      try {
-        setAdminUserLoading(true);
-        setAdminUserError(null);
-        const res = await fetch(
-          `${API_URL}/api/inventory/summary/${encodeURIComponent(
-            selectedUserId
-          )}`,
-          {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-            signal: ac.signal,
-          }
-        );
-        const data = await res.json();
-        if (!res.ok)
-          throw new Error(data?.message || "Failed to load user summary");
-        setAdminUserSummary(Array.isArray(data) ? data : []);
-      } catch (e) {
-        if (e.name !== "AbortError")
-          setAdminUserError(e.message || "Failed to load user summary");
-      } finally {
-        setAdminUserLoading(false);
-      }
-    })();
-    return () => ac.abort();
-  }, [isAdmin, selectedUserId, token]);
+    // No user filtering, only fetch all summary
+  }, []);
 
   // 🔹 fetch raw inventories for Added By info
   useEffect(() => {
-    if (!userInfo?.token) return;
-    const ac = new AbortController();
+    // Removed effect for fetching allInventories and userInfo
+    // Effect removed as it referenced userInfo
+  }, []);
 
-    (async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/inventory`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          signal: ac.signal,
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setAllInventories(Array.isArray(data) ? data : []);
-        }
-      } catch (e) {
-        console.error("Failed to fetch inventories", e);
-      }
-    })();
+  // ...existing code...
 
-    return () => ac.abort();
-  }, [userInfo, token]);
-
-  const hardError = isAdmin
-    ? (selectedUserId === "all" ? reduxError : adminUserError) || usersError
-    : userError;
-
-  useEffect(() => {
-    if (hardError) {
-      // Swal.fire({
-      //   icon: "error",
-      //   title: "Failed to load inventory",
-      //   text: hardError,
-      // });
-      // Optional: console only
-console.warn("Inventory load failed (popup suppressed)");
-
-    }
-  }, [hardError]);
-
-  const summary = isAdmin
-    ? selectedUserId === "all"
-      ? reduxSummary
-      : adminUserSummary
-    : userSummary;
-
-  const loading = isAdmin
-    ? selectedUserId === "all"
-      ? reduxLoading
-      : adminUserLoading
-    : userLoading;
+  const summary = reduxSummary;
+  const loading = reduxLoading;
 
   const parseDate = (d) => {
     if (!d) return null;
@@ -186,16 +45,7 @@ console.warn("Inventory load failed (popup suppressed)");
     return Number.isNaN(dt.getTime()) ? null : dt;
   };
 
-  // 🔹 resolve Added By from raw inventories
-  const resolveAddedBy = (skuName) => {
-    const entries = allInventories.filter(
-      (inv) => inv.skuName?.toLowerCase() === skuName?.toLowerCase()
-    );
-    if (!entries.length) return "-";
-    entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    const latest = entries[0];
-    return latest.userName || latest.userId || "-";
-  };
+  // ...existing code...
 
   const availableYears = useMemo(() => {
     const years = new Set(
@@ -268,34 +118,36 @@ console.warn("Inventory load failed (popup suppressed)");
     });
   }, [summary, filter]);
 
+  // Modal state for details
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalAssignments, setModalAssignments] = useState([]);
+  const [modalSku, setModalSku] = useState("");
+
+  // Fetch assignments for a SKU (equipmentId)
+  const handleShowDetails = async (equipmentId, skuName) => {
+    try {
+      const res = await fetch(`${API_URL}/api/equipment/${equipmentId}/qrcodes`);
+      const data = await res.json();
+      if (data.success) {
+        setModalAssignments(data.assignments);
+        setModalSku(skuName);
+        setModalOpen(true);
+      } else {
+        Swal.fire({ icon: "error", title: "Failed to fetch details", text: data.message });
+      }
+    } catch (e) {
+      Swal.fire({ icon: "error", title: "Error", text: e.message });
+    }
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-3xl font-bold text-[#DC6D18]">
-          {isAdmin ? "Current Inventory (All Users)" : "My Inventory"}
+          Inventory List
         </h2>
-
+        {/* ...existing filter UI... */}
         <div className="flex items-center gap-3">
-          {isAdmin && (
-            <select
-              name="user"
-              value={selectedUserId}
-              onChange={(e) => setSelectedUserId(e.target.value)}
-              disabled={usersLoading}
-              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-              title="Filter by user"
-            >
-              <option value="all">
-                {usersLoading ? "Loading users…" : "All Users"}
-              </option>
-              {allUsers.map((u) => (
-                <option key={u._id} value={u.userId}>
-                  {u.userId} - {u.companyName}
-                </option>
-              ))}
-            </select>
-          )}
-
           <select
             name="month"
             value={filter.month}
@@ -308,7 +160,6 @@ console.warn("Inventory load failed (popup suppressed)");
               </option>
             ))}
           </select>
-
           <select
             name="year"
             value={filter.year}
@@ -323,66 +174,45 @@ console.warn("Inventory load failed (popup suppressed)");
           </select>
         </div>
       </div>
-
       <div className="bg-white shadow-lg rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-orange-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  SKU
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Added By
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Quantity Added
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Quantity Used
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Left Quantity
-                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">SKU</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Quantity Added</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Quantity Used</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Left Quantity</th>
+              
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-10 text-gray-500">
-                    Loading…
-                  </td>
+                  <td colSpan="6" className="text-center py-10 text-gray-500">Loading…</td>
                 </tr>
               ) : filteredSummary.length > 0 ? (
                 filteredSummary.map((row) => (
-                  <tr
-                    key={row._id || row.skuName}
-                    className="hover:bg-orange-50/50 transition-colors duration-150"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {row.skuName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {resolveAddedBy(row.skuName)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                      {row.totalAdded ?? row.quantity ?? 0}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                      {row.totalUsed ?? 0}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">
-                      {row.left ??
-                        (row.totalAdded ?? row.quantity ?? 0) -
-                          (row.totalUsed ?? 0)}
+                  <tr key={row._id || row.skuName} className="hover:bg-orange-50/50 transition-colors duration-150">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.skuName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{row.totalAdded ?? row.quantity ?? 0}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{row.totalUsed ?? 0}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">{row.left ?? (row.totalAdded ?? row.quantity ?? 0) - (row.totalUsed ?? 0)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {row._id && (
+                        <button
+                          className="px-3 py-1 bg-[#DC6D18] text-white rounded hover:bg-[#B85B14]"
+                          onClick={() => handleShowDetails(row._id, row.skuName)}
+                        >
+                          Details
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="text-center py-10 text-gray-500">
-                    No inventory records match the selected filters.
-                  </td>
+                  <td colSpan="6" className="text-center py-10 text-gray-500">No inventory records match the selected filters.</td>
                 </tr>
               )}
             </tbody>
@@ -390,12 +220,116 @@ console.warn("Inventory load failed (popup suppressed)");
         </div>
         {!loading && (
           <div className="px-6 py-3 text-sm text-gray-600 bg-orange-50/50">
-            Showing{" "}
-            <span className="font-semibold">{filteredSummary.length}</span> of{" "}
-            <span className="font-semibold">{(summary || []).length}</span> SKUs
+            Showing <span className="font-semibold">{filteredSummary.length}</span> of <span className="font-semibold">{(summary || []).length}</span> SKUs
           </div>
         )}
       </div>
+      {/* Modal for assignment and QR code details */}
+      {modalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl p-8 max-w-3xl w-full max-h-screen overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-[#DC6D18]">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-800">
+                  {modalSku}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">Assignments & QR Codes</p>
+              </div>
+              <button
+                className="text-2xl text-gray-400 hover:text-gray-600 font-bold"
+                onClick={() => setModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            {modalAssignments.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg">No assignments found for this inventory.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm font-semibold text-gray-600 mb-4">
+                  Total Units: <span className="text-[#DC6D18]">{modalAssignments.length}</span>
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {modalAssignments.map((assignment, idx) => (
+                    <div
+                      key={assignment.serialNumber + idx}
+                      className="border border-[#DC6D18]/30 rounded-lg p-5 hover:shadow-md transition-shadow duration-200"
+                    >
+                      {/* Assignment Details */}
+                      <div className="space-y-3 mb-4">
+                        <div className="border-b border-gray-100 pb-2">
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">User ID</p>
+                          <p className="text-sm font-bold text-gray-800">{assignment.userId}</p>
+                        </div>
+                        
+                        {assignment.companyName && (
+                          <div className="border-b border-gray-100 pb-2">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Company</p>
+                            <p className="text-sm font-medium text-gray-700">{assignment.companyName}</p>
+                          </div>
+                        )}
+
+                        <div className="border-b border-gray-100 pb-2">
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Serial Number</p>
+                          <p className="text-sm font-mono text-gray-800">{assignment.serialNumber}</p>
+                        </div>
+
+                        {assignment.location && (
+                          <div>
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</p>
+                            <p className="text-sm text-gray-700">{assignment.location}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* QR Code Display */}
+                      <div className="flex flex-col items-center space-y-3 py-4 border-t border-gray-100">
+                        {assignment.qrImage ? (
+                          <>
+                            <img
+                              src={assignment.qrImage}
+                              alt={`QR-${assignment.serialNumber}`}
+                              className="w-32 h-32 border-2 border-[#DC6D18] rounded p-1"
+                            />
+                            <button
+                              className="w-full px-4 py-2 bg-[#DC6D18] text-white font-semibold rounded-lg hover:bg-[#B85B14] transition-colors duration-150 flex items-center justify-center gap-2"
+                              onClick={() => {
+                                const link = document.createElement("a");
+                                link.href = assignment.qrImage;
+                                link.download = `QR-${modalSku}-${assignment.serialNumber}.png`;
+                                link.click();
+                              }}
+                            >
+                              ⬇ Download QR
+                            </button>
+                          </>
+                        ) : (
+                          <p className="text-gray-400 italic">No QR code available</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Modal Footer */}
+            <div className="mt-8 pt-4 border-t border-gray-200 flex justify-end">
+              <button
+                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-150 font-medium"
+                onClick={() => setModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

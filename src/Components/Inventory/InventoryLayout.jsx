@@ -15,7 +15,7 @@ import AssignedUsers from './AssignedUsers';
 
 const TABS = {
   inventoryList: { label: 'Inventory List', component: InventoryList },
-  addInventory: { label: 'Add Equipment', component: AddEquipment },
+  addInventory: { label: 'Add inventory', component: AddEquipment },
   useInventory: { label: 'Assign Inventory', component: AssignInventory },
   requestInventory: { label: 'Request Inventory', component: RequestInventory },
   requestHistory: { label: 'Request History', component: RequestHistory },

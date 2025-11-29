@@ -5,6 +5,7 @@ import Swal from "sweetalert2";
 import {
   createEquipment,
   resetEquipmentState,
+  getEquipments,
 } from "../../redux/features/equipment/equipmentSlice";
 
 // Define the initial state structure for easy reset
@@ -23,7 +24,7 @@ const getInitialFormState = () => ({
   refDue: "",
   expiryDate: "",
   notes: "",
-  quantity: " ", // NEW: Quantity field with default value
+  quantity: 1, // Default to 1, and as a number
   equipmentType: "new", // 'new' or 'existing'
 });
 
@@ -37,7 +38,10 @@ function AddEquipment() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "quantity" ? Number(value) : value,
+    }));
   };
 
   // equipment location handlers removed (field removed from UI)
@@ -45,8 +49,8 @@ function AddEquipment() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Validate user is logged in
-    if (!userInfo || !userInfo._id) {
+    // Validate user is logged in (accept either Mongo _id or username userId)
+    if (!userInfo || (!userInfo._id && !userInfo.userId)) {
       Swal.fire({
         icon: "error",
         title: "Error",
@@ -117,12 +121,13 @@ function AddEquipment() {
       return;
     }
 
+
     // Create a copy to manipulate for submission
     const payload = { ...formData };
 
-    // Add userId from Redux
-    payload.userId = userInfo._id;
-
+    // By default, create equipment as unassigned so it appears in 'Assign Inventory' SKU list
+    // If you want to assign on creation in future, add a field to the form to set `userId`.
+    payload.userId = null;
     // Location is no longer collected on add form; backend accepts missing/empty location
 
     // --- Conditional Validation and Payload Cleanup ---
@@ -170,6 +175,12 @@ function AddEquipment() {
       // Reset form to its initial state
       setFormData(getInitialFormState());
       dispatch(resetEquipmentState());
+      // Refresh equipment list so admin dropdowns reflect newly added equipment
+      try {
+        dispatch(getEquipments());
+      } catch (e) {
+        console.warn('Failed to refresh equipments after create', e);
+      }
     }
     if (error) {
       Swal.fire({

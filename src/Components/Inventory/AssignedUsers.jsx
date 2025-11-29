@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { API_URL } from '../../../utils/apiConfig';
 
@@ -11,26 +11,60 @@ function AssignedUsers() {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('');
 
-  useEffect(() => {
-    const fetchAssigned = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`${API_URL}/api/inventory/assigned-users`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || 'Failed to load assigned users');
-        setRows(Array.isArray(data) ? data : []);
-      } catch (e) {
-        setError(e.message || 'Failed to load');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAssigned();
+  const fetchAssigned = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_URL}/api/inventory/assigned-users`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Failed to load assigned users');
+      // sort newest first by createdAt, fallback lastUsedAt
+      const arr = Array.isArray(data) ? data.slice() : [];
+      const timeOf = (r) => {
+        const t = r?.createdAt || r?.lastUsedAt || r?.updatedAt || null;
+        const v = t ? new Date(t).getTime() : 0;
+        return Number.isFinite(v) ? v : 0;
+      };
+      arr.sort((a, b) => timeOf(b) - timeOf(a));
+      setRows(arr);
+    } catch (e) {
+      setError(e.message || 'Failed to load');
+    } finally {
+      setLoading(false);
+    }
   }, [token]);
+
+  useEffect(() => {
+    fetchAssigned();
+  }, [fetchAssigned]);
+
+  // optimistic events: add temporary row, rollback, or refresh on confirm
+  useEffect(() => {
+    const onOptimisticAdd = (e) => {
+      const item = e.detail;
+      if (!item) return;
+      setRows((prev) => [item, ...prev]);
+    };
+    const onConfirmAdd = () => {
+      // refresh list from server
+      fetchAssigned();
+    };
+    const onRollbackAdd = (e) => {
+      const { tempId } = e.detail || {};
+      if (!tempId) return;
+      setRows((prev) => prev.filter((r) => r._tempId !== tempId));
+    };
+    window.addEventListener('inventory:optimisticAdd', onOptimisticAdd);
+    window.addEventListener('inventory:confirmAdd', onConfirmAdd);
+    window.addEventListener('inventory:rollbackAdd', onRollbackAdd);
+    return () => {
+      window.removeEventListener('inventory:optimisticAdd', onOptimisticAdd);
+      window.removeEventListener('inventory:confirmAdd', onConfirmAdd);
+      window.removeEventListener('inventory:rollbackAdd', onRollbackAdd);
+    };
+  }, [fetchAssigned]);
 
   return (
     <div className="w-full max-w-7xl mx-auto">

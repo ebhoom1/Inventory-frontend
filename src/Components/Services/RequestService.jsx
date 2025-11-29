@@ -405,16 +405,34 @@ function RequestService() {
 
       try {
         const res = await fetch(url);
-        const data = await res.json();
+        let data = await res.json();
 
-        if (!res.ok || data?.success === false) {
-          Swal.fire({
-            title: "Not Found",
-            text: "Equipment not found",
-            icon: "error",
-          });
-          setScannerVisible(false);
-          return;
+        // If primary fetch failed, attempt fallback by serial number
+        if (!res.ok || data?.success === false || !data) {
+          // maybe scanning provided a serial number (not equipmentId) — try serial lookup
+          const serial = scanned.serialNumber || decodedText;
+          if (serial) {
+            try {
+              const serialRes = await fetch(`${API_URL}/api/equipment/by-serial/${encodeURIComponent(serial)}`);
+              const serialData = await serialRes.json();
+              if (serialRes.ok && serialData?.success !== false && serialData.equipment) {
+                data = serialData;
+              } else {
+                Swal.fire({ title: "Not Found", text: "Equipment not found", icon: "error" });
+                setScannerVisible(false);
+                return;
+              }
+            } catch (e) {
+              console.error("Serial lookup failed", e);
+              Swal.fire({ title: "Not Found", text: "Equipment not found", icon: "error" });
+              setScannerVisible(false);
+              return;
+            }
+          } else {
+            Swal.fire({ title: "Not Found", text: "Equipment not found", icon: "error" });
+            setScannerVisible(false);
+            return;
+          }
         }
 
         const eq = data.equipment || data;
