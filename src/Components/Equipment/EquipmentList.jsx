@@ -186,7 +186,10 @@ export default function EquipmentList() {
   const [viewingEquipment, setViewingEquipment] = useState(null); 
   const [fetchingQRs, setFetchingQRs] = useState(false);
 
-  const numCols = 5; 
+  // Determine whether current user may edit equipment
+  const roleStr = (userInfo?.userType || "").toLowerCase().replace(/\s+/g, "");
+  const isEditAllowed = roleStr && (roleStr.includes("admin") || roleStr.includes("super") || roleStr.includes("technician"));
+  const numCols = isEditAllowed ? 5 : 4;
 
   useEffect(() => {
     dispatch(getEquipments());
@@ -486,7 +489,9 @@ export default function EquipmentList() {
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Assigned To</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Installed</th>
                   <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Details</th>
-                  <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Edit</th>
+                  {isEditAllowed && (
+                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Edit</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -513,15 +518,15 @@ export default function EquipmentList() {
 
                   return rows.length > 0 ? (
                     rows.map((item) => (
-                      <EquipmentDetailsRow
+                        <EquipmentDetailsRow
                         key={`${item.equipmentId}::${item.assignedUserId}`}
                         item={item}
                         assignedUserId={item.assignedUserId}
                         assignedCount={item.assignedCount}
                         onShowUnits={handleShowUnits}
                         onEdit={handleEdit}
-                        canEdit={true}
-                        numCols={5}
+                        canEdit={isEditAllowed}
+                        numCols={numCols}
                         userMap={userMap}
                       />
                     ))

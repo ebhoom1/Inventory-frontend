@@ -208,7 +208,7 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
     // This prevents admin accounts from appearing in the assignment dropdown.
     const filtered = arr.filter((u) => {
       const t = (u.userType || "").toLowerCase();
-      return t === "user" || t === "technician"; // include technicians if you want
+      return t === "user"; // only include end-users for assignment
     });
     return [...filtered].sort((a, b) => (a.userId || "").localeCompare(b.userId || ""));
   }, [isAdmin, allUsers]);
