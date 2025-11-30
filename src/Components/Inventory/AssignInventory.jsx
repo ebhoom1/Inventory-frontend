@@ -204,10 +204,12 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
   const userOptions = useMemo(() => {
     if (!isAdmin) return [];
     const arr = Array.isArray(allUsers) ? allUsers : [];
-    // ✅ Show all users (including Technicians, Users, etc.) for Admin/Super Admin
-    // Create a copy before sorting to avoid mutating the Redux state
-    // Remove Super Admin from the list for assignment
-    const filtered = arr.filter((u) => (u.userType || "").toLowerCase() !== "super admin");
+    // Only include non-admin users for assignment (e.g., userType === 'User')
+    // This prevents admin accounts from appearing in the assignment dropdown.
+    const filtered = arr.filter((u) => {
+      const t = (u.userType || "").toLowerCase();
+      return t === "user" || t === "technician"; // include technicians if you want
+    });
     return [...filtered].sort((a, b) => (a.userId || "").localeCompare(b.userId || ""));
   }, [isAdmin, allUsers]);
 

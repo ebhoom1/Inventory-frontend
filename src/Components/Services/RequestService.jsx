@@ -397,6 +397,19 @@ function RequestService() {
       } catch {
         scanned = { equipmentId: decodedText };
       }
+
+      // Prefill installationDate and userId (and equipmentId) from the QR payload.
+      // Other fields are populated from the backend authoritative record.
+      if (scanned) {
+        setFormData((prev) => ({
+          ...prev,
+          equipmentId: scanned.equipmentId || prev.equipmentId,
+          installationDate: scanned.installationDate
+            ? scanned.installationDate.slice(0, 10)
+            : prev.installationDate,
+          userId: scanned.userId || prev.userId,
+        }));
+      }
       const maybeId = scanned.equipmentId || scanned._id || decodedText;
 
       const url = isMongoId(maybeId)
@@ -404,7 +417,7 @@ function RequestService() {
         : `${API_URL}/api/equipment/by-eid/${encodeURIComponent(maybeId)}`;
 
       try {
-        const res = await fetch(url);
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
         let data = await res.json();
 
         // If primary fetch failed, attempt fallback by serial number
@@ -413,7 +426,7 @@ function RequestService() {
           const serial = scanned.serialNumber || decodedText;
           if (serial) {
             try {
-              const serialRes = await fetch(`${API_URL}/api/equipment/by-serial/${encodeURIComponent(serial)}`);
+              const serialRes = await fetch(`${API_URL}/api/equipment/by-serial/${encodeURIComponent(serial)}`, { headers: { Authorization: `Bearer ${token}` } });
               const serialData = await serialRes.json();
               if (serialRes.ok && serialData?.success !== false && serialData.equipment) {
                 data = serialData;
@@ -437,13 +450,30 @@ function RequestService() {
 
         const eq = data.equipment || data;
 
-        // Prefill IDs & name
+        // If API returned matchedAssignments (serial lookup), prefer that assignment metadata
+        // for userId/companyName/location when available.
+        let preferredAssignment = null;
+        if (data.matchedAssignments && Array.isArray(data.matchedAssignments) && data.matchedAssignments.length > 0) {
+          preferredAssignment = data.matchedAssignments[0];
+        }
+
+        // Populate service form with authoritative equipment details from backend
         setFormData((prev) => ({
           ...prev,
           equipmentId: eq.equipmentId || prev.equipmentId,
           equipmentName: eq.equipmentName || prev.equipmentName,
-          userId: eq.userId || prev.userId,
-          location: eq.location || prev.location, // âœ… NEW
+          // Prefer assignment-level userId (unit assigned user) then equipment.userId then previously prefilling from QR
+          userId: (preferredAssignment && preferredAssignment.userId) || eq.userId || prev.userId,
+          location: (preferredAssignment && preferredAssignment.location) || eq.location || prev.location,
+          brand: eq.brand || prev.brand,
+          type: eq.modelSeries || prev.type || "",
+          capacity: eq.capacity || prev.capacity,
+          // Keep installationDate prefilling from QR if present; otherwise use backend value
+          installationDate: prev.installationDate || (eq.installationDate ? String(eq.installationDate).slice(0, 10) : prev.installationDate),
+          refillingDue: eq.refDue ? String(eq.refDue).slice(0, 10) : prev.refillingDue,
+          expiryDate: eq.expiryDate ? String(eq.expiryDate).slice(0, 10) : prev.expiryDate,
+          batchNo: eq.batchNo || prev.batchNo,
+          notes: eq.notes || prev.notes,
         }));
 
         Swal.fire({

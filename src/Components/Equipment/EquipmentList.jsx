@@ -457,7 +457,11 @@ export default function EquipmentList() {
   const handleSaveUpdate = async (formData) => {
     if (!selectedEquipment) return;
     const id = selectedEquipment._id || selectedEquipment.equipmentId;
-    const { _id, equipmentId, ...updatePayload } = formData;
+    const { _id, equipmentId, assignments, ...updatePayload } = formData;
+
+    // Ensure we don't send heavy QR images or the full assignments array in the update
+    // The frontend edit form only allows editing top-level equipment fields.
+    // Assignments (per-unit QR images) are managed separately and should not be sent here.
     try {
       await dispatch(updateEquipment({ id, updates: updatePayload })).unwrap();
       handleCloseEdit();
