@@ -460,20 +460,32 @@ function RequestService() {
         // Populate service form with authoritative equipment details from backend
         setFormData((prev) => ({
           ...prev,
-          equipmentId: eq.equipmentId || prev.equipmentId,
+         equipmentId: eq.equipmentId || prev.equipmentId,
           equipmentName: eq.equipmentName || prev.equipmentName,
-          // Prefer assignment-level userId (unit assigned user) then equipment.userId then previously prefilling from QR
-          userId: (preferredAssignment && preferredAssignment.userId) || eq.userId || prev.userId,
-          location: (preferredAssignment && preferredAssignment.location) || eq.location || prev.location,
+          
+          // 1. User ID: Assignment > Equipment > Scanned > Previous
+          userId: (preferredAssignment && preferredAssignment.userId) || eq.userId || scanned.userId || prev.userId,
+          
+          // 2. Location: Assignment > Equipment > Scanned > Previous
+          location: (preferredAssignment && preferredAssignment.location) || eq.location || scanned.location || prev.location,
+          
+          // 3. Equipment Specs (Map DB keys to Form keys)
           brand: eq.brand || prev.brand,
-          type: eq.modelSeries || prev.type || "",
           capacity: eq.capacity || prev.capacity,
-          // Keep installationDate prefilling from QR if present; otherwise use backend value
-          installationDate: prev.installationDate || (eq.installationDate ? String(eq.installationDate).slice(0, 10) : prev.installationDate),
+          type: eq.modelSeries || prev.type, 
+          // Map 'content' from DB to 'product' in Form, fallback to 'content' field if you use that too
+          product: eq.content || prev.product, 
+          content: eq.content || prev.content, 
+
+          // 4. Dates: ALWAYS use DB value if it exists, formatted to YYYY-MM-DD
+          installationDate: eq.installationDate ? String(eq.installationDate).slice(0, 10) : prev.installationDate,
           refillingDue: eq.refDue ? String(eq.refDue).slice(0, 10) : prev.refillingDue,
           expiryDate: eq.expiryDate ? String(eq.expiryDate).slice(0, 10) : prev.expiryDate,
+          
+          // 5. Misc
           batchNo: eq.batchNo || prev.batchNo,
           notes: eq.notes || prev.notes,
+          canSerialNumber: scanned.serialNumber || (preferredAssignment?.serialNumber) || eq.serialNumber || prev.canSerialNumber
         }));
 
         Swal.fire({
@@ -926,6 +938,7 @@ function RequestService() {
                 ["location", "Location"],
                 ["pincode", "Pincode/Area"],
                 ["brand", "Brand"],
+                ["content", "Content"],
                 ["type", "Type"],
                 ["capacity", "Capacity"],
                 ["canSerialNumber", "Can Serial Number"],

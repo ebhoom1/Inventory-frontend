@@ -26,6 +26,7 @@ function RequestInventory() {
   const isTechnician = role === "technician";
   const isSuperAdmin = role === "super admin";
   const isRequesterUser = role === "user";
+  const isAdmin = role === "admin" || role === "superadmin" || role === "super admin" || role === "megaadmin";
 
 
   const currentUserId = userInfo?._id || userInfo?.id;
