@@ -220,24 +220,42 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
     setFormData((p) => ({ ...p, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+const handleSubmit = (e) => {
     e.preventDefault();
-    // parse sku selection: admin options are in the format 'sku:name' or 'eq:id'
+
+    // 1. Robust SKU Parsing
     const rawSku = formData.skuName || '';
-    let skuType = 'sku';
     let skuName = rawSku;
+    let skuType = 'sku'; // default
     let matchedEquipmentId = null;
+
     if (rawSku.startsWith('eq:')) {
       skuType = 'equipment';
       matchedEquipmentId = rawSku.slice(3);
-      // find equipment name for logging
+      
+      // Attempt to find the equipment in the loaded list
       const eq = equipmentItems.find((e) => (e._id || e.equipmentId) === matchedEquipmentId);
-      skuName = (eq && eq.equipmentName) || '';
+      
+      // FALLBACK: If we can't find the object, we can't reliably get the name.
+      // We must alert the user instead of sending empty data.
+      if (eq && eq.equipmentName) {
+        skuName = eq.equipmentName;
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Selection Error",
+          text: "Could not identify the equipment name for the selected item. Please refresh and try again.",
+        });
+        return;
+      }
     } else if (rawSku.startsWith('sku:')) {
       skuType = 'sku';
       skuName = rawSku.slice(4);
-    }
+    } 
+    // If it doesn't start with eq: or sku:, it's a simple string (Non-Admin case), 
+    // so skuName = rawSku is already correct.
 
+    // 2. Prepare Payload
     const payload = {
       skuName: skuName?.trim(),
       userId: (isAdmin ? formData.userId : userInfo?.userId)?.trim(),
@@ -247,6 +265,7 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
       notes: formData.notes?.trim(),
     };
 
+    // 3. Validation
     if (
       !payload.skuName ||
       !payload.userId ||
@@ -257,10 +276,11 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
       Swal.fire({
         icon: "warning",
         title: "Missing fields",
-        text: "Please fill all required fields",
+        text: `Please fill all fields. Missing: ${!payload.skuName ? 'Inventory Item' : ''} ${!payload.userId ? 'User' : ''} ${!payload.location ? 'Location' : ''}`,
       });
       return;
     }
+
     if (payload.quantityUsed < 1) {
       Swal.fire({
         icon: "warning",
@@ -269,8 +289,14 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
       });
       return;
     }
-    // Optimistic update: create a temporary item and notify AssignedUsers to prepend it
+
+    // Debugging: Check console to see exactly what is being sent
+    console.log("Submitting Payload:", payload);
+
+    // 4. Optimistic Update & Dispatch
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    
+    // ... existing optimistic logic ...
     const optimisticItem = {
       _tempId: tempId,
       userId: payload.userId,
@@ -280,28 +306,22 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
       location: payload.location || '',
       totalUsed: payload.quantityUsed,
       lastUsedAt: payload.date || new Date().toISOString(),
-      // createdAt not set; AssignedUsers will treat lastUsedAt
     };
 
     try {
       window.dispatchEvent(new CustomEvent('inventory:optimisticAdd', { detail: optimisticItem }));
 
-      // If the selection is an equipment, update that equipment to assign it
       if (skuType === 'equipment' && matchedEquipmentId) {
-        try {
-          dispatch(updateEquipment({ id: matchedEquipmentId, updates: { userId: payload.userId } }));
-        } catch (err) {
-          console.warn('Failed to update equipment assignment', err);
-        }
+        // ... existing equipment update logic ...
+        dispatch(updateEquipment({ id: matchedEquipmentId, updates: { userId: payload.userId } }));
       }
 
-      // perform actual API call
       dispatch(logInventoryUsage(payload)).unwrap().then((res) => {
-        // res expected to have { usage }
         const usage = res?.usage || res;
         window.dispatchEvent(new CustomEvent('inventory:confirmAdd', { detail: { tempId, usage } }));
       }).catch((err) => {
-        // rollback optimistic item
+        console.error("Submission Failed:", err);
+        // Dispatch event to roll back optimistic update
         window.dispatchEvent(new CustomEvent('inventory:rollbackAdd', { detail: { tempId } }));
       });
     } catch (err) {

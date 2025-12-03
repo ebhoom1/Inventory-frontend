@@ -143,8 +143,9 @@ function AssignedUsers() {
                     <td className="px-4 py-3 text-sm text-gray-700">{r.skuName}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">{r.location || '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-700 text-right">{r.totalUsed}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{r.lastUsedAt ? new Date(r.lastUsedAt).toLocaleString() : '-'}</td>
-                  </tr>
+<td className="px-4 py-3 text-sm text-gray-700">
+  {r.lastUsedAt ? new Date(r.lastUsedAt).toLocaleDateString() : '-'}
+</td>                  </tr>
                 ));
               })()}
             </tbody>
