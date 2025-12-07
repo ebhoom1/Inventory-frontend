@@ -58,6 +58,18 @@ export const getEquipmentByIdApi = async (id, getState) => {
   return data; // equipment object
 };
 
+// POST /api/equipment/assign
+export const assignEquipmentApi = async (payload, getState) => {
+  const res = await fetch(`${API_URL}/api/equipment/assign`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeader(getState) },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.message || "Failed to assign equipment");
+  return data; // { message, assignment, equipmentId }
+};
+
 // PUT /api/equipment/:id
 export const updateEquipmentApi = async ({ id, updates }, getState) => {
   const res = await fetch(`${API_URL}/api/equipment/${id}`, {

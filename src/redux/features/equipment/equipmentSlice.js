@@ -6,6 +6,7 @@ import {
   getEquipmentByIdApi,
   updateEquipmentApi,
   deleteEquipmentApi,
+  assignEquipmentApi
 } from "./equipmentService";
 
 // CREATE
@@ -82,6 +83,19 @@ const initialState = {
   selected: null, // equipment fetched by id
 };
 
+// ASSIGN
+export const assignEquipment = createAsyncThunk(
+  "equipment/assign",
+  async (payload, { getState, rejectWithValue }) => {
+    try {
+      const res = await assignEquipmentApi(payload, getState);
+      return res; 
+    } catch (err) {
+      return rejectWithValue(err.message || "Failed to assign equipment");
+    }
+  }
+);
+
 const equipmentSlice = createSlice({
   name: "equipment",
   initialState,
@@ -128,6 +142,35 @@ const equipmentSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+
+      // ASSIGN EQUIPMENT
+    .addCase(assignEquipment.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      state.successMessage = null;
+    })
+    .addCase(assignEquipment.fulfilled, (state, action) => {
+      state.loading = false;
+      state.successMessage = action.payload?.message || "Equipment assigned";
+      
+      // Optimistic Update: Find the equipment and update the specific assignment in the list
+      // This makes the UI update instantly without a refresh
+      const { equipmentId, assignment } = action.payload;
+      const eqIndex = state.list.findIndex(e => e.equipmentId === equipmentId);
+      
+      if (eqIndex !== -1 && assignment) {
+        const eq = state.list[eqIndex];
+        // Find the unit with the same serial number and update it
+        const assignIndex = eq.assignments.findIndex(a => a.serialNumber === assignment.serialNumber);
+        if (assignIndex !== -1) {
+           eq.assignments[assignIndex] = assignment;
+        }
+      }
+    })
+    .addCase(assignEquipment.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    })
 
       // GET BY ID
       .addCase(getEquipmentById.pending, (state) => {

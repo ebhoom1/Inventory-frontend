@@ -48,7 +48,7 @@ const EquipmentDetailsRow = ({
   );
 
   // ✅ Get user display name from userMap
-  const getUserDisplay = () => {
+const getUserDisplay = () => {
     // Prefer the assignedUserId provided by the parent (split-row)
     let assignedUser = assignedUserId || item.userId;
     // If still empty, try from first assignment
@@ -68,8 +68,10 @@ const EquipmentDetailsRow = ({
         </div>
       );
     }
-    return assignedUserId;
+    // fallback
+    return <span className="text-gray-700 font-medium">{assignedUserId}</span>; assignedUserId;
   };
+  
 
   return (
     <>

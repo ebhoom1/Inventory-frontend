@@ -311,10 +311,6 @@ const handleSubmit = (e) => {
     try {
       window.dispatchEvent(new CustomEvent('inventory:optimisticAdd', { detail: optimisticItem }));
 
-      if (skuType === 'equipment' && matchedEquipmentId) {
-        // ... existing equipment update logic ...
-        dispatch(updateEquipment({ id: matchedEquipmentId, updates: { userId: payload.userId } }));
-      }
 
       dispatch(logInventoryUsage(payload)).unwrap().then((res) => {
         const usage = res?.usage || res;

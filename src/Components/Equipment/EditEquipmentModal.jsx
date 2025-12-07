@@ -43,12 +43,9 @@ const formatMonthForInput = (dateStr) => {
 
 
 // Simple reusable input component
-const FormInput = ({ label, name, value, onChange, ...props }) => (
+const FormInput = ({ label, name, value, onChange, disabled, ...props }) => (
   <div>
-    <label
-      htmlFor={name}
-      className="block text-sm font-medium text-gray-700"
-    >
+    <label htmlFor={name} className="block text-sm font-medium text-gray-700">
       {label}
     </label>
     <input
@@ -57,7 +54,9 @@ const FormInput = ({ label, name, value, onChange, ...props }) => (
       name={name}
       value={value || ""}
       onChange={onChange}
-      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#DC6D18] focus:border-[#DC6D18] sm:text-sm disabled:opacity-50"
+      disabled={disabled} // Pass disabled prop
+      className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm 
+        ${disabled ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed' : 'border-gray-300 focus:ring-[#DC6D18] focus:border-[#DC6D18]'}`}
       {...props}
     />
   </div>
@@ -84,28 +83,35 @@ const FormTextarea = ({ label, name, value, onChange, ...props }) => (
   </div>
 );
 
-export default function EditEquipmentModal({
-  isOpen,
-  onClose,
-  equipment,
-  onSave,
-  isLoading, // Added isLoading prop
-}) {
+export default function EditEquipmentModal
+({ isOpen, onClose, equipment, onSave, isLoading }) {
   const [formData, setFormData] = useState({});
 
   // Update form state if the equipment prop changes
   // We format the dates here for the form inputs
   useEffect(() => {
     if (equipment) {
+
+    let specificSerial = equipment.serialNumber || ""; // Default to batch serial
+
+      // If we are editing a specific user's row, look inside assignments
+      if (equipment.assignedUserId && equipment.assignments && Array.isArray(equipment.assignments)) {
+        const userAssignment = equipment.assignments.find(a => a.userId === equipment.assignedUserId);
+        if (userAssignment && userAssignment.serialNumber) {
+          specificSerial = userAssignment.serialNumber;
+        }
+      }
+
       setFormData({
         ...equipment,
+        // If we are editing a specific row (assigned user), ensure that specific userId is set
+        userId: equipment.assignedUserId || equipment.userId || "Unassigned",
+        serialNumber: specificSerial, //
         installationDate: formatDateForInput(equipment.installationDate),
         refDue: formatDateForInput(equipment.refDue),
         expiryDate: formatDateForInput(equipment.expiryDate),
-        mfgMonth: formatMonthForInput(equipment.mfgMonth), // Use month formatter
+        mfgMonth: formatMonthForInput(equipment.mfgMonth),
       });
-    } else {
-      setFormData({});
     }
   }, [equipment]);
 
@@ -171,6 +177,13 @@ export default function EditEquipmentModal({
                 value={formData.equipmentName}
                 onChange={handleChange}
               />
+              <FormInput
+                label="Assigned User (Read Only)"
+                name="userId"
+                value={formData.userId}
+                onChange={handleChange}
+                disabled={true} 
+           />
               <FormInput
                 label="User ID"
                 name="userId"
