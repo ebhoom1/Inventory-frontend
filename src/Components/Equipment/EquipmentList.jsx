@@ -251,8 +251,8 @@ export default function EquipmentList() {
   };
 
   const handleDownloadUnitQR = async (unit, equipment) => {
-    if (!unit.qrImage) return;
     try {
+      // 1. Prepare Date Formatter
       const formatDate = (d) => {
         if (!d) return "";
         const dateObj = new Date(d);
@@ -262,6 +262,34 @@ export default function EquipmentList() {
         return `${day}.${month}.${year}`;
       };
 
+      // 2. 🟢 REGENERATE QR PAYLOAD (Dynamic Data)
+      // This ensures the QR contains the LATEST assignment details, 
+      // even if the backend image is stale.
+      const qrPayload = JSON.stringify({
+        equipmentId: equipment.equipmentId,
+        userId: unit.userId || "", 
+        location: unit.location || equipment.location || "",
+        // Ensure dates are in ISO string format to match backend consistency
+        installationDate: equipment.installationDate ? new Date(equipment.installationDate).toISOString() : null,
+        expiryDate: equipment.expiryDate ? new Date(equipment.expiryDate).toISOString() : null,
+        capacity: equipment.capacity,
+        brand: equipment.brand,
+        serialNumber: unit.serialNumber,
+        refillingDue: equipment.refDue ? new Date(equipment.refDue).toISOString() : null,
+      });
+
+      // 3. Generate QR Image from Payload
+      const generatedQRUrl = await QRCode.toDataURL(qrPayload, {
+        errorCorrectionLevel: "H",
+        margin: 1,
+        width: 180, // Matches qrSize below
+        color: {
+            dark: "#000000",
+            light: "#FFFFFF00" // Transparent background
+        }
+      });
+
+      // --- CANVAS SETUP (Same as before) ---
       const canvasWidth = 1200;
       const canvasHeight = 800;
       const canvas = document.createElement("canvas");
@@ -361,7 +389,7 @@ export default function EquipmentList() {
         console.warn("Logo load failed", e);
       }
 
-      // Draw dotted line helper
+      // Draw helpers
       const drawDottedLine = (x1, y1, x2) => {
         ctx.save();
         ctx.beginPath();
@@ -374,7 +402,6 @@ export default function EquipmentList() {
         ctx.restore();
       };
 
-      // Draw field helper
       const drawField = (label, value, x, y, width) => {
         ctx.fillStyle = colorBlack;
         ctx.font = "36px Arial, sans-serif";
@@ -414,24 +441,20 @@ export default function EquipmentList() {
       drawField("H.P.Tested on", "", leftMargin, currentY, halfWidth);
       drawField("Next due", formatDate(equipment.refDue), rightColStart, currentY, halfWidth);
 
-      // QR Code
+      // 4. Draw the REGENERATED QR Code
       const qrSize = 180;
       const qrX = startX + contentW - qrSize - 25;
       const qrY = startY + contentH - qrSize - 25;
 
-      const loadQRImg = (src) => new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.src = src;
-      });
-
+      // 🟢 Load the generated Data URL instead of unit.qrImage
       try {
-        const qrImg = await loadQRImg(unit.qrImage);
+        const qrImg = await loadImg(generatedQRUrl);
         ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
       } catch (e) {
         console.warn("QR image load failed", e);
       }
 
+      // Draw ID below QR
       ctx.font = "12px Arial";
       ctx.fillStyle = "#666";
       ctx.textAlign = "center";
