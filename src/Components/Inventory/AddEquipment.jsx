@@ -24,7 +24,7 @@ const getInitialFormState = () => ({
   refDue: "",
   expiryDate: "",
   notes: "",
-  quantity: 1, // Default to 1, and as a number
+  quantity: "", // Start blank (user must enter quantity)
   equipmentType: "new", // 'new' or 'existing'
 });
 
@@ -40,7 +40,7 @@ function AddEquipment() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "quantity" ? Number(value) : value,
+      [name]: name === "quantity" ? value : value,
     }));
   };
 
@@ -116,7 +116,8 @@ function AddEquipment() {
     }
     
     // Validate quantity
-    if (!formData.quantity || formData.quantity < 1) {
+    const qtyNum = Number(formData.quantity);
+    if (!formData.quantity || Number.isNaN(qtyNum) || qtyNum < 1) {
       Swal.fire({ icon: "warning", title: "Quantity must be at least 1" });
       return;
     }
@@ -124,6 +125,8 @@ function AddEquipment() {
 
     // Create a copy to manipulate for submission
     const payload = { ...formData };
+    // Ensure quantity is numeric when sending to backend
+    payload.quantity = Number(formData.quantity);
 
     // By default, create equipment as unassigned so it appears in 'Assign Inventory' SKU list
     // If you want to assign on creation in future, add a field to the form to set `userId`.
