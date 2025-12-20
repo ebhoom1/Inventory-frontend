@@ -86,7 +86,7 @@ const FormTextarea = ({ label, name, value, onChange, ...props }) => (
 export default function EditEquipmentModal
 ({ isOpen, onClose, equipment, onSave, isLoading }) {
   const [formData, setFormData] = useState({});
-
+const [editedAssignments, setEditedAssignments] = useState([]);
   // Update form state if the equipment prop changes
   // We format the dates here for the form inputs
   useEffect(() => {
@@ -102,19 +102,28 @@ export default function EditEquipmentModal
         }
       }
 
-      setFormData({
+    setFormData({
         ...equipment,
-        // If we are editing a specific row (assigned user), ensure that specific userId is set
         userId: equipment.assignedUserId || equipment.userId || "Unassigned",
-        serialNumber: specificSerial, //
+        serialNumber: specificSerial,
         installationDate: formatDateForInput(equipment.installationDate),
         refDue: formatDateForInput(equipment.refDue),
         expiryDate: formatDateForInput(equipment.expiryDate),
         mfgMonth: formatMonthForInput(equipment.mfgMonth),
       });
+
+      // 2. ✅ Initialize Assignments for the list view
+      if (equipment.assignments && Array.isArray(equipment.assignments)) {
+        const assignedOnly = equipment.assignments.filter(unit => unit.userId);
+        // Create a copy of the array so we can edit it without mutating props
+        setEditedAssignments(equipment.assignments.map(a => ({...a})));
+      } else {
+        setEditedAssignments([]);
+      }
     }
   }, [equipment]);
 
+  
   if (!isOpen) return null;
 
   const handleChange = (e) => {
@@ -122,26 +131,39 @@ export default function EditEquipmentModal
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (isLoading) return; // Prevent multiple submissions
-    onSave(formData);
+  // ✅ Handle Serial Number Change for Specific Unit
+  const handleAssignmentChange = (index, field, value) => {
+    const updated = [...editedAssignments];
+    updated[index][field] = value;
+    setEditedAssignments(updated);
   };
 
+ const handleSubmit = (e) => {
+    e.preventDefault();
+    if (isLoading) return; 
+    
+    // ✅ Include the updated assignments array in the save payload
+    const payload = {
+        ...formData,
+        assignments: editedAssignments 
+    };
+    
+    onSave(payload);
+  };
+  
+
   return (
-    // Modal Overlay
-    <div
+   <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity"
       onClick={onClose}
     >
-      {/* Modal Content - Increased width to max-w-3xl */}
       <div
-        className="relative bg-white rounded-lg shadow-xl w-full max-w-3xl m-4 overflow-hidden"
-        onClick={(e) => e.stopPropagation()} // Prevent closing on content click
+        className="relative bg-white rounded-lg shadow-xl w-full max-w-4xl m-4 overflow-hidden max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center p-5 border-b">
-          <h3 className="text-xl font-semibold text-gray-900">
+        <div className="flex justify-between items-center p-5 border-b bg-gray-50">
+          <h3 className="text-xl font-bold text-gray-800">
             Edit: {equipment?.equipmentName || "Equipment"}
           </h3>
           <button
@@ -150,170 +172,99 @@ export default function EditEquipmentModal
             onClick={onClose}
             disabled={isLoading}
           >
-            <svg
-              className="w-5 h-5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fillRule="evenodd"
-                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                clipRule="evenodd"
-              ></path>
-            </svg>
+            ✕
           </button>
         </div>
 
-        {/* Body - Form */}
-        <form onSubmit={handleSubmit}>
-          <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-            {/* --- 3-Column Grid for most fields --- */}
+        {/* Body - Scrollable Form */}
+        <div className="overflow-y-auto flex-1 p-6">
+          <form id="edit-form" onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* --- Top Level Fields (Grid) --- */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Column 1 */}
-              <FormInput
-                label="Equipment Name"
-                name="equipmentName"
-                value={formData.equipmentName}
-                onChange={handleChange}
-              />
-              <FormInput
-                label="Assigned User (Read Only)"
-                name="userId"
-                value={formData.userId}
-                onChange={handleChange}
-                disabled={true} 
-           />
-              <FormInput
-                label="User ID"
-                name="userId"
-                value={formData.userId}
-                onChange={handleChange}
-                // Note: You might want to make this a <select> dropdown
-                // Or disable it if it shouldn't be changed
-                // disabled={true} 
-              />
-              <FormInput
-                label="Brand"
-                name="brand"
-                value={formData.brand}
-                onChange={handleChange}
-              />
-               <FormInput
-                label="Capacity"
-                name="capacity"
-                value={formData.capacity}
-                onChange={handleChange}
-              />
-               <FormInput
-                label="Installation Date"
-                name="installationDate"
-                value={formData.installationDate}
-                onChange={handleChange}
-                type="date"
-              />
+              <FormInput label="Equipment Name" name="equipmentName" value={formData.equipmentName} onChange={handleChange} />
+              <FormInput label="Assigned User (View Only)" name="userId" value={formData.userId} onChange={handleChange} disabled={true} />
+              <FormInput label="Brand" name="brand" value={formData.brand} onChange={handleChange} />
+              <FormInput label="Capacity" name="capacity" value={formData.capacity} onChange={handleChange} />
+              <FormInput label="Installation Date" name="installationDate" value={formData.installationDate} onChange={handleChange} type="date" />
 
               {/* Column 2 */}
-              <FormInput
-                label="Model/Series"
-                name="modelSeries"
-                value={formData.modelSeries}
-                onChange={handleChange}
-              />
-              <FormInput
-                label="Gross Weight"
-                name="grossWeight"
-                value={formData.grossWeight}
-                onChange={handleChange}
-              />
-              <FormInput
-                label="Content"
-                name="content"
-                value={formData.content}
-                onChange={handleChange}
-              />
-              <FormInput
-                label="Batch No"
-                name="batchNo"
-                value={formData.batchNo}
-                onChange={handleChange}
-              />
-              <FormInput
-                label="MFG Month"
-                name="mfgMonth"
-                value={formData.mfgMonth}
-                onChange={handleChange}
-                type="month"
-              />
+              <FormInput label="Model/Series" name="modelSeries" value={formData.modelSeries} onChange={handleChange} />
+              <FormInput label="Gross Weight" name="grossWeight" value={formData.grossWeight} onChange={handleChange} />
+              <FormInput label="Content" name="content" value={formData.content} onChange={handleChange} />
+              <FormInput label="Batch No" name="batchNo" value={formData.batchNo} onChange={handleChange} />
+              <FormInput label="MFG Month" name="mfgMonth" value={formData.mfgMonth} onChange={handleChange} type="month" />
 
               {/* Column 3 */}
-              <FormInput
-                label="Serial Number"
-                name="serialNumber"
-                value={formData.serialNumber}
-                onChange={handleChange}
-              />
-
-                 {/* --- EXPIRY DATE INPUT --- */}
-              <FormInput
-                label="Expiry Date"
-                name="expiryDate"
-                value={formData.expiryDate}
-                onChange={handleChange}
-                type="date"
-              />
-               {/* This field was not in your list, but in your details view. Add if needed.
-               <FormInput
-                label="Fire Rating"
-                name="fireRating"
-                value={formData.fireRating}
-                onChange={handleChange}
-              /> */}
-               <FormInput
-                label="REF Due"
-                name="refDue"
-                value={formData.refDue}
-                onChange={handleChange}
-                type="date"
-              />
+              <FormInput label="Expiry Date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} type="date" />
+              <FormInput label="REF Due" name="refDue" value={formData.refDue} onChange={handleChange} type="date" />
+              {/* Optional: Location is often specific to the unit, but kept here as default */}
+              <FormInput label="Default Location" name="location" value={formData.location} onChange={handleChange} />
             </div>
-          
 
-            {/* --- Full-width fields for Location and Notes --- */}
-            <FormInput
-              label="Location"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-            />
-            <FormTextarea
-              label="Notes"
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-            />
-          </div>
+            {/* Notes */}
+            <FormTextarea label="Notes" name="notes" value={formData.notes} onChange={handleChange} />
 
-          {/* Footer - Actions */}
-          <div className="flex items-center justify-end p-6 space-x-2 border-t">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isLoading}
-              className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-5 py-2.5 text-sm font-medium text-white bg-[#DC6D18] rounded-lg hover:bg-[#B85B14] focus:ring-4 focus:outline-none focus:ring-orange-300 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-        </form>
+            {/* ✅ SERIAL NUMBERS MANAGEMENT SECTION */}
+          <div className="border-t pt-4 mt-4">
+                <h4 className="text-lg font-bold text-[#DC6D18] mb-3">Manage Assigned Unit Serial Numbers</h4>
+                
+                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
+                    <div className="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                        {editedAssignments.length > 0 ? (
+                            editedAssignments.map((unit, idx) => (
+                                <div key={idx} className="flex items-center gap-3 bg-white p-3 rounded border shadow-sm">
+                                    <span className="text-xs font-bold text-gray-400 w-8">#{idx+1}</span>
+                                    
+                                    <div className="flex-1">
+                                        <label className="text-[10px] text-gray-500 uppercase font-semibold">Serial Number</label>
+                                        <input 
+                                            type="text" 
+                                            value={unit.serialNumber || ""} 
+                                            onChange={(e) => handleAssignmentChange(idx, 'serialNumber', e.target.value)}
+                                            className="w-full text-sm font-mono border-b border-gray-300 focus:border-[#DC6D18] focus:outline-none py-1 transition-colors"
+                                        />
+                                    </div>
+
+                                    <div className="flex-1">
+                                         <label className="text-[10px] text-gray-500 uppercase font-semibold">Assigned To</label>
+                                         <div className="text-sm font-medium text-green-600">
+                                             {unit.userId}
+                                         </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-gray-500 italic text-sm text-center py-4">No assigned units available for this equipment.</p>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+          </form>
+        </div>
+
+        {/* Footer - Actions */}
+        <div className="flex items-center justify-end p-5 border-t bg-gray-50 gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isLoading}
+            className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="edit-form"
+            disabled={isLoading}
+            className="px-5 py-2.5 text-sm font-medium text-white bg-[#DC6D18] rounded-lg hover:bg-[#B85B14] focus:ring-4 focus:outline-none focus:ring-orange-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
       </div>
     </div>
   );
-}                 
+}          

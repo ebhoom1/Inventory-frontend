@@ -39,19 +39,14 @@ const EquipmentDetailsRow = ({
     }
   };
 
-  // Calculate count to display — prefer assignedCount passed from parent (split rows).
-  // Fallback to computing from item.assignments if needed.
   const unitCount = typeof assignedCount === 'number' ? assignedCount : (
     item.assignments && Array.isArray(item.assignments)
       ? item.assignments.filter((a) => a && a.userId && (assignedUserId ? a.userId === assignedUserId : a.userId)).length
       : 0
   );
 
-  // ✅ Get user display name from userMap
-const getUserDisplay = () => {
-    // Prefer the assignedUserId provided by the parent (split-row)
+  const getUserDisplay = () => {
     let assignedUser = assignedUserId || item.userId;
-    // If still empty, try from first assignment
     if (!assignedUser && item.assignments && item.assignments.length > 0) {
       assignedUser = item.assignments[0].userId;
     }
@@ -68,8 +63,7 @@ const getUserDisplay = () => {
         </div>
       );
     }
-    // fallback
-    return <span className="text-gray-700 font-medium">{assignedUserId}</span>; assignedUserId;
+    return <span className="text-gray-700 font-medium">{assignedUserId}</span>;
   };
   
 
@@ -188,7 +182,6 @@ export default function EquipmentList() {
   const [viewingEquipment, setViewingEquipment] = useState(null); 
   const [fetchingQRs, setFetchingQRs] = useState(false);
 
-  // Determine whether current user may edit equipment
   const roleStr = (userInfo?.userType || "").toLowerCase().replace(/\s+/g, "");
   const isEditAllowed = roleStr && (roleStr.includes("admin") || roleStr.includes("super") || roleStr.includes("technician"));
   const numCols = isEditAllowed ? 5 : 4;
@@ -198,7 +191,6 @@ export default function EquipmentList() {
     dispatch(getAllUsers());
   }, [dispatch]);
 
-  // ✅ Create user lookup map for quick access
   const userMap = useMemo(() => {
     const map = {};
     (allUsers || []).forEach((user) => {
@@ -232,8 +224,6 @@ export default function EquipmentList() {
       const data = await res.json();
       
       if (data.success && Array.isArray(data.assignments)) {
-        // Only show units that are assigned (have a userId). If an assignedUserId
-        // is provided (we are looking at a specific user row), narrow to that user.
         let assignedOnly = data.assignments.filter((u) => u && u.userId);
         if (assignedUserId) {
           assignedOnly = assignedOnly.filter((u) => u.userId === assignedUserId);
@@ -252,7 +242,23 @@ export default function EquipmentList() {
 
   const handleDownloadUnitQR = async (unit, equipment) => {
     try {
-      // 1. Prepare Date Formatter
+      const isExisting = Boolean(equipment.spNumber); 
+
+      // Configure Dynamic Labels and Values
+      let labelRow3, valueRow3, labelRow4, valueRow4;
+
+      if (isExisting) {
+        labelRow3 = "Exp. on";
+        valueRow3 = equipment.expiryDate;
+        labelRow4 = "Next due";
+        valueRow4 = equipment.refDue;
+      } else {
+        labelRow3 = "Installed";
+        valueRow3 = equipment.installationDate;
+        labelRow4 = "Expiry Date";
+        valueRow4 = equipment.expiryDate;
+      }
+
       const formatDate = (d) => {
         if (!d) return "";
         const dateObj = new Date(d);
@@ -262,34 +268,26 @@ export default function EquipmentList() {
         return `${day}.${month}.${year}`;
       };
 
-      // 2. 🟢 REGENERATE QR PAYLOAD (Dynamic Data)
-      // This ensures the QR contains the LATEST assignment details, 
-      // even if the backend image is stale.
       const qrPayload = JSON.stringify({
         equipmentId: equipment.equipmentId,
         userId: unit.userId || "", 
         location: unit.location || equipment.location || "",
-        // Ensure dates are in ISO string format to match backend consistency
         installationDate: equipment.installationDate ? new Date(equipment.installationDate).toISOString() : null,
         expiryDate: equipment.expiryDate ? new Date(equipment.expiryDate).toISOString() : null,
         capacity: equipment.capacity,
         brand: equipment.brand,
         serialNumber: unit.serialNumber,
         refillingDue: equipment.refDue ? new Date(equipment.refDue).toISOString() : null,
+        type: isExisting ? "Existing" : "New"
       });
 
-      // 3. Generate QR Image from Payload
       const generatedQRUrl = await QRCode.toDataURL(qrPayload, {
         errorCorrectionLevel: "H",
         margin: 1,
-        width: 180, // Matches qrSize below
-        color: {
-            dark: "#000000",
-            light: "#FFFFFF00" // Transparent background
-        }
+        width: 180,
+        color: { dark: "#000000", light: "#FFFFFF00" }
       });
 
-      // --- CANVAS SETUP (Same as before) ---
       const canvasWidth = 1200;
       const canvasHeight = 800;
       const canvas = document.createElement("canvas");
@@ -301,11 +299,9 @@ export default function EquipmentList() {
       const colorRed = "#C1272D";
       const colorOrange = "#F15A24";
 
-      // Background
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-      // Border
       const padding = 40;
       const borderRadius = 50;
       const contentW = canvasWidth - (padding * 2);
@@ -319,7 +315,6 @@ export default function EquipmentList() {
       ctx.strokeStyle = "#000000";
       ctx.stroke();
 
-      // Corner design
       const cornerX = startX + contentW;
       const cornerY = startY;
       ctx.save();
@@ -346,7 +341,6 @@ export default function EquipmentList() {
       ctx.fill();
       ctx.restore();
 
-      // Header
       const headerY = startY + 50;
       const leftMargin = startX + 40;
 
@@ -377,11 +371,9 @@ export default function EquipmentList() {
 
         const rightAlignX = startX + contentW - 50;
         ctx.textAlign = "right";
-
         ctx.font = "bold 24px Arial, sans-serif";
         ctx.fillText("0484 4117109 | 9846196537", rightAlignX, headerY + 40);
         ctx.fillText("9895039921", rightAlignX, headerY + 75);
-
         ctx.font = "bold 18px Arial, sans-serif";
         ctx.fillText("info@safetik.in | www.safetik.in", rightAlignX, headerY + 100);
         ctx.textAlign = "left";
@@ -389,7 +381,6 @@ export default function EquipmentList() {
         console.warn("Logo load failed", e);
       }
 
-      // Draw helpers
       const drawDottedLine = (x1, y1, x2) => {
         ctx.save();
         ctx.beginPath();
@@ -404,7 +395,8 @@ export default function EquipmentList() {
 
       const drawField = (label, value, x, y, width) => {
         ctx.fillStyle = colorBlack;
-        ctx.font = "36px Arial, sans-serif";
+        const fontSize = label.length > 10 ? "32px" : "36px";
+        ctx.font = `${fontSize} Arial, sans-serif`;
         ctx.fillText(label, x, y);
 
         const lineY = y + 10;
@@ -419,7 +411,6 @@ export default function EquipmentList() {
         drawDottedLine(lineStartX, lineY, lineEndX);
       };
 
-      // Equipment fields
       let currentY = startY + 220;
       const rowHeight = 90;
       const fullLineW = contentW - 80;
@@ -431,22 +422,20 @@ export default function EquipmentList() {
 
       currentY += rowHeight;
       const halfWidth = (fullLineW / 2) - 20;
+      const rightColStart = leftMargin + halfWidth + 40;
 
       drawField("Refilled on", "", leftMargin, currentY, halfWidth);
-      const rightColStart = leftMargin + halfWidth + 40;
-      drawField("Exp. on", formatDate(equipment.expiryDate), rightColStart, currentY, halfWidth);
+      drawField(labelRow3, formatDate(valueRow3), rightColStart, currentY, halfWidth);
 
       currentY += rowHeight;
 
       drawField("H.P.Tested on", "", leftMargin, currentY, halfWidth);
-      drawField("Next due", formatDate(equipment.refDue), rightColStart, currentY, halfWidth);
+      drawField(labelRow4, formatDate(valueRow4), rightColStart, currentY, halfWidth);
 
-      // 4. Draw the REGENERATED QR Code
       const qrSize = 180;
       const qrX = startX + contentW - qrSize - 25;
       const qrY = startY + contentH - qrSize - 25;
 
-      // 🟢 Load the generated Data URL instead of unit.qrImage
       try {
         const qrImg = await loadImg(generatedQRUrl);
         ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
@@ -454,13 +443,22 @@ export default function EquipmentList() {
         console.warn("QR image load failed", e);
       }
 
-      // Draw ID below QR
+      ctx.textAlign = "center";
       ctx.font = "12px Arial";
       ctx.fillStyle = "#666";
-      ctx.textAlign = "center";
       ctx.fillText(equipment.equipmentId || "", qrX + (qrSize / 2), qrY + qrSize + 15);
 
-      // Export
+      ctx.textAlign = "left";
+      const footerY = startY + contentH - 30;
+
+      ctx.fillStyle = "#DC6D18";
+      ctx.font = "bold 14px Arial";
+      ctx.fillText("SERIAL NO:", leftMargin, footerY);
+
+      ctx.fillStyle = "#000";
+      ctx.font = "bold 20px Courier New";
+      ctx.fillText(unit.serialNumber || "N/A", leftMargin + 90, footerY);
+
       const finalDataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.href = finalDataUrl;
@@ -485,11 +483,9 @@ export default function EquipmentList() {
   const handleSaveUpdate = async (formData) => {
     if (!selectedEquipment) return;
     const id = selectedEquipment._id || selectedEquipment.equipmentId;
-    const { _id, equipmentId, assignments, ...updatePayload } = formData;
-
-    // Ensure we don't send heavy QR images or the full assignments array in the update
-    // The frontend edit form only allows editing top-level equipment fields.
-    // Assignments (per-unit QR images) are managed separately and should not be sent here.
+    
+    const { _id, equipmentId, ...updatePayload } = formData;
+    
     try {
       await dispatch(updateEquipment({ id, updates: updatePayload })).unwrap();
       handleCloseEdit();
@@ -521,24 +517,56 @@ export default function EquipmentList() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {(() => {
-                  // Build rows by splitting each equipment doc into one row per assigned user
                   const rows = [];
                   (list || []).forEach((it) => {
-                    // gather unique userIds from top-level and assignments
+                    // 1. Gather unique userIds involved with this equipment
                     const uSet = new Set();
-                    if (it.userId) uSet.add(it.userId);
+                    if (it.userId) uSet.add(it.userId); // Top-level user
                     if (it.assignments && Array.isArray(it.assignments)) {
                       it.assignments.forEach((a) => { if (a && a.userId) uSet.add(a.userId); });
                     }
 
-                    // for each user create a row with assignedCount
+                    // 2. If valid users found, create a row for EACH
                     if (uSet.size > 0) {
                       uSet.forEach((uid) => {
-                        const count = (it.assignments && Array.isArray(it.assignments)) ? it.assignments.filter(a => a && a.userId === uid).length : (it.userId === uid ? 1 : 0);
-                        // push a copy of item with helper props
-                        rows.push({ ...it, assignedUserId: uid, assignedCount: count });
+                        // A. Find specific assignments for this user
+                        const userAssignments = (it.assignments || []).filter(a => a && a.userId === uid);
+                        const count = userAssignments.length || (it.userId === uid ? 1 : 0);
+                      
+                        let specificInstall = it.installationDate;
+                        let specificExpiry = it.expiryDate;
+                        let specificRefDue = it.refDue;
+
+                        if (userAssignments.length > 0) {
+                            const unit = userAssignments[0];
+
+                            if (unit.installationDate) {
+                                specificInstall = unit.installationDate;
+                            } else if (unit.assignedAt) {
+                                specificInstall = unit.assignedAt;
+                            }
+
+                            if (!specificExpiry && unit.expiryDate) {
+                                specificExpiry = unit.expiryDate;
+                            }
+
+                            if (!specificRefDue && unit.refDue) {
+                                specificRefDue = unit.refDue;
+                            }
+                        }
+
+                        // C. Push row with specific data overrides
+                        rows.push({ 
+                            ...it, 
+                            assignedUserId: uid, 
+                            assignedCount: count,
+                            installationDate: specificInstall,
+                            expiryDate: specificExpiry,
+                            refDue: specificRefDue
+                        });
                       });
-                    }
+                    } 
+                    // ❌ REMOVED: The logic that created rows for unassigned items is gone.
                   });
 
                   return rows.length > 0 ? (
@@ -610,7 +638,6 @@ export default function EquipmentList() {
                       </div>
 
                       <div className="p-4 flex flex-col items-center bg-white flex-1 relative">
-                        {/* 🟢 UPDATED SECTION: DISPLAY USER & COMPANY DETAILS */}
                          {unit.userId && (
                             <div className="w-full mb-3 text-center space-y-1 bg-orange-50 p-2 rounded-lg border border-orange-100">
                                 <p className="text-xs text-gray-500 uppercase font-semibold">Assigned To</p>

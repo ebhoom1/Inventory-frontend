@@ -14,15 +14,12 @@ const getInitialFormState = () => ({
   modelSeries: "",
   capacity: "",
   brand: "",
-  installationDate: "",
   grossWeight: "",
   content: "",
   batchNo: "",
-  serialNumber: "", // For "New"
   spNumber: "", // For "Existing"
   mfgMonth: "",
-  refDue: "",
-  expiryDate: "",
+  // moved installationDate, expiryDate, refDue to assignment flow
   notes: "",
   quantity: "", // Start blank (user must enter quantity)
   equipmentType: "new", // 'new' or 'existing'
@@ -36,6 +33,24 @@ function AddEquipment() {
   const [formData, setFormData] = useState(getInitialFormState());
   // equipmentLocations removed: locations are not collected on add form
 
+const [serialNumbers, setSerialNumbers] = useState([""]);
+
+// ✅ Update serial number array when quantity changes
+  useEffect(() => {
+    const qty = Number(formData.quantity) || 1;
+    setSerialNumbers((prev) => {
+      const newArr = [...prev];
+      if (qty > prev.length) {
+        // Add empty strings for new slots
+        for (let i = prev.length; i < qty; i++) newArr.push("");
+      } else if (qty < prev.length) {
+        // Trim array if quantity reduced
+        return newArr.slice(0, qty);
+      }
+      return newArr;
+    });
+  }, [formData.quantity]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -44,8 +59,12 @@ function AddEquipment() {
     }));
   };
 
-  // equipment location handlers removed (field removed from UI)
-
+const handleSerialChange = (index, value) => {
+    const updated = [...serialNumbers];
+    updated[index] = value;
+    setSerialNumbers(updated);
+  };
+  
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -80,10 +99,6 @@ function AddEquipment() {
       return;
     }
 
-    if (!formData.installationDate?.trim()) {
-      Swal.fire({ icon: "warning", title: "Installation Date required" });
-      return;
-    }
 
     if (!formData.grossWeight?.trim()) {
       Swal.fire({ icon: "warning", title: "Gross Weight required" });
@@ -105,15 +120,7 @@ function AddEquipment() {
       return;
     }
 
-    if (!formData.expiryDate?.trim()) {
-      Swal.fire({ icon: "warning", title: "Expiry Date required" });
-      return;
-    }
-
-    if (!formData.refDue?.trim()) {
-      Swal.fire({ icon: "warning", title: "REF Due required" });
-      return;
-    }
+    
     
     // Validate quantity
     const qtyNum = Number(formData.quantity);
@@ -122,6 +129,24 @@ function AddEquipment() {
       return;
     }
 
+    if (formData.equipmentType === "new") {
+      const emptyIndex = serialNumbers.findIndex(s => !s.trim());
+      if (emptyIndex !== -1) {
+        Swal.fire({ 
+          icon: "warning", 
+          title: "Missing Serial Number", 
+          text: `Please enter Serial Number for Unit #${emptyIndex + 1}` 
+        });
+        return;
+      }
+
+      // Check for duplicates in the current batch
+      const unique = new Set(serialNumbers.map(s => s.trim()));
+      if (unique.size !== serialNumbers.length) {
+        Swal.fire({ icon: "warning", title: "Duplicate Serial Numbers", text: "Serial numbers in this batch must be unique." });
+        return;
+      }
+    }
 
     // Create a copy to manipulate for submission
     const payload = { ...formData };
@@ -134,32 +159,15 @@ function AddEquipment() {
     // Location is no longer collected on add form; backend accepts missing/empty location
 
     // --- Conditional Validation and Payload Cleanup ---
+   // ✅ Attach the manual serials to payload
     if (payload.equipmentType === "new") {
-      if (!payload.serialNumber?.trim()) {
-        Swal.fire({
-          icon: "warning",
-          title: "Serial Number required for new equipment",
-        });
-        return;
-      }
-      // Remove the unused field
-      delete payload.spNumber;
+        payload.serialNumbers = serialNumbers; // Send array
+        delete payload.spNumber;
     } else {
-      // 'existing'
-      if (!payload.spNumber?.trim()) {
-        Swal.fire({
-          icon: "warning",
-          title: "SP Number required for existing equipment",
-        });
-        return;
-      }
-      // Remove the unused field
-      delete payload.serialNumber;
+        delete payload.serialNumbers; 
     }
-
-    // Remove the helper field before sending to backend
     delete payload.equipmentType;
-    // --- End Validation ---
+        
 
     console.log("Submitting equipment payload:", payload);
     dispatch(createEquipment(payload));
@@ -178,6 +186,8 @@ function AddEquipment() {
       // Reset form to its initial state
       setFormData(getInitialFormState());
       dispatch(resetEquipmentState());
+      setSerialNumbers([""]);
+      dispatch(getEquipments());
       // Refresh equipment list so admin dropdowns reflect newly added equipment
       try {
         dispatch(getEquipments());
@@ -253,23 +263,31 @@ function AddEquipment() {
             </select>
           </div>
 
-          {/* --- CONDITIONAL: Serial Number (for New) --- */}
-          {formData.equipmentType === "new" && (
-            <div className="relative">
-              <span className="absolute -top-3 left-5 bg-gradient-to-r from-[#FFF] to-[#FFF7ED] px-2 text-sm font-semibold text-[#DC6D18] z-10">
-                Serial Number
-              </span>
-              <input
-                type="text"
-                name="serialNumber"
-                value={formData.serialNumber}
-                onChange={handleChange}
-                placeholder="e.g., SN-12345678"
-                className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-                // 'required' prop removed, validation is in handleSubmit
-              />
+       {/*  NEW: Manual Serial Numbers Section (Placed Correctly) */}
+        {formData.equipmentType === "new" && (
+          <div className="w-full p-4 border-2 border-dashed border-[#DC6D18] rounded-xl bg-gradient-to-r from-white to-[#FFF7ED] mt-6 md:col-span-2">
+            <h3 className="text-lg font-bold text-[#DC6D18] mb-3">Enter Serial Numbers</h3>
+            
+            {/* Scrollable Container if > 5 items */}
+            <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${serialNumbers.length > 5 ? 'max-h-60 overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
+              {serialNumbers.map((sn, index) => (
+                <div key={index} className="relative">
+                  <span className="absolute -top-3 left-5 bg-gradient-to-r from-[#FFF] to-[#FFF7ED] px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                    Unit #{index + 1}
+                  </span>
+                  <input
+                    type="text"
+                    value={sn}
+                    onChange={(e) => handleSerialChange(index, e.target.value)}
+                    placeholder={`Serial No. for Unit ${index + 1}`}
+                    className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                    required
+                  />
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
           {/* --- CONDITIONAL: SP Number (for Existing) --- */}
           {formData.equipmentType === "existing" && (
@@ -337,18 +355,7 @@ function AddEquipment() {
           </div>
 
           {/* Installation Date */}
-          <div className="relative">
-            <span className="absolute -top-3 left-5 bg-gradient-to-r from-[#FFF] to-[#FFF7ED] px-2 text-sm font-semibold text-[#DC6D18] z-10">
-              Installation Date
-            </span>
-            <input
-              type="date"
-              name="installationDate"
-              value={formData.installationDate}
-              onChange={handleChange}
-              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-            />
-          </div>
+          
 
           {/* Gross Weight */}
           <div className="relative">
@@ -394,19 +401,7 @@ function AddEquipment() {
               className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
             />
           </div>
-          {/* --- expiry date- */}
-          <div className="relative">
-            <span className="absolute -top-3 left-5 bg-gradient-to-r from-[#FFF] to-[#FFF7ED] px-2 text-sm font-semibold text-[#DC6D18] z-10">
-              Expiry Date
-            </span>
-            <input
-              type="date"
-              name="expiryDate"
-              value={formData.expiryDate}
-              onChange={handleChange}
-              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-            />
-          </div>
+          
 
           {/* MFG Month */}
           <div className="relative">
@@ -422,19 +417,7 @@ function AddEquipment() {
             />
           </div>
 
-          {/* REF Due */}
-          <div className="relative">
-            <span className="absolute -top-3 left-5 bg-gradient-to-r from-[#FFF] to-[#FFF7ED] px-2 text-sm font-semibold text-[#DC6D18] z-10">
-              REF Due
-            </span>
-            <input
-              type="date"
-              name="refDue"
-              value={formData.refDue}
-              onChange={handleChange}
-              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-            />
-          </div>
+          
 
           {/* Notes */}
           <div className="relative md:col-span-2">

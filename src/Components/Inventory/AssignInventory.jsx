@@ -7,7 +7,7 @@ import {
   resetInventoryState,
   fetchInventory,
 } from "../../redux/features/inventory/inventorySlice";
-import { getEquipments, updateEquipment } from "../../redux/features/equipment/equipmentSlice";
+import { assignEquipment, getEquipments } from "../../redux/features/equipment/equipmentSlice";
 import { getAllUsers } from "../../redux/features/users/userSlice";
 import { API_URL } from "../../../utils/apiConfig";
 
@@ -18,7 +18,7 @@ function UseInventory() {
   const {
     usageLoading,
     usageError,
-    lastUsage,
+    // lastUsage,
     items: allInventoryItems = [], // expects inventory list from Redux
     loading: listLoading, // loading state for listInventory
   } = useSelector((s) => s.inventory || {});
@@ -30,6 +30,14 @@ function UseInventory() {
     error: usersError,
     userInfo,
   } = useSelector((s) => s.users || {});
+
+  // equipmnt slice
+  const {
+     list: equipmentList = [],
+    loading: assignLoading,
+    error: assignError,
+    successMessage: assignSuccess } 
+      = useSelector((s) => s.equipment || {});
 
   const role = (userInfo?.userType || "").toLowerCase();
 const isAdmin = role === "admin" || role === "super admin" || role === "technician";
@@ -44,11 +52,19 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
     skuName: "",
     userId: "",
     quantityUsed: "",
-    date: "",
+    // date removed: assignments use server timestamp
     location: "",
+    // Moved here: installation/expiry/ref due are provided at assignment time
+    installationDate: "",
+    expiryDate: "",
+    refDue: "",
     notes: "",
   });
   const selectedUserId = isAdmin ? formData.userId : userInfo?.userId || "";
+
+  // ✅ New State for Serial Numbers
+  const [availableSerials, setAvailableSerials] = useState([]);
+  const [selectedSerials, setSelectedSerials] = useState([]);
 
   // For non-admin users: user-specific SKU options
   const [userSkuOptions, setUserSkuOptions] = useState([]);
@@ -60,6 +76,29 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
   const [locationLoading, setLocationLoading] = useState(false);
 
   // =============== Effects ===============
+
+  // Fetch inventory summary (to know how many left per SKU)
+  const [skuLeftMap, setSkuLeftMap] = useState({});
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/inventory/summary`, {
+          headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || 'Failed to fetch summary');
+        const map = {};
+        (Array.isArray(data) ? data : []).forEach((r) => {
+          if (r && r.skuName) map[r.skuName] = Number(r.left) || 0;
+        });
+        setSkuLeftMap(map);
+      } catch (e) {
+        console.warn('Could not load inventory summary', e.message || e);
+      }
+    };
+    fetchSummary();
+  }, [API_URL, authToken]);
+
 
   // Initialize userId field for non-admins
   useEffect(() => {
@@ -111,7 +150,9 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
           )
         ).sort((a, b) => a.localeCompare(b));
 
-        setUserSkuOptions(uniqueSkus);
+        // Filter out SKUs that have zero left according to summary if available
+        const filtered = uniqueSkus.filter(n => (skuLeftMap[n] === undefined) || (Number(skuLeftMap[n]) > 0));
+        setUserSkuOptions(filtered);
       } catch (e) {
         setUserSkuError(e.message || "Failed to load SKUs");
       } finally {
@@ -122,6 +163,7 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
     fetchUserSkus();
   }, [API_URL, authToken, isAdmin]);
 
+  
   // Handle inventory usage errors
   useEffect(() => {
     if (usageError) {
@@ -145,26 +187,82 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
   }, [usersError]);
 
   // Success alert + reset
+  // useEffect(() => {
+  //   if (lastUsage) {
+  //     Swal.fire({
+  //       icon: "success",
+  //       title: "Usage Logged",
+  //       text: `${lastUsage.skuName}: -${lastUsage.quantityUsed} by ${lastUsage.userId}`,
+  //       timer: 1300,
+  //       showConfirmButton: false,
+  //     });
+  //     setFormData({
+  //       skuName: "",
+  //       userId: isAdmin ? "" : userInfo?.userId || "",
+  //       quantityUsed: "",
+  //       location: "",
+  //       notes: "",
+  //     });
+  //     setSelectedSerials([]); // Reset serial selection
+  //     dispatch(resetInventoryState());
+  //     if (isAdmin) dispatch(getEquipments());
+  //   }
+  // },
+   [ dispatch, isAdmin, userInfo?.userId];
+
+// =============== Logic Implementation for Serial Numbers ===============
+
+  // 1. Find Available Serials when SKU changes
   useEffect(() => {
-    if (lastUsage) {
-      Swal.fire({
-        icon: "success",
-        title: "Usage Logged",
-        text: `${lastUsage.skuName}: -${lastUsage.quantityUsed} by ${lastUsage.userId}`,
-        timer: 1300,
-        showConfirmButton: false,
-      });
-      setFormData({
-        skuName: "",
-        userId: isAdmin ? "" : userInfo?.userId || "",
-        quantityUsed: "",
-        date: "",
-        location: "",
-        notes: "",
-      });
-      dispatch(resetInventoryState());
+    const rawVal = formData.skuName;
+    
+    if (!rawVal) {
+      setAvailableSerials([]);
+      return;
     }
-  }, [lastUsage, dispatch, isAdmin, userInfo?.userId]);
+
+    let targetName = rawVal;
+    
+    // Parse the dropdown value (e.g., "eq:123" or "sku:Hammer")
+    if (rawVal.startsWith("eq:")) {
+        const id = rawVal.slice(3); 
+        const eq = equipmentList.find(e => e._id === id || e.equipmentId === id);
+        if (eq) targetName = eq.equipmentName;
+    } else if (rawVal.startsWith("sku:")) {
+        targetName = rawVal.slice(4); // Remove "sku:"
+    } else {
+        targetName = rawVal; // Fallback for simple string
+    }
+
+    if (!targetName) return;
+
+    // Filter equipment list for matches
+    const matches = equipmentList.filter(e => e.equipmentName === targetName);
+    
+    // Extract unassigned serial numbers
+    const serials = [];
+    matches.forEach(eq => {
+      if (eq.assignments && Array.isArray(eq.assignments)) {
+        eq.assignments.forEach(a => {
+          // Check if userId is null/empty (Unassigned)
+          if (!a.userId) { 
+            serials.push(a.serialNumber);
+          }
+        });
+      }
+    });
+
+    setAvailableSerials(serials.sort());
+    setSelectedSerials([]); // Reset selection on item change
+  }, [formData.skuName, equipmentList]);
+
+  // 2. Auto-update Quantity based on Serial Selection
+  useEffect(() => {
+    if (selectedSerials.length > 0) {
+      setFormData(prev => ({ ...prev, quantityUsed: selectedSerials.length }));
+    }
+  }, [selectedSerials]);
+
 
   // =============== Derived Options ===============
 
@@ -179,12 +277,13 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
 
     // Combine with unassigned equipment names so new equipment shows in the list
     const unassignedEquipmentList = (equipmentItems || [])
-      .filter((e) => !e.userId || e.userId === "" || e.userId === null)
+      .filter((e) => Array.isArray(e.assignments) ? e.assignments.some(a => !a.userId) : true)
       .filter(Boolean);
 
-    // Combine all options
+    // Combine all options, but exclude SKUs with zero left
+    const skuOptionsFiltered = [...new Set(names)].filter(n => (skuLeftMap[n] === undefined) || (Number(skuLeftMap[n]) > 0));
     const allOptions = [
-      ...[...new Set(names)].map((n) => ({ type: 'sku', label: n, value: `sku:${n}`, skuName: n })),
+      ...skuOptionsFiltered.map((n) => ({ type: 'sku', label: n, value: `sku:${n}`, skuName: n })),
       ...unassignedEquipmentList.map((e) => ({ type: 'equipment', label: e.equipmentName, value: `eq:${e._id}`, equipmentId: e._id, equipmentName: e.equipmentName }))
     ];
 
@@ -212,16 +311,39 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
     });
     return [...filtered].sort((a, b) => (a.userId || "").localeCompare(b.userId || ""));
   }, [isAdmin, allUsers]);
+  
 
   // =============== Handlers ===============
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((p) => ({ ...p, [name]: value }));
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  useEffect(() => {
+    if (selectedSerials.length > 0) {
+      setFormData(prev => ({ ...prev, quantityUsed: selectedSerials.length }));
+    }
+  }, [selectedSerials]);
+
+  const handleSerialToggle = (serial) => {
+    setSelectedSerials(prev => {
+      if (prev.includes(serial)) {
+        return prev.filter(s => s !== serial);
+      } else {
+        return [...prev, serial];
+      }
+    });
   };
 
 const handleSubmit = (e) => {
     e.preventDefault();
+    // serial
+    if (!formData.skuName || !formData.userId) {
+      Swal.fire({ icon: "warning", title: "Missing fields" });
+      return;
+    }
 
     // 1. Robust SKU Parsing
     const rawSku = formData.skuName || '';
@@ -260,23 +382,20 @@ const handleSubmit = (e) => {
       skuName: skuName?.trim(),
       userId: (isAdmin ? formData.userId : userInfo?.userId)?.trim(),
       quantityUsed: Number(formData.quantityUsed),
-      date: formData.date,
-      location: formData.location?.trim(),
+      location: formData.location,
       notes: formData.notes?.trim(),
+      installationDate: formData.installationDate || undefined,
+      expiryDate: formData.expiryDate || undefined,
+      refDue: formData.refDue || undefined,
+      serialNumbers: selectedSerials.length > 0 ? selectedSerials : undefined
     };
-
+     
     // 3. Validation
-    if (
-      !payload.skuName ||
-      !payload.userId ||
-      !payload.quantityUsed ||
-      !payload.date ||
-      !payload.location
-    ) {
+    if (!payload.skuName || !payload.userId || !payload.quantityUsed) {
       Swal.fire({
         icon: "warning",
         title: "Missing fields",
-        text: `Please fill all fields. Missing: ${!payload.skuName ? 'Inventory Item' : ''} ${!payload.userId ? 'User' : ''} ${!payload.location ? 'Location' : ''}`,
+        text: `Please fill all required fields. Missing: ${!payload.skuName ? 'Inventory Item' : ''} ${!payload.userId ? 'User' : ''}`,
       });
       return;
     }
@@ -305,26 +424,61 @@ const handleSubmit = (e) => {
       skuName: payload.skuName,
       location: payload.location || '',
       totalUsed: payload.quantityUsed,
-      lastUsedAt: payload.date || new Date().toISOString(),
+      lastUsedAt: new Date().toISOString(),
     };
 
-    try {
+   try {
       window.dispatchEvent(new CustomEvent('inventory:optimisticAdd', { detail: optimisticItem }));
 
-
+      // ✅ 5. DISPATCH & RESET (Manual Reset Logic Added Here)
       dispatch(logInventoryUsage(payload)).unwrap().then((res) => {
+        
+        // Notify Optimistic Update Confirmed
         const usage = res?.usage || res;
         window.dispatchEvent(new CustomEvent('inventory:confirmAdd', { detail: { tempId, usage } }));
+
+        // ✅ MANUAL SUCCESS & RESET LOGIC
+        Swal.fire({
+            icon: "success",
+            title: "Usage Logged",
+            text: `${payload.skuName}: -${payload.quantityUsed} assigned to ${payload.userId}`,
+            timer: 1500,
+            showConfirmButton: false,
+        });
+
+        // Reset Form Fields
+        setFormData({
+            skuName: "",
+            userId: isAdmin ? "" : userInfo?.userId || "",
+            quantityUsed: "",
+            location: "",
+            notes: "",
+            installationDate: "",
+            expiryDate: "",
+            refDue: "",
+        });
+        setSelectedSerials([]);
+        
+        // Refresh Lists
+        dispatch(resetInventoryState());
+        if (isAdmin) dispatch(getEquipments());
+
       }).catch((err) => {
         console.error("Submission Failed:", err);
-        // Dispatch event to roll back optimistic update
         window.dispatchEvent(new CustomEvent('inventory:rollbackAdd', { detail: { tempId } }));
       });
     } catch (err) {
       console.error('Optimistic add failed', err);
       window.dispatchEvent(new CustomEvent('inventory:rollbackAdd', { detail: { tempId } }));
     }
+
   };
+    // catch (err) {
+    //   console.error('Optimistic add failed', err);
+    //   window.dispatchEvent(new CustomEvent('inventory:rollbackAdd', { detail: { tempId } }));
+    // }
+  
+  
 
   // =============== UI ===============
 
@@ -452,36 +606,88 @@ const handleSubmit = (e) => {
             )}
           </div>
 
+           {/* ✅ Serial Selection UI */}
+          {isAdmin && (
+            <div className="relative md:col-span-2">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">Select Serial Numbers</span>
+                <div className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-4 px-4 max-h-48 overflow-y-auto bg-gray-50">
+                    {availableSerials.length === 0 ? (
+                        <p className="text-gray-400 italic text-sm">No unassigned serial numbers available for this item.</p>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {availableSerials.map(serial => (
+                                <label key={serial} className="flex items-center space-x-2 cursor-pointer hover:bg-orange-100 p-1.5 rounded transition-colors">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={selectedSerials.includes(serial)}
+                                        onChange={() => handleSerialToggle(serial)}
+                                        className="accent-[#DC6D18] w-4 h-4 cursor-pointer"
+                                    />
+                                    <span className="text-sm font-mono text-gray-700">{serial}</span>
+                                </label>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+          )}
+ 
 
           {/* Quantity Used */}
-          <div className="relative flex items-center">
-            <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
-              Quantity Used
-            </span>
+       <div className="relative flex items-center">
+            <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">Quantity Used</span>
             <input
               type="number"
               name="quantityUsed"
               value={formData.quantityUsed}
-              onChange={handleChange}
-              placeholder="e.g., 5"
-              min="1"
-              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+              onChange={(e) => setFormData({...formData, quantityUsed: e.target.value})}
+              readOnly={selectedSerials.length > 0} 
+              className={`w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 ${selectedSerials.length > 0 ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               required
             />
           </div>
 
-          {/* Date */}
+          {/* Date removed: server will timestamp assignments */}
+
+          {/* Installation Date (moved from Add Equipment) */}
           <div className="relative flex items-center">
             <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
-              Date
+              Installation Date
             </span>
             <input
               type="date"
-              name="date"
-              value={formData.date}
+              name="installationDate"
+              value={formData.installationDate}
               onChange={handleChange}
               className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-              required
+            />
+          </div>
+
+          {/* Expiry Date (moved from Add Equipment) */}
+          <div className="relative flex items-center">
+            <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+              Expiry Date
+            </span>
+            <input
+              type="date"
+              name="expiryDate"
+              value={formData.expiryDate}
+              onChange={handleChange}
+              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+            />
+          </div>
+
+          {/* REF Due (moved from Add Equipment) */}
+          <div className="relative flex items-center">
+            <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+              REF Due
+            </span>
+            <input
+              type="date"
+              name="refDue"
+              value={formData.refDue}
+              onChange={handleChange}
+              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
             />
           </div>
 
@@ -495,7 +701,6 @@ const handleSubmit = (e) => {
               value={formData.location}
               onChange={handleChange}
               className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-              required
               disabled={locationLoading || locationOptions.length === 0}
             >
               <option value="">
@@ -533,10 +738,10 @@ const handleSubmit = (e) => {
         <div className="flex justify-center mt-8">
           <button
             type="submit"
-            disabled={usageLoading || skuLoading || (isAdmin && usersLoading) || !formData.location}
+            disabled={usageLoading || skuLoading || (isAdmin && usersLoading)}
             className="px-8 py-3 bg-[#DC6D18] text-[#FFF7ED] rounded-lg font-semibold shadow-md hover:bg-[#B85B14] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#DC6D18] transition-all duration-200 ease-in-out disabled:opacity-60"
           >
-            {usageLoading ? "Logging…" : "Log Usage"}
+            {usageLoading ? "Assigning…" : "Assign"}
           </button>
         </div>
       </form>
