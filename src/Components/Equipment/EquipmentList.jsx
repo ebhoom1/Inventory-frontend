@@ -91,7 +91,11 @@ const EquipmentDetailsRow = ({
         </td>
         
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-          {safeDate(item.installationDate)}
+          {item && item.spNumber ? (
+            <span className="text-gray-400 italic">-</span>
+          ) : (
+            safeDate(item.installationDate)
+          )}
         </td>
 
         <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
@@ -242,21 +246,26 @@ export default function EquipmentList() {
 
   const handleDownloadUnitQR = async (unit, equipment) => {
     try {
-      const isExisting = Boolean(equipment.spNumber); 
+      const isExisting = Boolean(equipment.spNumber);
+
+      // Prefer unit (assignment) level dates; fall back to equipment-level values
+      const unitInstall = unit.installationDate || unit.assignedAt || equipment.installationDate || null;
+      const unitExpiry = unit.expiryDate || equipment.expiryDate || null;
+      const unitRefDue = unit.refDue || equipment.refDue || null;
 
       // Configure Dynamic Labels and Values
       let labelRow3, valueRow3, labelRow4, valueRow4;
 
       if (isExisting) {
         labelRow3 = "Exp. on";
-        valueRow3 = equipment.expiryDate;
+        valueRow3 = unitExpiry;
         labelRow4 = "Next due";
-        valueRow4 = equipment.refDue;
+        valueRow4 = unitRefDue;
       } else {
         labelRow3 = "Installed";
-        valueRow3 = equipment.installationDate;
+        valueRow3 = unitInstall;
         labelRow4 = "Expiry Date";
-        valueRow4 = equipment.expiryDate;
+        valueRow4 = unitExpiry;
       }
 
       const formatDate = (d) => {
@@ -270,14 +279,14 @@ export default function EquipmentList() {
 
       const qrPayload = JSON.stringify({
         equipmentId: equipment.equipmentId,
-        userId: unit.userId || "", 
+        userId: unit.userId || "",
         location: unit.location || equipment.location || "",
-        installationDate: equipment.installationDate ? new Date(equipment.installationDate).toISOString() : null,
-        expiryDate: equipment.expiryDate ? new Date(equipment.expiryDate).toISOString() : null,
+        installationDate: unitInstall ? new Date(unitInstall).toISOString() : null,
+        expiryDate: unitExpiry ? new Date(unitExpiry).toISOString() : null,
         capacity: equipment.capacity,
         brand: equipment.brand,
         serialNumber: unit.serialNumber,
-        refillingDue: equipment.refDue ? new Date(equipment.refDue).toISOString() : null,
+        refillingDue: unitRefDue ? new Date(unitRefDue).toISOString() : null,
         type: isExisting ? "Existing" : "New"
       });
 

@@ -29,6 +29,7 @@ function AddEquipment() {
   const dispatch = useDispatch();
   const { loading, error, successMessage } = useSelector((s) => s.equipment);
   const { userInfo } = useSelector((s) => s.users);
+  const equipmentList = useSelector((s) => s.equipment?.list || []);
 
   const [formData, setFormData] = useState(getInitialFormState());
   // equipmentLocations removed: locations are not collected on add form
@@ -51,6 +52,40 @@ const [serialNumbers, setSerialNumbers] = useState([""]);
     });
   }, [formData.quantity]);
 
+  // Ensure we have latest equipments to validate serial uniqueness
+  useEffect(() => {
+    try {
+      dispatch(getEquipments());
+    } catch (e) {
+      // ignore
+    }
+  }, [dispatch]);
+
+  // Errors for each serial input ('' or error message)
+  const [serialErrors, setSerialErrors] = useState([""]);
+
+  const normalize = (s) => (s || "").toString().trim().toLowerCase();
+
+  const checkExistingConflict = (serial) => {
+    if (!serial || !formData.equipmentName) return null;
+    const n = normalize(serial);
+    for (const eq of equipmentList || []) {
+      if (!eq) continue;
+      // only consider same equipment type/name
+      if ((eq.equipmentName || "") !== (formData.equipmentName || "")) continue;
+      // check assignments
+      if (Array.isArray(eq.assignments)) {
+        for (const a of eq.assignments) {
+          if (!a) continue;
+          if (normalize(a.serialNumber) === n) return { equipment: eq, assignment: a };
+        }
+      }
+      // check fallback top-level serialNumber if present
+      if (normalize(eq.serialNumber) === n) return { equipment: eq, assignment: null };
+    }
+    return null;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -63,6 +98,33 @@ const handleSerialChange = (index, value) => {
     const updated = [...serialNumbers];
     updated[index] = value;
     setSerialNumbers(updated);
+    // validate this serial immediately
+    setSerialErrors((prev) => {
+      const errs = [...(prev || [])];
+      // ensure length
+      while (errs.length < updated.length) errs.push("");
+      const val = value?.trim() || "";
+      // check empty
+      if (!val) {
+        errs[index] = "Serial required";
+        return errs;
+      }
+      // check duplicates within batch
+      const norm = normalize(val);
+      const duplicates = updated.filter(s => normalize(s) === norm);
+      if (duplicates.length > 1) {
+        errs[index] = "Duplicate in this batch";
+        return errs;
+      }
+      // check existing equipment conflict for same equipmentName
+      const conflict = checkExistingConflict(val);
+      if (conflict) {
+        errs[index] = `Serial already exists for this equipment (${conflict.equipment.batchNo || conflict.equipment.equipmentId || ''})`;
+        return errs;
+      }
+      errs[index] = "";
+      return errs;
+    });
   };
   
   const handleSubmit = (e) => {
@@ -141,10 +203,20 @@ const handleSerialChange = (index, value) => {
       }
 
       // Check for duplicates in the current batch
-      const unique = new Set(serialNumbers.map(s => s.trim()));
+      const unique = new Set(serialNumbers.map(s => normalize(s)));
       if (unique.size !== serialNumbers.length) {
         Swal.fire({ icon: "warning", title: "Duplicate Serial Numbers", text: "Serial numbers in this batch must be unique." });
         return;
+      }
+
+      // Check for conflicts with existing equipments of the same type
+      for (let i = 0; i < serialNumbers.length; i++) {
+        const s = serialNumbers[i];
+        const conflict = checkExistingConflict(s);
+        if (conflict) {
+          Swal.fire({ icon: "warning", title: "Serial Conflict", text: `Serial '${s}' already exists for equipment '${conflict.equipment.equipmentName || ''}'.` });
+          return;
+        }
       }
     }
 
@@ -280,9 +352,12 @@ const handleSerialChange = (index, value) => {
                     value={sn}
                     onChange={(e) => handleSerialChange(index, e.target.value)}
                     placeholder={`Serial No. for Unit ${index + 1}`}
-                    className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                    className={`w-full rounded-xl py-3 px-4 text-base bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] focus:outline-none ${serialErrors[index] ? 'border-2 border-red-500' : 'border-2 border-dotted border-[#DC6D18]'} `}
                     required
                   />
+                  {serialErrors[index] && (
+                    <p className="text-xs text-red-600 mt-1">{serialErrors[index]}</p>
+                  )}
                 </div>
               ))}
             </div>

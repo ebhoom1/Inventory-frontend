@@ -114,9 +114,11 @@ const [editedAssignments, setEditedAssignments] = useState([]);
 
       // 2. ✅ Initialize Assignments for the list view
       if (equipment.assignments && Array.isArray(equipment.assignments)) {
-        const assignedOnly = equipment.assignments.filter(unit => unit.userId);
-        // Create a copy of the array so we can edit it without mutating props
-        setEditedAssignments(equipment.assignments.map(a => ({...a})));
+        // Only show assignments that belong to the current assigned user (if any).
+        const currentAssignedUser = equipment.assignedUserId || equipment.userId || null;
+        const assignedOnly = equipment.assignments.filter(unit => unit.userId && currentAssignedUser ? unit.userId === currentAssignedUser : unit.userId );
+        // Create a copy of the filtered array so we can edit it without mutating props
+        setEditedAssignments(assignedOnly.map(a => ({ ...a })));
       } else {
         setEditedAssignments([]);
       }
