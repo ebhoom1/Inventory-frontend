@@ -201,8 +201,7 @@ const [editedAssignments, setEditedAssignments] = useState([]);
               {/* Column 3 */}
               <FormInput label="Expiry Date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} type="date" />
               <FormInput label="REF Due" name="refDue" value={formData.refDue} onChange={handleChange} type="date" />
-              {/* Optional: Location is often specific to the unit, but kept here as default */}
-              <FormInput label="Default Location" name="location" value={formData.location} onChange={handleChange} />
+              {/* Default Location removed from edit modal UI per request */}
             </div>
 
             {/* Notes */}

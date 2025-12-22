@@ -156,9 +156,8 @@ const EquipmentDetailsRow = ({
               </div>
 
               <div className="space-y-2">
-                <h4 className="font-bold text-orange-800 text-xs uppercase opacity-70 mb-1">Location & Notes</h4>
+                <h4 className="font-bold text-orange-800 text-xs uppercase opacity-70 mb-1">Notes</h4>
                 <div className="block bg-white/50 p-2 rounded border border-orange-100 h-full">
-                    <p className="text-xs text-gray-500">Location: <span className="text-gray-800">{item.location || "N/A"}</span></p>
                     <p className="text-xs text-gray-500 mt-1">Notes: <span className="text-gray-800 italic">{item.notes || "No notes"}</span></p>
                 </div>
               </div>
