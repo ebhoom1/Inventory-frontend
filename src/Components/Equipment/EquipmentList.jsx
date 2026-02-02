@@ -243,7 +243,7 @@ export default function EquipmentList() {
     }
   };
 
-  const handleDownloadUnitQR = async (unit, equipment) => {
+  const handlePrintUnitQR = async (unit, equipment) => {
     try {
       const isExisting = Boolean(equipment.spNumber);
 
@@ -468,10 +468,47 @@ export default function EquipmentList() {
       ctx.fillText(unit.serialNumber || "N/A", leftMargin + 90, footerY);
 
       const finalDataUrl = canvas.toDataURL("image/png");
-      const link = document.createElement("a");
-      link.href = finalDataUrl;
-      link.download = `Label-${equipment.equipmentName}-${unit.serialNumber}.png`;
-      link.click();
+      // 2. Create a new window for printing
+      const printWindow = window.open('', '_blank');
+      
+      // 3. Write HTML content to the new window
+      printWindow.document.open();
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Print Label - ${unit.serialNumber}</title>
+            <style>
+              /* Reset margins for the print job */
+              @page {
+                size: 100mm 50mm;
+          margin: 0;
+              }
+              body {
+             margin: 0;
+          padding: 0;
+          width: 100mm;
+          height: 50mm;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          background-color: white;
+              }
+              img {
+              width: 100mm;
+          height: 50mm;
+          object-fit: contain;
+              }
+          @media print {
+          body { visibility: visible; }
+        }
+            </style>
+          </head>
+          <body>
+            <img src="${finalDataUrl}" onload="window.print(); window.close();" />
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
     } catch (err) {
       console.error("Failed to generate QR label:", err);
       alert("Could not generate QR label. Please try again.");
@@ -678,16 +715,17 @@ export default function EquipmentList() {
                           </p>
                         </div>
                       </div>
-
-                      <div className="p-3 bg-gray-50 border-t border-gray-100">
-                        <button
-                          onClick={() => handleDownloadUnitQR(unit, viewingEquipment)}
-                          disabled={!unit.qrImage}
-                          className="w-full py-2 bg-[#DC6D18] hover:bg-[#B85B14] text-white text-xs font-bold rounded shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                        >
-                          ⬇ Download Label
-                        </button>
-                      </div>
+                    <div className="p-3 bg-gray-50 border-t border-gray-100">
+  <button
+    onClick={() => handlePrintUnitQR(unit, viewingEquipment)}
+    disabled={!unit.qrImage}
+    className="w-full py-2 bg-[#DC6D18] hover:bg-[#B85B14] text-white text-xs font-bold rounded shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+  >
+    {/* Updated Label and Icon */}
+    🖨️ Print Label
+  </button>
+</div>
+                     
                     </div>
                   ))}
                 </div>
