@@ -243,7 +243,7 @@ export default function EquipmentList() {
     }
   };
 
-  const handlePrintUnitQR = async (unit, equipment) => {
+    const handlePrintUnitQR = async (unit, equipment) => {
     try {
       const isExisting = Boolean(equipment.spNumber);
 
@@ -291,9 +291,12 @@ export default function EquipmentList() {
 
       const generatedQRUrl = await QRCode.toDataURL(qrPayload, {
         errorCorrectionLevel: "H",
-        margin: 1,
-        width: 180,
-        color: { dark: "#000000", light: "#FFFFFF00" }
+        margin: 4,      // Standard requirement for scanners to "lock on"
+  width: 400,     // High resolution source before drawing to canvas
+  color: { 
+    dark: "#000000", 
+    light: "#FFFFFF" // MUST be solid white for scannability
+  }
       });
 
       const canvasWidth = 1200;
@@ -444,12 +447,17 @@ export default function EquipmentList() {
       const qrX = startX + contentW - qrSize - 25;
       const qrY = startY + contentH - qrSize - 25;
 
+      ctx.imageSmoothingEnabled = false;
       try {
         const qrImg = await loadImg(generatedQRUrl);
+        ctx.fillStyle = "white";
+        ctx.fillRect(qrX, qrY, qrSize, qrSize);
         ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
       } catch (e) {
         console.warn("QR image load failed", e);
       }
+
+      ctx.imageSmoothingEnabled = true;
 
       ctx.textAlign = "center";
       ctx.font = "12px Arial";
@@ -492,6 +500,8 @@ export default function EquipmentList() {
           justify-content: center;
           align-items: center;
           background-color: white;
+          -webkit-print-color-adjust: exact; 
+          print-color-adjust: exact;
               }
               img {
               width: 100mm;
