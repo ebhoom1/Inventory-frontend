@@ -277,21 +277,24 @@ export default function EquipmentList() {
       };
 
       const qrPayload = JSON.stringify({
-        equipmentId: equipment.equipmentId,
-        userId: unit.userId || "",
-        location: unit.location || equipment.location || "",
-        installationDate: unitInstall ? new Date(unitInstall).toISOString() : null,
-        expiryDate: unitExpiry ? new Date(unitExpiry).toISOString() : null,
-        capacity: equipment.capacity,
-        brand: equipment.brand,
-        serialNumber: unit.serialNumber,
-        refillingDue: unitRefDue ? new Date(unitRefDue).toISOString() : null,
-        type: isExisting ? "Existing" : "New"
+        // equipmentId: equipment.equipmentId,
+        // userId: unit.userId || "",
+        // location: unit.location || equipment.location || "",
+        // installationDate: unitInstall ? new Date(unitInstall).toISOString() : null,
+        // expiryDate: unitExpiry ? new Date(unitExpiry).toISOString() : null,
+        // capacity: equipment.capacity,
+        // brand: equipment.brand,
+        // serialNumber: unit.serialNumber,
+        // refillingDue: unitRefDue ? new Date(unitRefDue).toISOString() : null,
+        // type: isExisting ? "Existing" : "New"
+        id: equipment.equipmentId,
+      sn: unit.serialNumber,
+      exp: unitExpiry ? new Date(unitExpiry).toISOString().split('T')[0] : ""
       });
 
       const generatedQRUrl = await QRCode.toDataURL(qrPayload, {
-        errorCorrectionLevel: "H",
-        margin: 4,      // Standard requirement for scanners to "lock on"
+        errorCorrectionLevel: "M",
+        margin: 1,      // Standard requirement for scanners to "lock on"
   width: 400,     // High resolution source before drawing to canvas
   color: { 
     dark: "#000000", 
@@ -362,12 +365,12 @@ export default function EquipmentList() {
         img.onerror = () => reject(new Error("Failed to load image"));
         img.src = src;
       });
-
-      try {
-        const logoImg = await loadImg(logo);
+              const [logoImg, qrImg] = await Promise.all([loadImg(logo), loadImg(generatedQRUrl)]);
         const lHeight = 90;
         const lWidth = (logoImg.width / logoImg.height) * lHeight;
-        ctx.drawImage(logoImg, leftMargin, headerY - 10, lWidth, lHeight);
+    ctx.drawImage(logoImg, startX + 40, startY + 40, lWidth, lHeight);
+
+      try {
 
         const textOffsetX = leftMargin + lWidth + 20;
         ctx.fillStyle = colorBlack;
@@ -388,7 +391,7 @@ export default function EquipmentList() {
         ctx.font = "bold 18px Arial, sans-serif";
         ctx.fillText("info@safetik.in | www.safetik.in", rightAlignX, headerY + 100);
         ctx.textAlign = "left";
-      } catch (e) {
+      }catch (e) {
         console.warn("Logo load failed", e);
       }
 
@@ -429,11 +432,12 @@ export default function EquipmentList() {
       drawField("Type", equipment.equipmentName || "", leftMargin, currentY, fullLineW);
 
       currentY += rowHeight;
-      drawField("Capacity", equipment.capacity || "", leftMargin, currentY, fullLineW);
+      drawField("Capacity", equipment.capacity || "",leftMargin + 40, currentY, fullLineW);
 
       currentY += rowHeight;
-      const halfWidth = (fullLineW / 2) - 20;
-      const rightColStart = leftMargin + halfWidth + 40;
+      const halfWidth = (fullLineW / 2) - 40;
+      const rightColStart = leftMargin + halfWidth - 120;
+    
 
       drawField("Refilled on", "", leftMargin, currentY, halfWidth);
       drawField(labelRow3, formatDate(valueRow3), rightColStart, currentY, halfWidth);
@@ -443,22 +447,27 @@ export default function EquipmentList() {
       drawField("H.P.Tested on", "", leftMargin, currentY, halfWidth);
       drawField(labelRow4, formatDate(valueRow4), rightColStart, currentY, halfWidth);
 
-      const qrSize = 180;
-      const qrX = startX + contentW - qrSize - 25;
-      const qrY = startY + contentH - qrSize - 25;
+      const qrSize = 200;
+      const qrX = startX + contentW - qrSize - 40;
+      const qrY = startY + contentH - qrSize - 40;
+     
+      
 
-      ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = false;
+      ctx.mozImageSmoothingEnabled = false;
+      ctx.webkitImageSmoothingEnabled = false;
       try {
-        const qrImg = await loadImg(generatedQRUrl);
+      
         ctx.fillStyle = "white";
-        ctx.fillRect(qrX, qrY, qrSize, qrSize);
+        ctx.fillRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
         ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+        ctx.imageSmoothingEnabled = true;
+       
       } catch (e) {
         console.warn("QR image load failed", e);
       }
-
-      ctx.imageSmoothingEnabled = true;
-
+     
+  
       ctx.textAlign = "center";
       ctx.font = "12px Arial";
       ctx.fillStyle = "#666";
@@ -475,7 +484,7 @@ export default function EquipmentList() {
       ctx.font = "bold 20px Courier New";
       ctx.fillText(unit.serialNumber || "N/A", leftMargin + 90, footerY);
 
-      const finalDataUrl = canvas.toDataURL("image/png");
+      const finalDataUrl = canvas.toDataURL("image/png",1.0);
       // 2. Create a new window for printing
       const printWindow = window.open('', '_blank');
       
@@ -507,6 +516,9 @@ export default function EquipmentList() {
               width: 100mm;
           height: 50mm;
           object-fit: contain;
+          image-rendering: -webkit-optimize-contrast;
+              image-rendering: crisp-edges;
+              image-rendering: pixelated;
               }
           @media print {
           body { visibility: visible; }
