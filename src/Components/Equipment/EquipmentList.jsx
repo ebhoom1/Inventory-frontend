@@ -432,7 +432,7 @@ export default function EquipmentList() {
       drawField("Type", equipment.equipmentName || "", leftMargin, currentY, fullLineW);
 
       currentY += rowHeight;
-      drawField("Capacity", equipment.capacity || "",leftMargin + 40, currentY, fullLineW);
+      drawField("Capacity", equipment.capacity || "",leftMargin , currentY, fullLineW);
 
       currentY += rowHeight;
       const halfWidth = (fullLineW / 2) - 40;
