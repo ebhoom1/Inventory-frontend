@@ -286,16 +286,24 @@ export default function EquipmentList() {
         // brand: equipment.brand,
         // serialNumber: unit.serialNumber,
         // refillingDue: unitRefDue ? new Date(unitRefDue).toISOString() : null,
-        // type: isExisting ? "Existing" : "New"
-        id: equipment.equipmentId,
-      sn: unit.serialNumber,
-      exp: unitExpiry ? new Date(unitExpiry).toISOString().split('T')[0] : ""
+        // type: isExisting ? "Existing" : "New",
+    
+      eid: equipment.equipmentId,     // equipmentId -> eid
+  uid: unit.userId || "",         // userId -> uid
+  loc: unit.location || "",       // location -> loc
+  ins: unitInstall ? new Date(unitInstall).toISOString().split('T')[0] : "", // installationDate -> ins
+  cap: equipment.capacity,        // capacity -> cap
+  brd: equipment.brand,           // brand -> brd
+  sn: unit.serialNumber,          // serialNumber -> sn
+  ref: unitRefDue ? new Date(unitRefDue).toISOString().split('T')[0] : "", // refillingDue -> ref
+  typ: isExisting ? "E" : "N",    // type -> typ (E/N for Existing/New)
+  exp: unitExpiry ? new Date(unitExpiry).toISOString().split('T')[0] : ""  // expiryDate -> exp
       });
 
       const generatedQRUrl = await QRCode.toDataURL(qrPayload, {
         errorCorrectionLevel: "M",
         margin: 1,      // Standard requirement for scanners to "lock on"
-  width: 400,     // High resolution source before drawing to canvas
+  width: 600,     // High resolution source before drawing to canvas
   color: { 
     dark: "#000000", 
     light: "#FFFFFF" // MUST be solid white for scannability

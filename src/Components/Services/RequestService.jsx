@@ -398,16 +398,36 @@ function RequestService() {
         scanned = { equipmentId: decodedText };
       }
 
+      const mappedData = {
+    equipmentId: scanned.eid || scanned.equipmentId || decodedText,
+    userId:      scanned.uid || scanned.userId || "",
+    location:    scanned.loc || scanned.location || "",
+    serial:      scanned.sn  || scanned.serialNumber || "",
+    installDate: scanned.ins || scanned.installationDate || "",
+    expiryDate:  scanned.exp || scanned.expiryDate || "",
+    capacity:    scanned.cap || scanned.capacity || "",
+    brand:       scanned.brd || scanned.brand || "",
+    serviceDue:  scanned.ref || scanned.refillingDue || ""
+  };
+
       // Prefill installationDate and userId (and equipmentId) from the QR payload.
       // Other fields are populated from the backend authoritative record.
       if (scanned) {
         setFormData((prev) => ({
           ...prev,
-          equipmentId: scanned.equipmentId || prev.equipmentId,
-          installationDate: scanned.installationDate
-            ? scanned.installationDate.slice(0, 10)
-            : prev.installationDate,
-          userId: scanned.userId || prev.userId,
+          equipmentId: mappedData.equipmentId,
+    userId: mappedData.userId,
+    location: mappedData.location,
+    canSerialNumber: mappedData.serial,
+    installationDate: mappedData.installDate ? mappedData.installDate.slice(0, 10) : prev.installationDate,
+    refillingDue: mappedData.serviceDue ? mappedData.serviceDue.slice(0, 10) : prev.refillingDue,
+    brand: mappedData.brand,
+    capacity: mappedData.capacity
+          // equipmentId: scanned.equipmentId || prev.equipmentId,
+          // installationDate: scanned.installationDate
+          //   ? scanned.installationDate.slice(0, 10)
+          //   : prev.installationDate,
+          // userId: scanned.userId || prev.userId,
         }));
       }
       const maybeId = scanned.equipmentId || scanned._id || decodedText;
