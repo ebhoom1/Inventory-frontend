@@ -275,39 +275,29 @@ export default function EquipmentList() {
         const year = dateObj.getFullYear();
         return `${day}.${month}.${year}`;
       };
-
+      const activeId = unit.unitEquipmentId || equipment.equipmentId;
       const qrPayload = JSON.stringify({
-        // equipmentId: equipment.equipmentId,
-        // userId: unit.userId || "",
-        // location: unit.location || equipment.location || "",
-        // installationDate: unitInstall ? new Date(unitInstall).toISOString() : null,
-        // expiryDate: unitExpiry ? new Date(unitExpiry).toISOString() : null,
-        // capacity: equipment.capacity,
-        // brand: equipment.brand,
-        // serialNumber: unit.serialNumber,
-        // refillingDue: unitRefDue ? new Date(unitRefDue).toISOString() : null,
-        // type: isExisting ? "Existing" : "New",
-    
-      eid: equipment.equipmentId,     // equipmentId -> eid
-  uid: unit.userId || "",         // userId -> uid
-  loc: unit.location || "",       // location -> loc
-  ins: unitInstall ? new Date(unitInstall).toISOString().split('T')[0] : "", // installationDate -> ins
-  cap: equipment.capacity,        // capacity -> cap
-  brd: equipment.brand,           // brand -> brd
-  sn: unit.serialNumber,          // serialNumber -> sn
-  ref: unitRefDue ? new Date(unitRefDue).toISOString().split('T')[0] : "", // refillingDue -> ref
-  typ: isExisting ? "E" : "N",    // type -> typ (E/N for Existing/New)
-  exp: unitExpiry ? new Date(unitExpiry).toISOString().split('T')[0] : ""  // expiryDate -> exp
+    eid: unit.unitEquipmentId || equipment.equipmentId,    // equipmentId -> eid
+    uid: unit.userId || "",         // userId -> uid
+    loc: unit.location || "",       // location -> loc
+    ins: unitInstall ? new Date(unitInstall).toISOString().split('T')[0] : "", // installationDate -> ins
+    cap: equipment.capacity,        // capacity -> cap
+    brd: equipment.brand,           // brand -> brd
+    sn: unit.serialNumber,          // serialNumber -> sn
+    ref: unitRefDue ? new Date(unitRefDue).toISOString().split('T')[0] : "", // refillingDue -> ref
+    typ: isExisting ? "E" : "N",    // type -> typ (E/N for Existing/New)
+    exp: unitExpiry ? new Date(unitExpiry).toISOString().split('T')[0] : ""  // expiryDate -> exp
       });
+      const displayId = unit.unitEquipmentId || unit.individualUnitId || equipment.equipmentId || "";
 
       const generatedQRUrl = await QRCode.toDataURL(qrPayload, {
         errorCorrectionLevel: "M",
         margin: 1,      // Standard requirement for scanners to "lock on"
-  width: 600,     // High resolution source before drawing to canvas
-  color: { 
-    dark: "#000000", 
-    light: "#FFFFFF" // MUST be solid white for scannability
-  }
+        width: 600,     // High resolution source before drawing to canvas
+        color: { 
+          dark: "#000000", 
+          light: "#FFFFFF" // MUST be solid white for scannability
+        }
       });
 
       const canvasWidth = 1200;
@@ -479,8 +469,8 @@ export default function EquipmentList() {
       ctx.textAlign = "center";
       ctx.font = "12px Arial";
       ctx.fillStyle = "#666";
-      ctx.fillText(equipment.equipmentId || "", qrX + (qrSize / 2), qrY + qrSize + 15);
-
+      ctx.fillText(activeId, qrX + (qrSize / 2), qrY + qrSize + 20);
+      
       ctx.textAlign = "left";
       const footerY = startY + contentH - 30;
 

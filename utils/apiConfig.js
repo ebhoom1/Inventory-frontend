@@ -4,7 +4,7 @@
 
 // ✅ production (deployed)
 // export const API_URL = 'https://api.safetik.in';
-export const API_URL = 'https://api.safetik.in';
+ export const API_URL = 'https://api.safetik.in';
 
 // Vite
 // export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
