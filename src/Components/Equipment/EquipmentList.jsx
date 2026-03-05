@@ -275,9 +275,11 @@ export default function EquipmentList() {
         const year = dateObj.getFullYear();
         return `${day}.${month}.${year}`;
       };
-      const activeId = unit.unitEquipmentId || equipment.equipmentId;
+     const unitId = unit.individualUnitId || unit.unitEquipmentId || equipment.equipmentId;
+      const activeId = unitId;
+
       const qrPayload = JSON.stringify({
-    eid: unit.unitEquipmentId || equipment.equipmentId,    // equipmentId -> eid
+    eid: unitId,    // equipmentId -> eid
     uid: unit.userId || "",         // userId -> uid
     loc: unit.location || "",       // location -> loc
     ins: unitInstall ? new Date(unitInstall).toISOString().split('T')[0] : "", // installationDate -> ins
@@ -288,7 +290,7 @@ export default function EquipmentList() {
     typ: isExisting ? "E" : "N",    // type -> typ (E/N for Existing/New)
     exp: unitExpiry ? new Date(unitExpiry).toISOString().split('T')[0] : ""  // expiryDate -> exp
       });
-      const displayId = unit.unitEquipmentId || unit.individualUnitId || equipment.equipmentId || "";
+      const displayId = unitId || "";
 
       const generatedQRUrl = await QRCode.toDataURL(qrPayload, {
         errorCorrectionLevel: "M",
