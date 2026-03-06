@@ -244,6 +244,7 @@ export default function EquipmentList() {
   };
 
     const handlePrintUnitQR = async (unit, equipment) => {
+      
     try {
       const isExisting = Boolean(equipment.spNumber);
 
@@ -275,22 +276,22 @@ export default function EquipmentList() {
         const year = dateObj.getFullYear();
         return `${day}.${month}.${year}`;
       };
-     const unitId = unit.individualUnitId || unit.unitEquipmentId || equipment.equipmentId;
-      const activeId = unitId;
+// always print using the equipment's batch id
+      const uniqueUnitId = unit.equipmentId;
 
       const qrPayload = JSON.stringify({
-    eid: unitId,    // equipmentId -> eid
-    uid: unit.userId || "",         // userId -> uid
-    loc: unit.location || "",       // location -> loc
-    ins: unitInstall ? new Date(unitInstall).toISOString().split('T')[0] : "", // installationDate -> ins
-    cap: equipment.capacity,        // capacity -> cap
-    brd: equipment.brand,           // brand -> brd
-    sn: unit.serialNumber,          // serialNumber -> sn
-    ref: unitRefDue ? new Date(unitRefDue).toISOString().split('T')[0] : "", // refillingDue -> ref
-    typ: isExisting ? "E" : "N",    // type -> typ (E/N for Existing/New)
-    exp: unitExpiry ? new Date(unitExpiry).toISOString().split('T')[0] : ""  // expiryDate -> exp
+        eid: uniqueUnitId  ,              // use equipment id only
+        uid: unit.userId || "",       // userId -> uid
+        loc: unit.location || "",     // location -> loc
+        ins: unitInstall ? new Date(unitInstall).toISOString().split('T')[0] : "", // installationDate -> ins
+        cap: equipment.capacity,        // capacity -> cap
+        brd: equipment.brand,           // brand -> brd
+        sn: unit.serialNumber,          // serialNumber -> sn
+        ref: unitRefDue ? new Date(unitRefDue).toISOString().split('T')[0] : "", // refillingDue -> ref
+        typ: isExisting ? "E" : "N",    // type -> typ (E/N for Existing/New)
+        exp: unitExpiry ? new Date(unitExpiry).toISOString().split('T')[0] : ""  // expiryDate -> exp
       });
-      const displayId = unitId || "";
+      // const displayId = equipmentId; // not currently used
 
       const generatedQRUrl = await QRCode.toDataURL(qrPayload, {
         errorCorrectionLevel: "M",
@@ -471,7 +472,8 @@ export default function EquipmentList() {
       ctx.textAlign = "center";
       ctx.font = "12px Arial";
       ctx.fillStyle = "#666";
-      ctx.fillText(activeId, qrX + (qrSize / 2), qrY + qrSize + 20);
+      // show equipment id below the QR code
+      ctx.fillText(uniqueUnitId, qrX + (qrSize / 2), qrY + qrSize + 20);
       
       ctx.textAlign = "left";
       const footerY = startY + contentH - 30;
@@ -701,6 +703,9 @@ export default function EquipmentList() {
                         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Unit #{idx + 1}</span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full border ${unit.userId ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                            {unit.userId ? "Assigned" : "In Stock"}
+                           <p className="font-mono text-xs font-bold text-[#DC6D18]">
+                           {unit.equipmentId}
+      </p>
                         </span>
                       </div>
 
