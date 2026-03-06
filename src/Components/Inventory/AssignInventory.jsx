@@ -239,16 +239,12 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
     // Filter equipment list for matches
     const matches = equipmentList.filter(e => e.equipmentName === targetName);
     
-    // Extract unassigned serial numbers
+    // Extract unassigned serial numbers (flat structure: each equipment is a single unit)
     const serials = [];
     matches.forEach(eq => {
-      if (eq.assignments && Array.isArray(eq.assignments)) {
-        eq.assignments.forEach(a => {
-          // Check if userId is null/empty (Unassigned)
-          if (!a.userId) { 
-            serials.push(a.serialNumber);
-          }
-        });
+      // Check if userId is null/empty (Unassigned)
+      if (!eq.userId && eq.serialNumber) { 
+        serials.push(eq.serialNumber);
       }
     });
 
@@ -277,7 +273,7 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
 
     // Combine with unassigned equipment names so new equipment shows in the list
     const unassignedEquipmentList = (equipmentItems || [])
-      .filter((e) => Array.isArray(e.assignments) ? e.assignments.some(a => !a.userId) : true)
+      .filter((e) => !e.userId)  // Equipment is unassigned if userId is null/empty
       .filter(Boolean);
 
     // Combine all options, but exclude SKUs with zero left

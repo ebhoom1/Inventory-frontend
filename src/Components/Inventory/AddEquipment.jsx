@@ -73,15 +73,10 @@ const [serialNumbers, setSerialNumbers] = useState([""]);
       if (!eq) continue;
       // only consider same equipment type/name
       if ((eq.equipmentName || "") !== (formData.equipmentName || "")) continue;
-      // check assignments
-      if (Array.isArray(eq.assignments)) {
-        for (const a of eq.assignments) {
-          if (!a) continue;
-          if (normalize(a.serialNumber) === n) return { equipment: eq, assignment: a };
-        }
+      // In flat structure, each document is a single unit with direct serialNumber field
+      if (eq.serialNumber && normalize(eq.serialNumber) === n) {
+        return { equipment: eq, assignment: null };
       }
-      // check fallback top-level serialNumber if present
-      if (normalize(eq.serialNumber) === n) return { equipment: eq, assignment: null };
     }
     return null;
   };

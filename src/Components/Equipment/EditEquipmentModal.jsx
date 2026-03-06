@@ -92,14 +92,10 @@ const [editedAssignments, setEditedAssignments] = useState([]);
   useEffect(() => {
     if (equipment) {
 
-    let specificSerial = equipment.serialNumber || ""; // Default to batch serial
-
-      // If we are editing a specific user's row, look inside assignments
-      if (equipment.assignedUserId && equipment.assignments && Array.isArray(equipment.assignments)) {
-        const userAssignment = equipment.assignments.find(a => a.userId === equipment.assignedUserId);
-        if (userAssignment && userAssignment.serialNumber) {
-          specificSerial = userAssignment.serialNumber;
-        }
+    let specificSerial = equipment.serialNumber || ""; // Use this unit's serial number
+      // In flat structure, each document is a single unit with direct serialNumber field
+      if (equipment.serialNumber) {
+        specificSerial = equipment.serialNumber;
       }
 
     setFormData({
@@ -112,16 +108,9 @@ const [editedAssignments, setEditedAssignments] = useState([]);
         mfgMonth: formatMonthForInput(equipment.mfgMonth),
       });
 
-      // 2. ✅ Initialize Assignments for the list view
-      if (equipment.assignments && Array.isArray(equipment.assignments)) {
-        // Only show assignments that belong to the current assigned user (if any).
-        const currentAssignedUser = equipment.assignedUserId || equipment.userId || null;
-        const assignedOnly = equipment.assignments.filter(unit => unit.userId && currentAssignedUser ? unit.userId === currentAssignedUser : unit.userId );
-        // Create a copy of the filtered array so we can edit it without mutating props
-        setEditedAssignments(assignedOnly.map(a => ({ ...a })));
-      } else {
-        setEditedAssignments([]);
-      }
+      // 2. ✅ In flat structure, each document is a single unit
+      // Create edit copy with just this unit's data
+      setEditedAssignments([{ ...equipment }]);
     }
   }, [equipment]);
 

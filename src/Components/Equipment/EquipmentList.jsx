@@ -39,17 +39,10 @@ const EquipmentDetailsRow = ({
     }
   };
 
-  const unitCount = typeof assignedCount === 'number' ? assignedCount : (
-    item.assignments && Array.isArray(item.assignments)
-      ? item.assignments.filter((a) => a && a.userId && (assignedUserId ? a.userId === assignedUserId : a.userId)).length
-      : 0
-  );
+  const unitCount = typeof assignedCount === 'number' ? assignedCount : 1;
 
   const getUserDisplay = () => {
     let assignedUser = assignedUserId || item.userId;
-    if (!assignedUser && item.assignments && item.assignments.length > 0) {
-      assignedUser = item.assignments[0].userId;
-    }
     
     if (!assignedUser) {
       return <span className="text-gray-400 italic">Unassigned</span>;
@@ -226,10 +219,12 @@ export default function EquipmentList() {
 
       const data = await res.json();
       
-      if (data.success && Array.isArray(data.assignments)) {
-        let assignedOnly = data.assignments.filter((u) => u && u.userId);
+      if (data.success) {
+        // For flat structure, data.equipment is an array where each doc = 1 unit
+        const equipmentList = Array.isArray(data.equipment) ? data.equipment : (Array.isArray(data.assignments) ? data.assignments : []);
+        let assignedOnly = equipmentList.filter((u) => u && u.userId);
         if (assignedUserId) {
-          assignedOnly = assignedOnly.filter((u) => u.userId === assignedUserId);
+          assignedOnly = assignedOnly.filter((u) => String(u.userId) === String(assignedUserId));
         }
         setAssignments(assignedOnly);
       } else {
@@ -588,39 +583,34 @@ export default function EquipmentList() {
                 {(() => {
                   const rows = [];
                   (list || []).forEach((it) => {
-                    // 1. Gather unique userIds involved with this equipment
+                    // 1. Gather unique userIds involved with this equipment (flat structure = 1 user per doc)
                     const uSet = new Set();
-                    if (it.userId) uSet.add(it.userId); // Top-level user
-                    if (it.assignments && Array.isArray(it.assignments)) {
-                      it.assignments.forEach((a) => { if (a && a.userId) uSet.add(a.userId); });
-                    }
+                    if (it.userId) uSet.add(it.userId);
 
                     // 2. If valid users found, create a row for EACH
                     if (uSet.size > 0) {
                       uSet.forEach((uid) => {
-                        // A. Find specific assignments for this user
-                        const userAssignments = (it.assignments || []).filter(a => a && a.userId === uid);
-                        const count = userAssignments.length || (it.userId === uid ? 1 : 0);
+                        // A. In flat structure, each document is 1 unit - check if this unit belongs to this user
+                        const count = it.userId === uid ? 1 : 0;
                       
                         let specificInstall = it.installationDate;
                         let specificExpiry = it.expiryDate;
                         let specificRefDue = it.refDue;
 
-                        if (userAssignments.length > 0) {
-                            const unit = userAssignments[0];
-
-                            if (unit.installationDate) {
-                                specificInstall = unit.installationDate;
-                            } else if (unit.assignedAt) {
-                                specificInstall = unit.assignedAt;
+                        if (count > 0) {
+                            // This unit is assigned to this user, use unit-specific dates
+                            if (it.installationDate) {
+                                specificInstall = it.installationDate;
+                            } else if (it.assignedAt) {
+                                specificInstall = it.assignedAt;
                             }
 
-                            if (!specificExpiry && unit.expiryDate) {
-                                specificExpiry = unit.expiryDate;
+                            if (!specificExpiry && it.expiryDate) {
+                                specificExpiry = it.expiryDate;
                             }
 
-                            if (!specificRefDue && unit.refDue) {
-                                specificRefDue = unit.refDue;
+                            if (!specificRefDue && it.refDue) {
+                                specificRefDue = it.refDue;
                             }
                         }
 

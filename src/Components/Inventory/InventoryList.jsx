@@ -123,13 +123,15 @@ function InventoryList() {
   const [modalAssignments, setModalAssignments] = useState([]);
   const [modalSku, setModalSku] = useState("");
 
-  // Fetch assignments for a SKU (equipmentId)
+  // Fetch equipment units for this SKU (equipmentId)
   const handleShowDetails = async (equipmentId, skuName) => {
     try {
       const res = await fetch(`${API_URL}/api/equipment/${equipmentId}/qrcodes`);
       const data = await res.json();
       if (data.success) {
-        setModalAssignments(data.assignments);
+        // Use equipment array (each doc = 1 unit in flat structure)
+        const equipmentList = Array.isArray(data.equipment) ? data.equipment : (Array.isArray(data.assignments) ? data.assignments : []);
+        setModalAssignments(equipmentList);
         setModalSku(skuName);
         setModalOpen(true);
       } else {

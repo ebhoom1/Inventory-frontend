@@ -101,14 +101,11 @@ function AssignedUsers() {
           allEq.forEach(eq => {
               // Match the Equipment Name (SKU)
               if (eq.equipmentName === row.skuName) {
-                  // Check assignments inside this equipment batch
-                  if (eq.assignments && Array.isArray(eq.assignments)) {
-                      eq.assignments.forEach(a => {
-                          // Check if this specific unit is assigned to the clicked user
-                          if (String(a.userId) === String(row.userId)) {
-                              relevantSerials.push(a.serialNumber);
-                          }
-                      });
+                  // In flat structure, each document is a single unit assigned to one user
+                  if (String(eq.userId) === String(row.userId)) {
+                      if (eq.serialNumber) {
+                          relevantSerials.push(eq.serialNumber);
+                      }
                   }
               }
           });

@@ -153,18 +153,14 @@ const equipmentSlice = createSlice({
       state.loading = false;
       state.successMessage = action.payload?.message || "Equipment assigned";
       
-      // Optimistic Update: Find the equipment and update the specific assignment in the list
-      // This makes the UI update instantly without a refresh
+      // Optimistic Update: In flat structure, each document is a single unit
+      // Find the exact unit by equipmentId and update it
       const { equipmentId, assignment } = action.payload;
       const eqIndex = state.list.findIndex(e => e.equipmentId === equipmentId);
       
       if (eqIndex !== -1 && assignment) {
-        const eq = state.list[eqIndex];
-        // Find the unit with the same serial number and update it
-        const assignIndex = eq.assignments.findIndex(a => a.serialNumber === assignment.serialNumber);
-        if (assignIndex !== -1) {
-           eq.assignments[assignIndex] = assignment;
-        }
+        // Update the unit directly since each document = 1 unit
+        state.list[eqIndex] = { ...state.list[eqIndex], ...assignment };
       }
     })
     .addCase(assignEquipment.rejected, (state, action) => {
