@@ -482,26 +482,26 @@
 //           ...prev,
 //          equipmentId: eq.equipmentId || prev.equipmentId,
 //           equipmentName: eq.equipmentName || prev.equipmentName,
-          
+
 //           // 1. User ID: Assignment > Equipment > Scanned > Previous
 //           userId: (preferredAssignment && preferredAssignment.userId) || eq.userId || scanned.userId || prev.userId,
-          
+
 //           // 2. Location: Assignment > Equipment > Scanned > Previous
 //           location: (preferredAssignment && preferredAssignment.location) || eq.location || scanned.location || prev.location,
-          
+
 //           // 3. Equipment Specs (Map DB keys to Form keys)
 //           brand: eq.brand || prev.brand,
 //           capacity: eq.capacity || prev.capacity,
-//           type: eq.modelSeries || prev.type, 
+//           type: eq.modelSeries || prev.type,
 //           // Map 'content' from DB to 'product' in Form, fallback to 'content' field if you use that too
-//           product: eq.content || prev.product, 
-//           content: eq.content || prev.content, 
+//           product: eq.content || prev.product,
+//           content: eq.content || prev.content,
 
 //           // 4. Dates: ALWAYS use DB value if it exists, formatted to YYYY-MM-DD
 //           installationDate: eq.installationDate ? String(eq.installationDate).slice(0, 10) : prev.installationDate,
 //           refillingDue: eq.refDue ? String(eq.refDue).slice(0, 10) : prev.refillingDue,
 //           expiryDate: eq.expiryDate ? String(eq.expiryDate).slice(0, 10) : prev.expiryDate,
-          
+
 //           // 5. Misc
 //           batchNo: eq.batchNo || prev.batchNo,
 //           notes: eq.notes || prev.notes,
@@ -893,7 +893,7 @@
 //             <button
 //               type="button"
 //               onClick={() => setScannerVisible(!isScannerVisible)}
-//               className={`h-[52px] px-6 rounded-lg font-semibold shadow-md whitespace-nowrap 
+//               className={`h-[52px] px-6 rounded-lg font-semibold shadow-md whitespace-nowrap
 //                 ${
 //                   isScannerVisible
 //                     ? "bg-red-600 text-white hover:bg-red-700"
@@ -1277,7 +1277,6 @@
 
 // export default RequestService;
 
-
 // RequestService.jsx
 import React, { useState, useEffect } from "react";
 import { Html5Qrcode } from "html5-qrcode";
@@ -1333,7 +1332,7 @@ const DATE_TIME_FIELDS = new Set(["date", "createdAt", "updatedAt"]);
 function RequestService() {
   const dispatch = useDispatch();
   const { loading, error, successMessage } = useSelector(
-    (s) => s.serviceRequests
+    (s) => s.serviceRequests,
   );
 
   // ----- Role detection (supports both user & users slices) -----
@@ -1342,7 +1341,7 @@ function RequestService() {
       (s) =>
         s.user?.userData?.validUserOne?.adminType ||
         s.user?.userData?.role ||
-        s.user?.userData?.userType
+        s.user?.userData?.userType,
     ) ||
     useSelector((s) => s.users?.userInfo?.userType) ||
     "user";
@@ -1358,7 +1357,7 @@ function RequestService() {
       s.users?.userInfo?.userId ||
       s.user?.userData?.userId ||
       s.user?.userData?.validUserOne?.userId ||
-      "me"
+      "me",
   );
 
   const r1 = useSelector((s) => s.users?.token);
@@ -1473,7 +1472,7 @@ function RequestService() {
     try {
       const url = userId
         ? `${apiBase}/api/reports/export/latest?userId=${encodeURIComponent(
-            userId
+            userId,
           )}`
         : `${apiBase}/api/reports/export/latest`;
 
@@ -1515,7 +1514,7 @@ function RequestService() {
         `${API_URL}/api/reports/latest?userId=${encodeURIComponent(uid)}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       const data = await res.json();
@@ -1540,10 +1539,13 @@ function RequestService() {
     ["Pincode", "pincode"],
     ["Brand", "brand"],
     ["Type", "type"],
+    ["Model / Series", "type"],
     ["Capacity", "capacity"],
     ["Installation Date", "installationDate"],
     ["Can Serial Number", "canSerialNumber"],
     ["Refilling Due", "refillingDue"],
+
+    ["Next Service Date", "nextServiceDate"],
     ["Product", "product"],
     ["Others", "others"],
     ["Tag", "tag"],
@@ -1608,10 +1610,7 @@ function RequestService() {
       // ✅ CRITICAL FIX:
       // Always use QR eid/equipmentId for lookup, NEVER the whole JSON string
       const maybeId =
-        mappedData.equipmentId ||
-        scanned._id ||
-        (!looksJson ? raw : "") ||
-        "";
+        mappedData.equipmentId || scanned._id || (!looksJson ? raw : "") || "";
 
       if (!maybeId) {
         Swal.fire({
@@ -1640,7 +1639,7 @@ function RequestService() {
             try {
               const serialRes = await fetch(
                 `${API_URL}/api/equipment/by-serial/${encodeURIComponent(serial)}`,
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}` } },
               );
               const serialData = await serialRes.json();
               if (
@@ -1743,19 +1742,20 @@ function RequestService() {
         if (eq.equipmentId) {
           const repRes = await fetch(
             `${API_URL}/api/reports?equipmentId=${encodeURIComponent(
-              eq.equipmentId
+              eq.equipmentId,
             )}`,
-            { headers: { Authorization: `Bearer ${token}` } }
+            { headers: { Authorization: `Bearer ${token}` } },
           );
           const repData = await repRes.json();
 
           let reports = [];
           if (Array.isArray(repData)) reports = repData;
-          else if (repData && Array.isArray(repData.items)) reports = repData.items;
+          else if (repData && Array.isArray(repData.items))
+            reports = repData.items;
 
           if (repRes.ok && reports.length > 0) {
             const sorted = [...reports].sort(
-              (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+              (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
             );
             setReportHistory(sorted);
 
@@ -1789,7 +1789,8 @@ function RequestService() {
                 baseCap: last.baseCap ?? prev.baseCap,
                 powderFlow: last.powderFlow ?? prev.powderFlow,
                 remarks: last.remarks ?? prev.remarks,
-                faultDescription: last.faultDescription ?? prev.faultDescription,
+                faultDescription:
+                  last.faultDescription ?? prev.faultDescription,
                 serviceType: last.serviceType ?? prev.serviceType,
               }));
             }
@@ -1863,7 +1864,8 @@ function RequestService() {
     const payload = {
       ...formData,
       date: formData?.date || new Date().toISOString(),
-      nextServiceDate: formData?.nextServiceDate || formData?.refillingDue || null,
+      nextServiceDate:
+        formData?.nextServiceDate || formData?.refillingDue || null,
     };
     dispatch(createServiceRequest(payload));
   };
@@ -1922,7 +1924,9 @@ function RequestService() {
             {userLoading && (
               <div className="text-sm text-gray-600">Loading…</div>
             )}
-            {userError && <div className="text-sm text-red-600">{userError}</div>}
+            {userError && (
+              <div className="text-sm text-red-600">{userError}</div>
+            )}
 
             {!userLoading && !userError && selectedUserId && (
               <div className="overflow-x-auto bg-white rounded-lg shadow">
@@ -1946,7 +1950,10 @@ function RequestService() {
                   <tbody className="bg-white divide-y divide-gray-100">
                     {userReports.length === 0 ? (
                       <tr>
-                        <td className="px-4 py-4 text-sm text-gray-600" colSpan={4}>
+                        <td
+                          className="px-4 py-4 text-sm text-gray-600"
+                          colSpan={4}
+                        >
                           No reports found for this user.
                         </td>
                       </tr>
@@ -2031,7 +2038,9 @@ function RequestService() {
 
       <form
         className="space-y-6"
-        onSubmit={isAdmin || isTechnician ? handleSubmit : (e) => e.preventDefault()}
+        onSubmit={
+          isAdmin || isTechnician ? handleSubmit : (e) => e.preventDefault()
+        }
       >
         <div className="flex items-end gap-4 p-4 border-2 border-dashed border-gray-300 rounded-xl">
           <div className="flex-1">
@@ -2067,7 +2076,9 @@ function RequestService() {
               <button
                 type="button"
                 onClick={() =>
-                  setCameraFacing((p) => (p === "user" ? "environment" : "user"))
+                  setCameraFacing((p) =>
+                    p === "user" ? "environment" : "user",
+                  )
                 }
                 className="h-[52px] px-4 rounded-lg font-semibold shadow-md bg-white border border-gray-200 hover:bg-gray-50"
                 title="Flip camera"
@@ -2180,9 +2191,17 @@ function RequestService() {
                 ["safetyPin", "Safety Pin", ["Green", "Red", "na"]],
                 ["pressureGauge", "Pressure Gauge", ["Yes", "No", "na"]],
                 ["valveSupport", "Valve Support", ["yes", "no", "na"]],
-                ["corrosion", "Corrosion", ["Fine", "Moderate", "Severe", "na"]],
+                [
+                  "corrosion",
+                  "Corrosion",
+                  ["Fine", "Moderate", "Severe", "na"],
+                ],
                 ["baseCap", "Base Cap", ["Ok", "Damaged", "Missing", "na"]],
-                ["powderFlow", "Powder Flow", ["good", "average", "poor", "na"]],
+                [
+                  "powderFlow",
+                  "Powder Flow",
+                  ["good", "average", "poor", "na"],
+                ],
               ].map(([name, label, options]) => (
                 <div className="relative" key={name}>
                   <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18]">
@@ -2216,7 +2235,9 @@ function RequestService() {
                   required
                 >
                   <option value="">Select a service type</option>
-                  <option value="Routine Maintenance">Routine Maintenance</option>
+                  <option value="Routine Maintenance">
+                    Routine Maintenance
+                  </option>
                   <option value="Repair">Repair</option>
                   <option value="Inspection">Inspection</option>
                   <option value="Calibration">Calibration</option>
@@ -2379,8 +2400,8 @@ function RequestService() {
                     {DATE_TIME_FIELDS.has(key)
                       ? formatISTDateTime(selectedReport[key])
                       : DATE_ONLY_FIELDS.has(key)
-                      ? formatISTDate(selectedReport[key])
-                      : selectedReport[key] || "—"}
+                        ? formatISTDate(selectedReport[key])
+                        : selectedReport[key] || "—"}
                   </span>
                 </div>
               ))}
