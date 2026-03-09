@@ -581,57 +581,35 @@ export default function EquipmentList() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {(() => {
-                  const rows = [];
+                  // ✅ GROUP by batchNo and userId to avoid duplicates
+                  const grouped = {};
+                  
                   (list || []).forEach((it) => {
-                    // 1. Gather unique userIds involved with this equipment (flat structure = 1 user per doc)
-                    const uSet = new Set();
-                    if (it.userId) uSet.add(it.userId);
-
-                    // 2. If valid users found, create a row for EACH
-                    if (uSet.size > 0) {
-                      uSet.forEach((uid) => {
-                        // A. In flat structure, each document is 1 unit - check if this unit belongs to this user
-                        const count = it.userId === uid ? 1 : 0;
+                    if (it.userId) {
+                      // Create unique key for this equipment batch + user combination
+                      const key = `${it.batchNo || it.equipmentId}::${it.userId}`;
                       
-                        let specificInstall = it.installationDate;
-                        let specificExpiry = it.expiryDate;
-                        let specificRefDue = it.refDue;
-
-                        if (count > 0) {
-                            // This unit is assigned to this user, use unit-specific dates
-                            if (it.installationDate) {
-                                specificInstall = it.installationDate;
-                            } else if (it.assignedAt) {
-                                specificInstall = it.assignedAt;
-                            }
-
-                            if (!specificExpiry && it.expiryDate) {
-                                specificExpiry = it.expiryDate;
-                            }
-
-                            if (!specificRefDue && it.refDue) {
-                                specificRefDue = it.refDue;
-                            }
-                        }
-
-                        // C. Push row with specific data overrides
-                        rows.push({ 
-                            ...it, 
-                            assignedUserId: uid, 
-                            assignedCount: count,
-                            installationDate: specificInstall,
-                            expiryDate: specificExpiry,
-                            refDue: specificRefDue
-                        });
-                      });
-                    } 
-                    // ❌ REMOVED: The logic that created rows for unassigned items is gone.
+                      if (!grouped[key]) {
+                        grouped[key] = {
+                          ...it,
+                          assignedUserId: it.userId,
+                          assignedCount: 0,
+                          units: []
+                        };
+                      }
+                      
+                      // Increment count and track units for this group
+                      grouped[key].assignedCount += 1;
+                      grouped[key].units.push(it);
+                    }
                   });
+
+                  const rows = Object.values(grouped);
 
                   return rows.length > 0 ? (
                     rows.map((item) => (
                         <EquipmentDetailsRow
-                        key={`${item.equipmentId}::${item.assignedUserId}`}
+                        key={`${item.batchNo || item.equipmentId}::${item.assignedUserId}`}
                         item={item}
                         assignedUserId={item.assignedUserId}
                         assignedCount={item.assignedCount}

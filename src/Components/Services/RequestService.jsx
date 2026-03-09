@@ -1510,8 +1510,9 @@ function RequestService() {
     setUserError("");
 
     try {
+      const cacheBuster = Date.now();
       const res = await fetch(
-        `${API_URL}/api/reports/latest?userId=${encodeURIComponent(uid)}`,
+       `${API_URL}/api/reports/latest?userId=${encodeURIComponent(uid)}&t=${cacheBuster}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -1845,11 +1846,15 @@ function RequestService() {
       }));
       dispatch(resetServiceRequestState());
     }
+    if (selectedUserId) {
+         fetchReportsForUser(selectedUserId);
+      }
+
     if (error) {
       Swal.fire({ title: "Failed", text: error, icon: "error" });
       dispatch(resetServiceRequestState());
     }
-  }, [successMessage, error, dispatch]);
+  }, [successMessage, error,selectedUserId, dispatch]);
 
   // ----- Handlers -----
   const handleChange = (e) => {
