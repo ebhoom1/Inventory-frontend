@@ -258,6 +258,9 @@ const shownDue = useMemo(() => {
                   Equipment ID
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Serial Number
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Service Type
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -281,6 +284,9 @@ const shownDue = useMemo(() => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-orange-600 font-semibold">
                       {item.equipmentId || "-"}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-blue-600">
+                      {item.canSerialNumber || "-"}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {item.serviceType || "-"}
                     </td>
@@ -294,7 +300,7 @@ const shownDue = useMemo(() => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="text-center py-10 text-gray-500">
+                  <td colSpan="6" className="text-center py-10 text-gray-500">
                     No services due for the selected period.
                   </td>
                 </tr>
