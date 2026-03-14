@@ -133,14 +133,10 @@ const [editedAssignments, setEditedAssignments] = useState([]);
     e.preventDefault();
     if (isLoading) return; 
     
-  const updatedSerialNumber = editedAssignments.length > 0 
-      ? editedAssignments[0].serialNumber 
-      : formData.serialNumber;
-
     // ✅ Include the updated assignments array in the save payload
     const payload = {
         ...formData,
-        serialNumber: updatedSerialNumber // <-- Explicitly set the updated serial number here!
+        assignments: editedAssignments 
     };
     
     onSave(payload);
