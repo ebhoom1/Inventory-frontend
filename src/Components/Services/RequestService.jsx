@@ -1583,7 +1583,7 @@ function RequestService() {
         equipmentId: scanned.eid || scanned.equipmentId || "",
         userId: scanned.uid || scanned.userId || "",
         location: scanned.loc || scanned.location || "",
-        serial: scanned.sn || scanned.serialNumber || "",
+        canSerialNumber: scanned.sn || scanned.serialNumber || prev.canSerialNumber,
         installDate: scanned.ins || scanned.installationDate || "",
         expiryDate: scanned.exp || scanned.expiryDate || "",
         capacity: scanned.cap || scanned.capacity || "",
