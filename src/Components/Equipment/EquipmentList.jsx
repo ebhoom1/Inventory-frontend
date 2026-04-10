@@ -289,17 +289,19 @@ export default function EquipmentList() {
       // const displayId = equipmentId; // not currently used
 
       const generatedQRUrl = await QRCode.toDataURL(qrPayload, {
-        errorCorrectionLevel: "M",
-        margin: 1,      // Standard requirement for scanners to "lock on"
-        width: 600,     // High resolution source before drawing to canvas
+        errorCorrectionLevel: "L",    // Lower error correction since we have high resolution
+        margin: 2,      // Optimal margin for scanner recognition
+        width: 1200,    // INCREASED: High resolution source (doubled for better clarity)
         color: { 
           dark: "#000000", 
           light: "#FFFFFF" // MUST be solid white for scannability
         }
       });
 
-      const canvasWidth = 1200;
-      const canvasHeight = 800;
+      // INCREASED RESOLUTION: Main label is now 100mm x 75mm (was 100mm x 50mm)
+      // Canvas proportions: 2000x1500px (was 1200x800px) - 1.67x better resolution
+      const canvasWidth = 2000;
+      const canvasHeight = 1500;
       const canvas = document.createElement("canvas");
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
@@ -312,8 +314,8 @@ export default function EquipmentList() {
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-      const padding = 40;
-      const borderRadius = 50;
+      const padding = 60;          // INCREASED: Adjusted proportionally for larger canvas
+      const borderRadius = 80;      // INCREASED: Maintains design aesthetics
       const contentW = canvasWidth - (padding * 2);
       const contentH = canvasHeight - (padding * 2);
       const startX = padding;
@@ -351,8 +353,8 @@ export default function EquipmentList() {
       ctx.fill();
       ctx.restore();
 
-      const headerY = startY + 50;
-      const leftMargin = startX + 40;
+      const headerY = startY + 70;         // INCREASED: Proportional spacing
+      const leftMargin = startX + 60;      // INCREASED: Better horizontal spacing
 
       const loadImg = (src) => new Promise((resolve, reject) => {
         const img = new Image();
@@ -362,7 +364,7 @@ export default function EquipmentList() {
         img.src = src;
       });
               const [logoImg, qrImg] = await Promise.all([loadImg(logo), loadImg(generatedQRUrl)]);
-        const lHeight = 90;
+        const lHeight = 140;        // INCREASED: Proportional to larger canvas
         const lWidth = (logoImg.width / logoImg.height) * lHeight;
     ctx.drawImage(logoImg, startX + 40, startY + 40, lWidth, lHeight);
 
@@ -370,22 +372,22 @@ export default function EquipmentList() {
 
         const textOffsetX = leftMargin + lWidth + 20;
         ctx.fillStyle = colorBlack;
-        ctx.font = "bold 55px Arial, sans-serif";
-        ctx.fillText("Safetik", textOffsetX, headerY + 30);
+        ctx.font = "bold 85px Arial, sans-serif";    // INCREASED: Proportional
+        ctx.fillText("Safetik", textOffsetX, headerY + 50);
 
-        ctx.font = "bold 20px Arial, sans-serif";
-        ctx.fillText("Safety Solutions Pvt.Ltd.", textOffsetX, headerY + 60);
+        ctx.font = "bold 32px Arial, sans-serif";    // INCREASED: Proportional
+        ctx.fillText("Safety Solutions Pvt.Ltd.", textOffsetX, headerY + 90);
 
-        ctx.font = "bold 18px Arial, sans-serif";
-        ctx.fillText("1st floor Aiswarya bldg, S.A. Road, Valanjambalam, Cochin 16.", leftMargin, headerY + 100);
+        ctx.font = "bold 28px Arial, sans-serif";    // INCREASED: Proportional
+        ctx.fillText("1st floor Aiswarya bldg, S.A. Road, Valanjambalam, Cochin 16.", leftMargin, headerY + 150);
 
-        const rightAlignX = startX + contentW - 50;
+        const rightAlignX = startX + contentW - 80;
         ctx.textAlign = "right";
-        ctx.font = "bold 24px Arial, sans-serif";
-        ctx.fillText("0484 4117109 | 9846196537", rightAlignX, headerY + 40);
-        ctx.fillText("9895039921", rightAlignX, headerY + 75);
-        ctx.font = "bold 18px Arial, sans-serif";
-        ctx.fillText("info@safetik.in | www.safetik.in", rightAlignX, headerY + 100);
+        ctx.font = "bold 36px Arial, sans-serif";    // INCREASED: Proportional
+        ctx.fillText("0484 4117109 | 9846196537", rightAlignX, headerY + 60);
+        ctx.fillText("9895039921", rightAlignX, headerY + 115);
+        ctx.font = "bold 28px Arial, sans-serif";    // INCREASED: Proportional
+        ctx.fillText("info@safetik.in | www.safetik.in", rightAlignX, headerY + 150);
         ctx.textAlign = "left";
       }catch (e) {
         console.warn("Logo load failed", e);
@@ -405,25 +407,25 @@ export default function EquipmentList() {
 
       const drawField = (label, value, x, y, width) => {
         ctx.fillStyle = colorBlack;
-        const fontSize = label.length > 10 ? "32px" : "36px";
+        const fontSize = label.length > 10 ? "48px" : "54px";  // INCREASED: Proportional
         ctx.font = `${fontSize} Arial, sans-serif`;
         ctx.fillText(label, x, y);
 
-        const lineY = y + 10;
-        const lineStartX = x + ctx.measureText(label).width + 10;
+        const lineY = y + 15;  // INCREASED: Proportional spacing
+        const lineStartX = x + ctx.measureText(label).width + 15;
         const lineEndX = x + width;
 
         if (value) {
-          ctx.font = "bold 34px Courier New, monospace";
+          ctx.font = "bold 52px Courier New, monospace";  // INCREASED: Proportional
           ctx.fillStyle = "#000";
-          ctx.fillText(value, lineStartX + 10, y);
+          ctx.fillText(value, lineStartX + 15, y);
         }
         drawDottedLine(lineStartX, lineY, lineEndX);
       };
 
-      let currentY = startY + 220;
-      const rowHeight = 90;
-      const fullLineW = contentW - 80;
+      let currentY = startY + 320;   // INCREASED: Proportional spacing
+      const rowHeight = 140;           // INCREASED: More space for readable content
+      const fullLineW = contentW - 120; // INCREASED: Proportional
 
       drawField("Type", equipment.equipmentName || "", leftMargin, currentY, fullLineW);
 
@@ -443,20 +445,24 @@ export default function EquipmentList() {
       drawField("H.P.Tested on", "", leftMargin, currentY, halfWidth);
       drawField(labelRow4, formatDate(valueRow4), rightColStart, currentY, halfWidth);
 
-      const qrSize = 200;
-      const qrX = startX + contentW - qrSize - 40;
-      const qrY = startY + contentH - qrSize - 40;
+      // CRITICAL FIX: Increased QR code size from 200px to 400px
+      // On 100x75mm label, this renders as scannable instead of microscopic
+      const qrSize = 400;              // INCREASED: 2x larger for scannability
+      const qrX = startX + contentW - qrSize - 60;  // ADJUSTED: Proportional positioning
+      const qrY = startY + contentH - qrSize - 60;  // ADJUSTED: Proportional positioning
      
       
 
-    ctx.imageSmoothingEnabled = false;
+    // QUALITY SETTINGS: Disable smoothing for crisp QR code dots
+      ctx.imageSmoothingEnabled = false;
       ctx.mozImageSmoothingEnabled = false;
       ctx.webkitImageSmoothingEnabled = false;
       try {
       
         ctx.fillStyle = "white";
-        ctx.fillRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
+        ctx.fillRect(qrX - 15, qrY - 15, qrSize + 30, qrSize + 30);  // ADJUSTED: Larger white background
         ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+        // Re-enable smoothing for other elements
         ctx.imageSmoothingEnabled = true;
        
       } catch (e) {
@@ -465,21 +471,21 @@ export default function EquipmentList() {
      
   
       ctx.textAlign = "center";
-      ctx.font = "12px Arial";
+      ctx.font = "18px Arial";         // INCREASED: Proportional
       ctx.fillStyle = "#666";
       // show equipment id below the QR code
-      ctx.fillText(uniqueUnitId, qrX + (qrSize / 2), qrY + qrSize + 20);
+      ctx.fillText(uniqueUnitId, qrX + (qrSize / 2), qrY + qrSize + 40);
       
       ctx.textAlign = "left";
-      const footerY = startY + contentH - 30;
+      const footerY = startY + contentH - 50; // ADJUSTED: Proportional
 
       ctx.fillStyle = "#DC6D18";
-      ctx.font = "bold 14px Arial";
+      ctx.font = "bold 22px Arial";   // INCREASED: Proportional
       ctx.fillText("SERIAL NO:", leftMargin, footerY);
 
       ctx.fillStyle = "#000";
-      ctx.font = "bold 20px Courier New";
-      ctx.fillText(unit.serialNumber || "N/A", leftMargin + 90, footerY);
+      ctx.font = "bold 32px Courier New"; // INCREASED: Proportional
+      ctx.fillText(unit.serialNumber || "N/A", leftMargin + 140, footerY);
 
       const finalDataUrl = canvas.toDataURL("image/png",1.0);
       // 2. Create a new window for printing
@@ -492,34 +498,56 @@ export default function EquipmentList() {
           <head>
             <title>Print Label - ${unit.serialNumber}</title>
             <style>
-              /* Reset margins for the print job */
+              /* OPTIMIZED: Print settings for 100mm × 75mm label with enhanced QR scannability */
               @page {
-                size: 100mm 50mm;
-          margin: 0;
+                size: 100mm 75mm;    /* EXPANDED: Was 100mm × 50mm - now 100mm × 75mm */
+                margin: 0;
+                /* Disable browser page margins */
               }
+              
+              html, body {
+                margin: 0;
+                padding: 0;
+                width: 100mm;
+                height: 75mm;        /* EXPANDED: Proportional to new label size */
+              }
+              
               body {
-             margin: 0;
-          padding: 0;
-          width: 100mm;
-          height: 50mm;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          background-color: white;
-          -webkit-print-color-adjust: exact; 
-          print-color-adjust: exact;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background-color: white;
+                /* QUALITY: Ensure colors print exactly as drawn */
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
               }
+              
               img {
-              width: 100mm;
-          height: 50mm;
-          object-fit: contain;
-          image-rendering: -webkit-optimize-contrast;
-              image-rendering: crisp-edges;
-              image-rendering: pixelated;
+                width: 100mm;
+                height: 75mm;         /* EXPANDED: Proportional */
+                object-fit: contain;
+                /* CRITICAL: These settings ensure QR codes remain crisp and scannable */
+                image-rendering: -webkit-optimize-contrast;
+                image-rendering: crisp-edges;
+                image-rendering: pixelated;
+                /* Force high quality printing */
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
               }
-          @media print {
-          body { visibility: visible; }
-        }
+              
+              @media print {
+                body {
+                  visibility: visible;
+                  background: white !important;
+                }
+                img {
+                  display: block;
+                  margin: 0;
+                  padding: 0;
+                }
+              }
             </style>
           </head>
           <body>
