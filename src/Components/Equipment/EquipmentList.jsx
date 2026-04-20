@@ -298,10 +298,10 @@ export default function EquipmentList() {
         }
       });
 
-      // INCREASED RESOLUTION: Main label is now 100mm x 75mm (was 100mm x 50mm)
-      // Canvas proportions: 2000x1500px (was 1200x800px) - 1.67x better resolution
-      const canvasWidth = 2000;
-      const canvasHeight = 1500;
+      // NEW DIMENSIONS: Main label is now 90mm x 60mm
+      // Canvas proportions: 1800x1200px for optimal resolution
+      const canvasWidth = 1800;
+      const canvasHeight = 1200;
       const canvas = document.createElement("canvas");
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
@@ -310,12 +310,13 @@ export default function EquipmentList() {
       const colorBlack = "#1A1A1A";
       const colorRed = "#C1272D";
       const colorOrange = "#F15A24";
+      const colorYellow = "#FFD700";
 
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-      const padding = 60;          // INCREASED: Adjusted proportionally for larger canvas
-      const borderRadius = 80;      // INCREASED: Maintains design aesthetics
+      const padding = 50;          // Adjusted for new canvas size
+      const borderRadius = 70;      // Maintains design aesthetics
       const contentW = canvasWidth - (padding * 2);
       const contentH = canvasHeight - (padding * 2);
       const startX = padding;
@@ -334,27 +335,29 @@ export default function EquipmentList() {
       ctx.roundRect(startX, startY, contentW, contentH, borderRadius);
       ctx.clip();
 
+      // Red triangle - compact size
       ctx.beginPath();
-      ctx.moveTo(cornerX - 200, cornerY);
+      ctx.moveTo(cornerX - 140, cornerY);
       ctx.lineTo(cornerX, cornerY);
-      ctx.lineTo(cornerX, cornerY + 60);
-      ctx.lineTo(cornerX - 160, cornerY + 60);
+      ctx.lineTo(cornerX, cornerY + 45);
+      ctx.lineTo(cornerX - 110, cornerY + 45);
       ctx.closePath();
       ctx.fillStyle = colorRed;
       ctx.fill();
 
+      // Orange triangle - compact size
       ctx.beginPath();
-      ctx.moveTo(cornerX - 160, cornerY + 60);
-      ctx.lineTo(cornerX, cornerY + 60);
-      ctx.lineTo(cornerX, cornerY + 90);
-      ctx.lineTo(cornerX - 120, cornerY + 90);
+      ctx.moveTo(cornerX - 110, cornerY + 45);
+      ctx.lineTo(cornerX, cornerY + 45);
+      ctx.lineTo(cornerX, cornerY + 65);
+      ctx.lineTo(cornerX - 85, cornerY + 65);
       ctx.closePath();
       ctx.fillStyle = colorOrange;
       ctx.fill();
       ctx.restore();
 
-      const headerY = startY + 70;         // INCREASED: Proportional spacing
-      const leftMargin = startX + 60;      // INCREASED: Better horizontal spacing
+      const headerY = startY + 30;         // Compact header positioning
+      const leftMargin = startX + 40;      // Better horizontal spacing within box
 
       const loadImg = (src) => new Promise((resolve, reject) => {
         const img = new Image();
@@ -363,33 +366,46 @@ export default function EquipmentList() {
         img.onerror = () => reject(new Error("Failed to load image"));
         img.src = src;
       });
-              const [logoImg, qrImg] = await Promise.all([loadImg(logo), loadImg(generatedQRUrl)]);
-        const lHeight = 140;        // INCREASED: Proportional to larger canvas
-        const lWidth = (logoImg.width / logoImg.height) * lHeight;
-    ctx.drawImage(logoImg, startX + 40, startY + 40, lWidth, lHeight);
+      const [logoImg, qrImg] = await Promise.all([loadImg(logo), loadImg(generatedQRUrl)]);
+      const lHeight = 70;        // Reduced logo size for compact header
+      const lWidth = (logoImg.width / logoImg.height) * lHeight;
+      ctx.drawImage(logoImg, startX + 32, startY + 18, lWidth, lHeight);
 
       try {
-
-        const textOffsetX = leftMargin + lWidth + 20;
+        const textOffsetX = leftMargin + lWidth + 10;
         ctx.fillStyle = colorBlack;
-        ctx.font = "bold 85px Arial, sans-serif";    // INCREASED: Proportional
-        ctx.fillText("Safetik", textOffsetX, headerY + 50);
+        ctx.font = "bold 40px Arial, sans-serif";    // Reduced from 55px
+        ctx.fillText("Safetik", textOffsetX, headerY + 20);
 
-        ctx.font = "bold 32px Arial, sans-serif";    // INCREASED: Proportional
-        ctx.fillText("Safety Solutions Pvt.Ltd.", textOffsetX, headerY + 90);
+        ctx.font = "bold 14px Arial, sans-serif";    // Reduced from 20px
+        ctx.fillText("Safety Solutions Pvt.Ltd.", textOffsetX, headerY + 40);
 
-        ctx.font = "bold 28px Arial, sans-serif";    // INCREASED: Proportional
-        ctx.fillText("1st floor Aiswarya bldg, S.A. Road, Valanjambalam, Cochin 16.", leftMargin, headerY + 150);
+        // BOLD ADDRESS - more compact
+        ctx.font = "bold 18px Arial, sans-serif";    // Reduced from 25px
+        ctx.fillText("1st Fl. Aiswarya Bldg, S.A.Rd, Valanjambalam, Kochi-16", leftMargin, headerY + 58);
 
-        const rightAlignX = startX + contentW - 80;
+        // HIGHLIGHTED CONTACT NUMBER - compact
+        const rightAlignX = startX + contentW - 40;
         ctx.textAlign = "right";
-        ctx.font = "bold 36px Arial, sans-serif";    // INCREASED: Proportional
-        ctx.fillText("0484 4117109 | 9846196537", rightAlignX, headerY + 60);
-        ctx.fillText("9895039921", rightAlignX, headerY + 115);
-        ctx.font = "bold 28px Arial, sans-serif";    // INCREASED: Proportional
-        ctx.fillText("info@safetik.in | www.safetik.in", rightAlignX, headerY + 150);
+        
+        // Contact number background highlight
+        const contactText = "0484 4117109 | 9846196537";
+        ctx.font = "bold 16px Arial, sans-serif";    // Reduced from 22px
+        const contactMetrics = ctx.measureText(contactText);
+        ctx.fillStyle = colorYellow;
+        ctx.fillRect(rightAlignX - contactMetrics.width - 6, headerY - 2, contactMetrics.width + 12, 20);
+        
+        ctx.fillStyle = colorBlack;
+        ctx.font = "bold 16px Arial, sans-serif";
+        ctx.fillText(contactText, rightAlignX, headerY + 12);
+        
+        ctx.font = "bold 14px Arial, sans-serif";
+        ctx.fillText("9895039921", rightAlignX, headerY + 32);
+        
+        ctx.font = "bold 12px Arial, sans-serif";
+        ctx.fillText("info@safetik.in | www.safetik.in", rightAlignX, headerY + 48);
         ctx.textAlign = "left";
-      }catch (e) {
+      } catch (e) {
         console.warn("Logo load failed", e);
       }
 
@@ -407,60 +423,58 @@ export default function EquipmentList() {
 
       const drawField = (label, value, x, y, width) => {
         ctx.fillStyle = colorBlack;
-        const fontSize = label.length > 10 ? "48px" : "54px";  // INCREASED: Proportional
+        const fontSize = label.length > 10 ? "26px" : "30px";  // Adjusted size
         ctx.font = `${fontSize} Arial, sans-serif`;
         ctx.fillText(label, x, y);
 
-        const lineY = y + 15;  // INCREASED: Proportional spacing
-        const lineStartX = x + ctx.measureText(label).width + 15;
+        const lineY = y + 6;  // Adjusted spacing
+        const lineStartX = x + ctx.measureText(label).width + 6;
         const lineEndX = x + width;
 
         if (value) {
-          ctx.font = "bold 52px Courier New, monospace";  // INCREASED: Proportional
+          ctx.font = "bold 30px Courier New, monospace";  // Adjusted size
           ctx.fillStyle = "#000";
-          ctx.fillText(value, lineStartX + 15, y);
+          ctx.fillText(value, lineStartX + 6, y);
         }
         drawDottedLine(lineStartX, lineY, lineEndX);
       };
 
-      let currentY = startY + 320;   // INCREASED: Proportional spacing
-      const rowHeight = 140;           // INCREASED: More space for readable content
-      const fullLineW = contentW - 120; // INCREASED: Proportional
+      // TYPE AND CAPACITY on same line - positioned in middle of label
+      let currentY = startY + 155;   // Center the fields vertically
+      const rowHeight = 68;           // Optimized spacing
+      const fullLineW = contentW - 90; // Better width utilization
+      const halfWidth = (fullLineW / 2) - 20;
+      const rightColStart = leftMargin + halfWidth + 10;
 
-      drawField("Type", equipment.equipmentName || "", leftMargin, currentY, fullLineW);
+      // Row 1: Type and Capacity (SAME LINE)
+      drawField("Type", equipment.equipmentName || "", leftMargin, currentY, halfWidth);
+      drawField("Cap", equipment.capacity || "", rightColStart, currentY, halfWidth);
 
       currentY += rowHeight;
-      drawField("Capacity", equipment.capacity || "",leftMargin , currentY, fullLineW);
-
-      currentY += rowHeight;
-      const halfWidth = (fullLineW / 2) - 40;
-      const rightColStart = leftMargin + halfWidth - 120;
-    
-
+      
+      // Row 2: Refilled on and Exp/Next due
       drawField("Refilled on", "", leftMargin, currentY, halfWidth);
       drawField(labelRow3, formatDate(valueRow3), rightColStart, currentY, halfWidth);
 
       currentY += rowHeight;
 
-      drawField("H.P.Tested on", "", leftMargin, currentY, halfWidth);
+      // Row 3: H.P. Tested on and other date
+      drawField("H.P. Tested", "", leftMargin, currentY, halfWidth);
       drawField(labelRow4, formatDate(valueRow4), rightColStart, currentY, halfWidth);
 
-      // CRITICAL FIX: Increased QR code size from 200px to 400px
-      // On 100x75mm label, this renders as scannable instead of microscopic
-      const qrSize = 400;              // INCREASED: 2x larger for scannability
-      const qrX = startX + contentW - qrSize - 60;  // ADJUSTED: Proportional positioning
-      const qrY = startY + contentH - qrSize - 60;  // ADJUSTED: Proportional positioning
+      // QR CODE: Positioned in lower right area, sized for 90mm × 60mm label
+      const qrSize = 220;              // Sized appropriately for compact label
+      const qrX = startX + contentW - qrSize - 45;  // Right-aligned within box
+      const qrY = startY + contentH - qrSize - 60;  // Positioned in bottom right corner
      
-      
-
-    // QUALITY SETTINGS: Disable smoothing for crisp QR code dots
+      // QUALITY SETTINGS: Disable smoothing for crisp QR code dots
       ctx.imageSmoothingEnabled = false;
       ctx.mozImageSmoothingEnabled = false;
       ctx.webkitImageSmoothingEnabled = false;
       try {
       
         ctx.fillStyle = "white";
-        ctx.fillRect(qrX - 15, qrY - 15, qrSize + 30, qrSize + 30);  // ADJUSTED: Larger white background
+        ctx.fillRect(qrX - 6, qrY - 6, qrSize + 12, qrSize + 12);  // White background
         ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
         // Re-enable smoothing for other elements
         ctx.imageSmoothingEnabled = true;
@@ -471,21 +485,21 @@ export default function EquipmentList() {
      
   
       ctx.textAlign = "center";
-      ctx.font = "18px Arial";         // INCREASED: Proportional
+      ctx.font = "11px Arial";         // Small font for equipment ID
       ctx.fillStyle = "#666";
       // show equipment id below the QR code
-      ctx.fillText(uniqueUnitId, qrX + (qrSize / 2), qrY + qrSize + 40);
+      ctx.fillText(uniqueUnitId, qrX + (qrSize / 2), qrY + qrSize + 16);
       
       ctx.textAlign = "left";
-      const footerY = startY + contentH - 50; // ADJUSTED: Proportional
+      const footerY = startY + contentH - 32; // Footer within box
 
       ctx.fillStyle = "#DC6D18";
-      ctx.font = "bold 22px Arial";   // INCREASED: Proportional
+      ctx.font = "bold 14px Arial";   // Adjusted font size
       ctx.fillText("SERIAL NO:", leftMargin, footerY);
 
       ctx.fillStyle = "#000";
-      ctx.font = "bold 32px Courier New"; // INCREASED: Proportional
-      ctx.fillText(unit.serialNumber || "N/A", leftMargin + 140, footerY);
+      ctx.font = "bold 20px Courier New"; // Adjusted font size
+      ctx.fillText(unit.serialNumber || "N/A", leftMargin + 95, footerY);
 
       const finalDataUrl = canvas.toDataURL("image/png",1.0);
       // 2. Create a new window for printing
@@ -498,9 +512,9 @@ export default function EquipmentList() {
           <head>
             <title>Print Label - ${unit.serialNumber}</title>
             <style>
-              /* OPTIMIZED: Print settings for 100mm × 75mm label with enhanced QR scannability */
+              /* OPTIMIZED: Print settings for 90mm × 60mm label with enhanced QR scannability */
               @page {
-                size: 100mm 75mm;    /* EXPANDED: Was 100mm × 50mm - now 100mm × 75mm */
+                size: 90mm 60mm;    /* NEW: 90mm width × 60mm height */
                 margin: 0;
                 /* Disable browser page margins */
               }
@@ -508,8 +522,8 @@ export default function EquipmentList() {
               html, body {
                 margin: 0;
                 padding: 0;
-                width: 100mm;
-                height: 75mm;        /* EXPANDED: Proportional to new label size */
+                width: 90mm;
+                height: 60mm;        /* Adjusted to new label height */
               }
               
               body {
@@ -525,8 +539,8 @@ export default function EquipmentList() {
               }
               
               img {
-                width: 100mm;
-                height: 75mm;         /* EXPANDED: Proportional */
+                width: 90mm;
+                height: 60mm;         /* Adjusted proportionally */
                 object-fit: contain;
                 /* CRITICAL: These settings ensure QR codes remain crisp and scannable */
                 image-rendering: -webkit-optimize-contrast;

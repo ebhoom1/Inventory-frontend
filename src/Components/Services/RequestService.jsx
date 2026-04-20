@@ -1288,7 +1288,19 @@ import {
 import Swal from "sweetalert2";
 import { API_URL } from "../../../utils/apiConfig";
 
-const qrConfig = { fps: 10, qrbox: 400 };
+const qrConfig = {
+  fps: 20, 
+  qrbox: (viewfinderWidth, viewfinderHeight) => {
+    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+    const boxSize = Math.floor(minEdge * 0.7); 
+    return { width: boxSize, height: boxSize };
+  },
+  aspectRatio: 1.0,
+  experimentalFeatures: {
+    useBarCodeDetectorIfSupported: false, // ✅ Disabled for iOS compatibility
+  },
+  disableFlip: false,
+};
 const isMongoId = (s) => typeof s === "string" && /^[a-f0-9]{24}$/i.test(s);
 
 // --- IST date helpers ---
@@ -1328,6 +1340,35 @@ const DATE_ONLY_FIELDS = new Set([
 ]);
 
 const DATE_TIME_FIELDS = new Set(["date", "createdAt", "updatedAt"]);
+
+// ✅ Helper function to request camera permissions explicitly (iOS requirement)
+const requestCameraPermission = async () => {
+  try {
+    // Check if the browser supports the Permissions API
+    if (navigator.permissions && navigator.permissions.query) {
+      const permission = await navigator.permissions.query({ name: 'camera' });
+      if (permission.state === 'denied') {
+        return false;
+      }
+    }
+    
+    // Request camera access
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        facingMode: 'environment',
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      } 
+    });
+    
+    // Stop the stream immediately (we just needed permission)
+    stream.getTracks().forEach(track => track.stop());
+    return true;
+  } catch (err) {
+    console.error("Camera permission error:", err);
+    return false;
+  }
+};
 
 function RequestService() {
   const dispatch = useDispatch();
@@ -1444,6 +1485,7 @@ function RequestService() {
       abort = true;
     };
   }, [isSuperAdmin, isAdmin, isTechnician, token]);
+  
 
   // ----- Modal -----
   const openReportModal = (rep) => {
@@ -1564,19 +1606,45 @@ function RequestService() {
   useEffect(() => {
     if (!isScannerVisible) return;
 
+    // Inject scanning animations CSS
+    if (!document.getElementById('qr-scan-styles')) {
+      const style = document.createElement('style');
+      style.id = 'qr-scan-styles';
+      style.innerHTML = `
+        @keyframes scanLineMove {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(100%); }
+        }
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 15px #DC6D18, inset 0 0 15px rgba(220, 109, 24, 0.3); }
+          50% { box-shadow: 0 0 30px #DC6D18, inset 0 0 25px rgba(220, 109, 24, 0.5); }
+        }
+        @keyframes corner-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .qr-scan-line {
+          animation: scanLineMove 2s linear infinite;
+        }
+        .qr-focus-box {
+          animation: pulse-glow 2s ease-in-out infinite;
+        }
+        .qr-corner {
+          animation: corner-pulse 1.5s ease-in-out infinite;
+        }
+        #qr-reader video {
+          border-radius: 8px;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     const scanner = new Html5Qrcode("qr-reader");
-    setScannerInstance(scanner);
 
     const onSuccess = async (decodedText) => {
       const raw = (decodedText || "").trim();
       const looksJson = raw.startsWith("{") && raw.endsWith("}");
-
-      let scanned = {};
-      try {
-        scanned = JSON.parse(raw);
-      } catch {
-        scanned = { equipmentId: raw };
-      }
+      let scanned = looksJson ? JSON.parse(raw) : { equipmentId: raw };
 
       // ✅ Map short QR keys -> your internal keys
       const mappedData = {
@@ -1813,11 +1881,32 @@ function RequestService() {
     };
 
     scanner
-      .start({ facingMode: cameraFacing }, qrConfig, onSuccess)
-      .catch(() => {
+      .start(
+        { 
+          facingMode: cameraFacing
+        }, 
+        qrConfig, 
+        onSuccess
+      )
+      .catch((err) => {
+        console.error("Scanner start error:", err);
+        
+        // Provide detailed error handling for different scenarios
+        let errorMessage = "Could not start camera. Please check permissions.";
+        
+        if (err.message?.includes("NotAllowedError") || err.message?.includes("Permission denied")) {
+          errorMessage = "Camera permission denied. Please allow camera access in settings.";
+        } else if (err.message?.includes("NotFoundError") || err.message?.includes("no camera")) {
+          errorMessage = "No camera found on this device.";
+        } else if (err.message?.includes("NotSupportedError")) {
+          errorMessage = "HTTPS connection required for camera access on this device.";
+        } else if (err.message?.includes("AbortError")) {
+          errorMessage = "Camera access was aborted.";
+        }
+        
         Swal.fire({
           title: "Camera Error",
-          text: "Grant camera permission.",
+          text: errorMessage,
           icon: "error",
         });
         setScannerVisible(false);
@@ -2037,7 +2126,7 @@ function RequestService() {
             }
             title="Download my reports"
           >
-            Download My Reports
+            Download Latest Reports
           </button>
         </div>
       )}
@@ -2067,7 +2156,21 @@ function RequestService() {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => setScannerVisible(!isScannerVisible)}
+              onClick={async () => {
+                if (!isScannerVisible) {
+                  // ✅ Request camera permission on iOS before opening scanner
+                  const hasPermission = await requestCameraPermission();
+                  if (!hasPermission) {
+                    Swal.fire({
+                      title: "Permission Required",
+                      text: "Please allow camera access in your device settings to use QR scanner.",
+                      icon: "warning",
+                    });
+                    return;
+                  }
+                }
+                setScannerVisible(!isScannerVisible);
+              }}
               className={`h-[52px] px-6 rounded-lg font-semibold shadow-md whitespace-nowrap 
                 ${
                   isScannerVisible
@@ -2079,6 +2182,7 @@ function RequestService() {
             </button>
 
             {isScannerVisible && (
+              
               <button
                 type="button"
                 onClick={() =>
@@ -2096,7 +2200,38 @@ function RequestService() {
         </div>
 
         {isScannerVisible && (
-          <div id="qr-reader" className="p-4 bg-gray-100 rounded-xl"></div>
+              <div className="relative mb-6 rounded-xl overflow-hidden border-4 border-[#DC6D18] shadow-2xl bg-black qr-focus-box">
+            {/* Status indicator */}
+            <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-black/60 px-3 py-1 rounded-lg border border-[#DC6D18]/50 backdrop-blur">
+              <div className="w-2 h-2 bg-[#DC6D18] rounded-full animate-pulse"></div>
+              <span className="text-xs text-[#DC6D18] font-semibold">SCANNING</span>
+            </div>
+            
+            <div id="qr-reader" className="w-full"></div>
+            
+            {/* ✅ FOCUS OVERLAY WITH ANIMATIONS */}
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div className="relative w-[280px] h-[280px] border-2 border-[#DC6D18]/40 qr-focus-box">
+                {/* Corner brackets */}
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[#DC6D18] qr-corner"></div>
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[#DC6D18] qr-corner"></div>
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[#DC6D18] qr-corner"></div>
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[#DC6D18] qr-corner"></div>
+                
+                {/* Animated scan line */}
+                <div className="w-full h-1 bg-gradient-to-b from-[#DC6D18] to-transparent absolute top-0 qr-scan-line shadow-[0_0_15px_#DC6D18]"></div>
+                
+                {/* Side scan effects */}
+                <div className="absolute left-0 top-0 w-1 h-full bg-gradient-to-r from-[#DC6D18] to-transparent opacity-30"></div>
+                <div className="absolute right-0 top-0 w-1 h-full bg-gradient-to-l from-[#DC6D18] to-transparent opacity-30"></div>
+              </div>
+            </div>
+            
+            {/* Instructions */}
+            <div className="absolute bottom-3 left-0 right-0 text-center z-10">
+              <p className="text-xs text-[#DC6D18] font-semibold px-3">📱 Position QR Code Inside Box</p>
+            </div>
+          </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8 pt-4">
@@ -2128,9 +2263,9 @@ function RequestService() {
           {(isAdmin || isTechnician) && (
             <>
               {[
-                ["branchLocation", "Branch/Location"],
+                ["branchLocation", "Place of installation"],
                 ["address", "Address"],
-                ["location", "Location"],
+                ["location", "Branch/Location"],
                 ["pincode", "Pincode/Area"],
                 ["brand", "Brand"],
                 ["content", "Content"],
