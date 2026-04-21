@@ -85,7 +85,21 @@ const FormTextarea = ({ label, name, value, onChange, ...props }) => (
 
 export default function EditEquipmentModal
 ({ isOpen, onClose, equipment, onSave, isLoading }) {
-  const [formData, setFormData] = useState({});
+ const [formData, setFormData] = useState({
+    skuName: "",
+    quantity: "",
+    date: "",
+    // Technical details fields added
+    capacity: "",
+    brand: "",
+    content: "",
+    grossWeight: "",
+    batchNo: "",
+    notes: "",
+    mfgMonth: "",
+    expiryDate: "",
+    refDue: "",
+  });
 const [editedAssignments, setEditedAssignments] = useState([]);
   // Update form state if the equipment prop changes
   // We format the dates here for the form inputs
@@ -99,13 +113,19 @@ const [editedAssignments, setEditedAssignments] = useState([]);
       }
 
     setFormData({
-        ...equipment,
-        userId: equipment.assignedUserId || equipment.userId || "Unassigned",
-        serialNumber: specificSerial,
-        installationDate: formatDateForInput(equipment.installationDate),
-        refDue: formatDateForInput(equipment.refDue),
-        expiryDate: formatDateForInput(equipment.expiryDate),
-        mfgMonth: formatMonthForInput(equipment.mfgMonth),
+        skuName: item.skuName || "",
+        quantity: item.quantity || "",
+        date: item.date ? new Date(item.date).toISOString().split('T')[0] : "",
+        // Populate technical details
+        capacity: item.capacity || "",
+        brand: item.brand || "",
+        content: item.content || "",
+        grossWeight: item.grossWeight || "",
+        batchNo: item.batchNo || "",
+        notes: item.notes || "",
+        mfgMonth: item.mfgMonth ? new Date(item.mfgMonth).toISOString().slice(0, 7) : "", // YYYY-MM
+        expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : "", // YYYY-MM-DD
+        refDue: item.refDue ? new Date(item.refDue).toISOString().split('T')[0] : "", // YYYY-MM-DD
       });
 
       // 2. ✅ In flat structure, each document is a single unit

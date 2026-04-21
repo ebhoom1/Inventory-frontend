@@ -238,7 +238,7 @@ export default function EquipmentList() {
     }
   };
 
-    const handlePrintUnitQR = async (unit, equipment) => {
+   const handlePrintUnitQR = async (unit, equipment) => {
       
     try {
       const isExisting = Boolean(equipment.spNumber);
@@ -271,7 +271,8 @@ export default function EquipmentList() {
         const year = dateObj.getFullYear();
         return `${day}.${month}.${year}`;
       };
-// always print using the equipment's batch id
+      
+      // always print using the equipment's batch id
       const uniqueUnitId = unit.equipmentId;
 
       const qrPayload = JSON.stringify({
@@ -286,244 +287,177 @@ export default function EquipmentList() {
         typ: isExisting ? "E" : "N",    // type -> typ (E/N for Existing/New)
         exp: unitExpiry ? new Date(unitExpiry).toISOString().split('T')[0] : ""  // expiryDate -> exp
       });
-      // const displayId = equipmentId; // not currently used
 
       const generatedQRUrl = await QRCode.toDataURL(qrPayload, {
-        errorCorrectionLevel: "L",    // Lower error correction since we have high resolution
-        margin: 2,      // Optimal margin for scanner recognition
-        width: 1200,    // INCREASED: High resolution source (doubled for better clarity)
+        errorCorrectionLevel: "L",    
+        margin: 2,      
+        width: 1200,    
         color: { 
           dark: "#000000", 
-          light: "#FFFFFF" // MUST be solid white for scannability
+          light: "#FFFFFF" 
         }
       });
 
-      // NEW DIMENSIONS: Main label is now 90mm x 60mm
-      // Canvas proportions: 1800x1200px for optimal resolution
-      const canvasWidth = 1800;
-      const canvasHeight = 1200;
+      // Canvas proportions: 2400x1600px for optimal resolution
+      const canvasWidth = 2400; 
+      const canvasHeight = 1600;
       const canvas = document.createElement("canvas");
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
       const ctx = canvas.getContext("2d");
 
-      const colorBlack = "#1A1A1A";
-      const colorRed = "#C1272D";
-      const colorOrange = "#F15A24";
-      const colorYellow = "#FFD700";
-
+      // Set background and draw border
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = "black";
+      ctx.strokeRect(30, 30, canvasWidth - 60, canvasHeight - 60);
 
-      const padding = 50;          // Adjusted for new canvas size
-      const borderRadius = 70;      // Maintains design aesthetics
-      const contentW = canvasWidth - (padding * 2);
-      const contentH = canvasHeight - (padding * 2);
-      const startX = padding;
-      const startY = padding;
+      // Load logo and QR code images
+      const logoImg = new Image();
+      logoImg.src = logo;
+      const qrImg = new Image();
+      qrImg.src = generatedQRUrl;
 
-      ctx.beginPath();
-      ctx.roundRect(startX, startY, contentW, contentH, borderRadius);
+      await Promise.all([
+        new Promise((resolve) => (logoImg.onload = resolve)),
+        new Promise((resolve) => (qrImg.onload = resolve)),
+      ]);
+
+      // --- HEADER SECTION ---
+      // Logo - positioned at top left
+      const logoSize = 120;
+      ctx.drawImage(logoImg, 80, 60, logoSize, logoSize);
+      
+      // Company name "Safetik" next to logo
+      ctx.fillStyle = "black";
+      ctx.font = "bold 90px Arial, sans-serif";
+      ctx.fillText("Safetik", 220, 140);
+
+      // Address lines below company name
+      ctx.font = "48px Arial, sans-serif";
+      ctx.fillText("1st Fl, Aiswarya Bldg., S.A.Rd,", 80, 240);
+      ctx.fillText("Valanjambalam, Kochi-16", 80, 310);
+
+      // Yellow highlighted contact numbers
+      ctx.fillStyle = "#FFD700";
+      ctx.beginPath(); 
+      ctx.roundRect(80, 340, 900, 140, 30);
+      ctx.fill();
+      
+      ctx.fillStyle = "black";
+      ctx.font = "bold 60px Courier New, monospace";
+      ctx.fillText("0484 4117109 | 9846196537", 120, 410);
+      ctx.font = "bold 55px Courier New, monospace";
+      ctx.fillText("9895039921", 120, 480);
+
+      // Email and website
+      ctx.font = "45px Arial, sans-serif";
+      ctx.fillStyle = "black";
+      ctx.fillText("info@safetik.in | www.safetik.in", 80, 580);
+
+      // --- VERTICAL SEPARATOR LINE ---
       ctx.lineWidth = 3;
-      ctx.strokeStyle = "#000000";
+      ctx.strokeStyle = "black";
+      ctx.beginPath();
+      ctx.moveTo(1200, 60);
+      ctx.lineTo(1200, 1500);
       ctx.stroke();
 
-      const cornerX = startX + contentW;
-      const cornerY = startY;
-      ctx.save();
-      ctx.beginPath();
-      ctx.roundRect(startX, startY, contentW, contentH, borderRadius);
-      ctx.clip();
+      // --- LEFT SECTION: DATA FIELDS ---
+      const fieldX = 100;
+      let fieldY = 700;
+      const fieldLineSpacing = 145;
+      const labelWidth = 450;
+      const dotStartX = fieldX + labelWidth;
+      const dotEndX = 1100;
 
-      // Red triangle - compact size
-      ctx.beginPath();
-      ctx.moveTo(cornerX - 140, cornerY);
-      ctx.lineTo(cornerX, cornerY);
-      ctx.lineTo(cornerX, cornerY + 45);
-      ctx.lineTo(cornerX - 110, cornerY + 45);
-      ctx.closePath();
-      ctx.fillStyle = colorRed;
-      ctx.fill();
+      const drawDataField = (label, value) => {
+        // Label and colon - Made bold for clarity
+        ctx.fillStyle = "black";
+        ctx.font = "bold 55px Arial, sans-serif";
+        ctx.fillText(label, fieldX, fieldY);
+        ctx.fillText(":", fieldX + labelWidth - 50, fieldY);
 
-      // Orange triangle - compact size
-      ctx.beginPath();
-      ctx.moveTo(cornerX - 110, cornerY + 45);
-      ctx.lineTo(cornerX, cornerY + 45);
-      ctx.lineTo(cornerX, cornerY + 65);
-      ctx.lineTo(cornerX - 85, cornerY + 65);
-      ctx.closePath();
-      ctx.fillStyle = colorOrange;
-      ctx.fill();
-      ctx.restore();
-
-      const headerY = startY + 30;         // Compact header positioning
-      const leftMargin = startX + 40;      // Better horizontal spacing within box
-
-      const loadImg = (src) => new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "Anonymous";
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error("Failed to load image"));
-        img.src = src;
-      });
-      const [logoImg, qrImg] = await Promise.all([loadImg(logo), loadImg(generatedQRUrl)]);
-      const lHeight = 70;        // Reduced logo size for compact header
-      const lWidth = (logoImg.width / logoImg.height) * lHeight;
-      ctx.drawImage(logoImg, startX + 32, startY + 18, lWidth, lHeight);
-
-      try {
-        const textOffsetX = leftMargin + lWidth + 10;
-        ctx.fillStyle = colorBlack;
-        ctx.font = "bold 40px Arial, sans-serif";    // Reduced from 55px
-        ctx.fillText("Safetik", textOffsetX, headerY + 20);
-
-        ctx.font = "bold 14px Arial, sans-serif";    // Reduced from 20px
-        ctx.fillText("Safety Solutions Pvt.Ltd.", textOffsetX, headerY + 40);
-
-        // BOLD ADDRESS - more compact
-        ctx.font = "bold 18px Arial, sans-serif";    // Reduced from 25px
-        ctx.fillText("1st Fl. Aiswarya Bldg, S.A.Rd, Valanjambalam, Kochi-16", leftMargin, headerY + 58);
-
-        // HIGHLIGHTED CONTACT NUMBER - compact
-        const rightAlignX = startX + contentW - 40;
-        ctx.textAlign = "right";
-        
-        // Contact number background highlight
-        const contactText = "0484 4117109 | 9846196537";
-        ctx.font = "bold 16px Arial, sans-serif";    // Reduced from 22px
-        const contactMetrics = ctx.measureText(contactText);
-        ctx.fillStyle = colorYellow;
-        ctx.fillRect(rightAlignX - contactMetrics.width - 6, headerY - 2, contactMetrics.width + 12, 20);
-        
-        ctx.fillStyle = colorBlack;
-        ctx.font = "bold 16px Arial, sans-serif";
-        ctx.fillText(contactText, rightAlignX, headerY + 12);
-        
-        ctx.font = "bold 14px Arial, sans-serif";
-        ctx.fillText("9895039921", rightAlignX, headerY + 32);
-        
-        ctx.font = "bold 12px Arial, sans-serif";
-        ctx.fillText("info@safetik.in | www.safetik.in", rightAlignX, headerY + 48);
-        ctx.textAlign = "left";
-      } catch (e) {
-        console.warn("Logo load failed", e);
-      }
-
-      const drawDottedLine = (x1, y1, x2) => {
-        ctx.save();
+        // Dotted line - Moved down so it acts as an underline instead of a strike-through
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 3; // slightly thicker underline
         ctx.beginPath();
-        ctx.setLineDash([3, 3]);
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = "#333";
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y1);
+        ctx.setLineDash([15, 15]);
+        ctx.moveTo(dotStartX, fieldY + 10); 
+        ctx.lineTo(dotEndX, fieldY + 10);
         ctx.stroke();
-        ctx.restore();
-      };
+        ctx.setLineDash([]);
 
-      const drawField = (label, value, x, y, width) => {
-        ctx.fillStyle = colorBlack;
-        const fontSize = label.length > 10 ? "26px" : "30px";  // Adjusted size
-        ctx.font = `${fontSize} Arial, sans-serif`;
-        ctx.fillText(label, x, y);
-
-        const lineY = y + 6;  // Adjusted spacing
-        const lineStartX = x + ctx.measureText(label).width + 6;
-        const lineEndX = x + width;
-
+        // Value if provided - BOLD, LARGER ARIAL font for clear reading
         if (value) {
-          ctx.font = "bold 30px Courier New, monospace";  // Adjusted size
-          ctx.fillStyle = "#000";
-          ctx.fillText(value, lineStartX + 6, y);
+          ctx.fillStyle = "black";
+          ctx.font = "bold 60px Arial, sans-serif";
+          ctx.fillText(value, dotStartX + 30, fieldY - 2); // Positioned nicely above the dotted line
         }
-        drawDottedLine(lineStartX, lineY, lineEndX);
+        
+        fieldY += fieldLineSpacing;
       };
 
-      // TYPE AND CAPACITY on same line - positioned in middle of label
-      let currentY = startY + 155;   // Center the fields vertically
-      const rowHeight = 68;           // Optimized spacing
-      const fullLineW = contentW - 90; // Better width utilization
-      const halfWidth = (fullLineW / 2) - 20;
-      const rightColStart = leftMargin + halfWidth + 10;
+      // Draw the dynamic fields
+      drawDataField("Type", equipment.equipmentName || "Fire Extinguisher");
+      drawDataField("Cap", equipment.capacity);
+      drawDataField("H.P. Tested", "");
+      drawDataField("Installed on", formatDate(unitInstall));
+      drawDataField("Exp.", formatDate(unitExpiry));
+      drawDataField("Refilled", "");
 
-      // Row 1: Type and Capacity (SAME LINE)
-      drawField("Type", equipment.equipmentName || "", leftMargin, currentY, halfWidth);
-      drawField("Cap", equipment.capacity || "", rightColStart, currentY, halfWidth);
-
-      currentY += rowHeight;
+      // --- RIGHT SECTION: QR CODE ---
+      const qrSize = 600;
+      const qrX = 1500;
+      const qrY = 550;
       
-      // Row 2: Refilled on and Exp/Next due
-      drawField("Refilled on", "", leftMargin, currentY, halfWidth);
-      drawField(labelRow3, formatDate(valueRow3), rightColStart, currentY, halfWidth);
+      // Draw QR code
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-      currentY += rowHeight;
-
-      // Row 3: H.P. Tested on and other date
-      drawField("H.P. Tested", "", leftMargin, currentY, halfWidth);
-      drawField(labelRow4, formatDate(valueRow4), rightColStart, currentY, halfWidth);
-
-      // QR CODE: Positioned in lower right area, sized for 90mm × 60mm label
-      const qrSize = 220;              // Sized appropriately for compact label
-      const qrX = startX + contentW - qrSize - 45;  // Right-aligned within box
-      const qrY = startY + contentH - qrSize - 60;  // Positioned in bottom right corner
-     
-      // QUALITY SETTINGS: Disable smoothing for crisp QR code dots
-      ctx.imageSmoothingEnabled = false;
-      ctx.mozImageSmoothingEnabled = false;
-      ctx.webkitImageSmoothingEnabled = false;
-      try {
-      
-        ctx.fillStyle = "white";
-        ctx.fillRect(qrX - 6, qrY - 6, qrSize + 12, qrSize + 12);  // White background
-        ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-        // Re-enable smoothing for other elements
-        ctx.imageSmoothingEnabled = true;
-       
-      } catch (e) {
-        console.warn("QR image load failed", e);
-      }
-     
-  
-      ctx.textAlign = "center";
-      ctx.font = "11px Arial";         // Small font for equipment ID
+      // Equipment ID below QR
+      ctx.font = "bold 48px Courier New, monospace";
       ctx.fillStyle = "#666";
-      // show equipment id below the QR code
-      ctx.fillText(uniqueUnitId, qrX + (qrSize / 2), qrY + qrSize + 16);
-      
+      ctx.textAlign = "center";
+      ctx.fillText(uniqueUnitId, qrX + qrSize / 2, qrY + qrSize + 80);
       ctx.textAlign = "left";
-      const footerY = startY + contentH - 32; // Footer within box
 
+      // --- FOOTER SECTION ---
+      // Red accent rectangle at top right
+      ctx.fillStyle = "#C1272D";
+      ctx.fillRect(canvasWidth - 280, 30, 250, 140);
+
+      // Serial Number at bottom
+      ctx.font = "bold 60px Arial, sans-serif";
       ctx.fillStyle = "#DC6D18";
-      ctx.font = "bold 14px Arial";   // Adjusted font size
-      ctx.fillText("SERIAL NO:", leftMargin, footerY);
-
-      ctx.fillStyle = "#000";
-      ctx.font = "bold 20px Courier New"; // Adjusted font size
-      ctx.fillText(unit.serialNumber || "N/A", leftMargin + 95, footerY);
-
-      const finalDataUrl = canvas.toDataURL("image/png",1.0);
-      // 2. Create a new window for printing
-      const printWindow = window.open('', '_blank');
+      ctx.fillText("SERIAL NO:", 100, canvasHeight - 80);
       
-      // 3. Write HTML content to the new window
+      ctx.fillStyle = "black";
+      ctx.font = "bold 65px Courier New, monospace";
+      ctx.fillText(unit.serialNumber, 550, canvasHeight - 80);
+
+      // --- PRINTING ---
+      const finalDataUrl = canvas.toDataURL();
+      const printWindow = window.open("", "_blank");
+      
+      // Write HTML content to the new window
       printWindow.document.open();
       printWindow.document.write(`
         <html>
           <head>
             <title>Print Label - ${unit.serialNumber}</title>
             <style>
-              /* OPTIMIZED: Print settings for 90mm × 60mm label with enhanced QR scannability */
+              /* OPTIMIZED: Print settings for 90mm × 60mm label */
               @page {
-                size: 90mm 60mm;    /* NEW: 90mm width × 60mm height */
+                size: 90mm 60mm;   
                 margin: 0;
-                /* Disable browser page margins */
               }
               
               html, body {
                 margin: 0;
                 padding: 0;
                 width: 90mm;
-                height: 60mm;        /* Adjusted to new label height */
+                height: 60mm;        
               }
               
               body {
@@ -531,7 +465,6 @@ export default function EquipmentList() {
                 justify-content: center;
                 align-items: center;
                 background-color: white;
-                /* QUALITY: Ensure colors print exactly as drawn */
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
                 -webkit-font-smoothing: antialiased;
@@ -540,13 +473,11 @@ export default function EquipmentList() {
               
               img {
                 width: 90mm;
-                height: 60mm;         /* Adjusted proportionally */
+                height: 60mm;         
                 object-fit: contain;
-                /* CRITICAL: These settings ensure QR codes remain crisp and scannable */
                 image-rendering: -webkit-optimize-contrast;
                 image-rendering: crisp-edges;
                 image-rendering: pixelated;
-                /* Force high quality printing */
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
               }
