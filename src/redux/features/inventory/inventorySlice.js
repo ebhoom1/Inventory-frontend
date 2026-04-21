@@ -5,6 +5,7 @@ import {
   listInventoryApi,
   logUsageApi,
   listSummaryApi,
+  updateInventoryApi,
 } from './inventoryService';
 
 // existing thunks
@@ -46,6 +47,19 @@ export const fetchInventorySummary = createAsyncThunk(
     }
   }
 );
+
+// NEW: update inventory record
+export const updateInventory = createAsyncThunk(
+  'inventory/update',
+  async ({ id, ...payload }, thunkAPI) => {
+    try {
+      return await updateInventoryApi(id, payload, thunkAPI.getState);
+    } catch (err) {
+      return thunkAPI.rejectWithValue(err.message || 'Update inventory failed');
+    }
+  }
+);
+
 const initialState = {
   items: [],                 // raw add records (if you still need them)
   summary: [],               // NEW: per-SKU summary
@@ -130,6 +144,24 @@ const inventorySlice = createSlice({
       .addCase(fetchInventorySummary.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Fetch summary failed';
+      })
+
+      // NEW: update inventory
+      .addCase(updateInventory.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateInventory.fulfilled, (state, action) => {
+        state.loading = false;
+        // Update items list if exists
+        const index = state.items.findIndex(item => item._id === action.meta.arg.id);
+        if (index !== -1) {
+          state.items[index] = { ...state.items[index], ...action.payload.inventory };
+        }
+      })
+      .addCase(updateInventory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Update failed';
       });
   },
 });

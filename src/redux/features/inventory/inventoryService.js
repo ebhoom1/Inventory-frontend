@@ -72,3 +72,17 @@ export const listSummaryApi = async (getState, userId = "all") => {
   if (!res.ok) throw new Error(data?.message || 'Failed to fetch summary');
   return data; // [{ skuName, totalAdded, totalUsed, left, lastAddDate, lastUseDate, lastUsedBy }]
 };
+export const updateInventoryApi = async (id, payload, getState) => {
+  const res = await fetch(`${API_URL}/api/inventory/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(getState),
+    },
+    body: JSON.stringify(payload),
+  });
+  
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.message || 'Failed to update inventory');
+  return data;
+};

@@ -2,41 +2,35 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Swal from "sweetalert2";
-import { fetchInventorySummary } from "../../redux/features/inventory/inventorySlice";
+import { fetchInventorySummary, fetchInventory, updateInventory } from "../../redux/features/inventory/inventorySlice";
 import { getAllUsers } from "../../redux/features/users/userSlice";
 import { API_URL } from "../../../utils/apiConfig";
+import EditInventoryModal from "./EditInventoryModal";
 
 function InventoryList() {
   const dispatch = useDispatch();
 
-  // Redux (global aggregated summary for Admin view)
+  // Redux states
   const {
     summary: reduxSummary = [],
+    items: rawItems = [], // raw inventory records for edit
     loading: reduxLoading,
     error: reduxError,
   } = useSelector((s) => s.inventory || {});
 
-  // ...existing code...
+  // Local state
   const [filter, setFilter] = useState({ month: "all", year: "all" });
+  const [editModal, setEditModal] = useState({ open: false, item: null });
 
   // ---------- Data fetching ----------
   useEffect(() => {
-    dispatch(fetchInventorySummary("all"));
+  
+    dispatch(fetchInventory()); // Fetch raw list for edit
   }, [dispatch]);
-
-  useEffect(() => {
-    // No user filtering, only fetch all summary
-  }, []);
-
-  // 🔹 fetch raw inventories for Added By info
-  useEffect(() => {
-    // Removed effect for fetching allInventories and userInfo
-    // Effect removed as it referenced userInfo
-  }, []);
 
   // ...existing code...
 
-  const summary = reduxSummary;
+  
   const loading = reduxLoading;
 
   const parseDate = (d) => {
@@ -47,16 +41,15 @@ function InventoryList() {
 
   // ...existing code...
 
-  const availableYears = useMemo(() => {
+ const availableYears = useMemo(() => {
     const years = new Set(
-      (summary || []).flatMap((r) => {
-        const a = parseDate(r.lastAddDate || r.date);
-        const u = parseDate(r.lastUseDate);
-        return [a?.getFullYear(), u?.getFullYear()].filter(Boolean);
+      (rawItems || []).flatMap((item) => {
+        const d = parseDate(item.date);
+        return [d?.getFullYear()].filter(Boolean);
       })
     );
     return ["all", ...Array.from(years).sort((a, b) => b - a)];
-  }, [summary]);
+  }, [rawItems]);
 
   const availableMonths = [
     { value: "all", label: "All Months" },
@@ -79,44 +72,31 @@ function InventoryList() {
     setFilter((prev) => ({ ...prev, [name]: value }));
   };
 
-  const filteredSummary = useMemo(() => {
-    const base = Array.isArray(summary) ? summary : [];
+ const filteredRawItems = useMemo(() => {
+    const base = Array.isArray(rawItems) ? rawItems : [];
     let result = base;
 
     if (filter.year !== "all") {
-      result = result.filter((r) => {
-        const d =
-          parseDate(r.lastUseDate) ||
-          parseDate(r.lastAddDate) ||
-          parseDate(r.date);
+      result = result.filter((item) => {
+        const d = parseDate(item.date);
         return d && d.getFullYear() === parseInt(filter.year, 10);
       });
     }
 
     if (filter.month !== "all") {
-      result = result.filter((r) => {
-        const d =
-          parseDate(r.lastUseDate) ||
-          parseDate(r.lastAddDate) ||
-          parseDate(r.date);
+      result = result.filter((item) => {
+        const d = parseDate(item.date);
         return d && d.getMonth() + 1 === parseInt(filter.month, 10);
       });
     }
 
+    // Sort by Date descending for list view consistency
     return result.slice().sort((a, b) => {
-      const da =
-        parseDate(a.lastUseDate) ||
-        parseDate(a.lastAddDate) ||
-        parseDate(a.date) ||
-        new Date(0);
-      const db =
-        parseDate(b.lastUseDate) ||
-        parseDate(b.lastAddDate) ||
-        parseDate(b.date) ||
-        new Date(0);
-      return db - da;
+      const da = parseDate(a.date) || new Date(0);
+      const db = parseDate(b.date) || new Date(0);
+      return db - da; 
     });
-  }, [summary, filter]);
+  }, [rawItems, filter]);
 
   // Modal state for details
   const [modalOpen, setModalOpen] = useState(false);
@@ -142,13 +122,35 @@ function InventoryList() {
     }
   };
 
+  // edit inventory
+  const handleEditClick = (item) => {
+    setEditModal({ open: true, item, loading: false });
+  };
+
+  const handleSaveEdit = async (id, updatedData) => {
+    setEditModal((prev) => ({ ...prev, loading: true }));
+    try {
+      await dispatch(updateInventory({ id, ...updatedData })).unwrap();
+      Swal.fire({ icon: "success", title: "Updated!", text: "Inventory record updated successfully.", timer: 2000, showConfirmButton: false });
+      
+      // Refresh both views
+      dispatch(fetchInventory());
+     
+      setEditModal({ open: false, item: null, loading: false });
+    } catch (err) {
+      Swal.fire({ icon: "error", title: "Update Failed", text: err.message || "Something went wrong." });
+      setEditModal((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
   return (
-    <div className="w-full max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+   <div className="w-full max-w-7xl mx-auto">
+      {/* Header and Controls - Toggle removed as requested */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b pb-4 border-gray-100">
         <h2 className="text-3xl font-bold text-[#DC6D18]">
-          Inventory List
+          Added Inventory Log
         </h2>
-        {/* ...existing filter UI... */}
+        
         <div className="flex items-center gap-3">
           <select
             name="month"
@@ -176,162 +178,73 @@ function InventoryList() {
           </select>
         </div>
       </div>
+
       <div className="bg-white shadow-lg rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
+          {/* ✅ Table updated to show single entries for direct editing */}
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-orange-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">SKU</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Quantity Added</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Quantity Used</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Left Quantity</th>
-              
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date Added</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">SKU Name</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Quantity</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Batch No</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Edit</th>
               </tr>
             </thead>
+
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-10 text-gray-500">Loading…</td>
+                  <td colSpan="5" className="text-center py-10 text-gray-500">Loading inventory data…</td>
                 </tr>
-              ) : filteredSummary.length > 0 ? (
-                filteredSummary.map((row) => (
-                  <tr key={row._id || row.skuName} className="hover:bg-orange-50/50 transition-colors duration-150">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.skuName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{row.totalAdded ?? row.quantity ?? 0}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{row.totalUsed ?? 0}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">{row.left ?? (row.totalAdded ?? row.quantity ?? 0) - (row.totalUsed ?? 0)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {row._id && (
-                        <button
-                          className="px-3 py-1 bg-[#DC6D18] text-white rounded hover:bg-[#B85B14]"
-                          onClick={() => handleShowDetails(row._id, row.skuName)}
-                        >
-                          Details
-                        </button>
-                      )}
-                    </td>
+              ) : reduxError ? (
+                  <tr>
+                    <td colSpan="5" className="text-center py-10 text-red-600 font-semibold">Failed to fetch inventory log: {reduxError}</td>
                   </tr>
-                ))
+              ) : filteredRawItems.length > 0 ? (
+                /* ✅ Render log list with Edit button on each row */
+                filteredRawItems.map((item) => (
+                    <tr key={item._id} className="hover:bg-orange-50/50 transition-colors duration-150">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {item.date ? new Date(item.date).toLocaleDateString() : "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.skuName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">{item.quantity}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">{item.batchNo || "N/A"}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                        <button
+                          onClick={() => handleEditClick(item)}
+                          className="px-3 py-1 text-[#DC6D18] hover:text-[#B85B14] font-semibold border border-[#DC6D18]/30 rounded hover:bg-orange-50 transition-colors flex items-center gap-1.5 mx-auto"
+                        >
+                          ✏️ Edit
+                        </button>
+                      </td>
+                    </tr>
+                  ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="text-center py-10 text-gray-500">No inventory records match the selected filters.</td>
+                  <td colSpan="5" className="text-center py-10 text-gray-500">No inventory additions match the selected filters.</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-        {!loading && (
+        {!loading && !reduxError && (
           <div className="px-6 py-3 text-sm text-gray-600 bg-orange-50/50">
-            Showing <span className="font-semibold">{filteredSummary.length}</span> of <span className="font-semibold">{(summary || []).length}</span> SKUs
+              <span>Showing <span className="font-semibold">{filteredRawItems.length}</span> of <span className="font-semibold">{(rawItems || []).length}</span> Logged Addition Records</span>
           </div>
         )}
       </div>
-      {/* Modal for assignment and QR code details */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl p-8 max-w-3xl w-full max-h-screen overflow-y-auto">
-            {/* Modal Header */}
-            <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-[#DC6D18]">
-              <div>
-                <h3 className="text-2xl font-bold text-gray-800">
-                  {modalSku}
-                </h3>
-                <p className="text-sm text-gray-500 mt-1">Assignments & QR Codes</p>
-              </div>
-              <button
-                className="text-2xl text-gray-400 hover:text-gray-600 font-bold"
-                onClick={() => setModalOpen(false)}
-              >
-                ✕
-              </button>
-            </div>
 
-            {/* Modal Content */}
-            {modalAssignments.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">No assignments found for this inventory.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-sm font-semibold text-gray-600 mb-4">
-                  Total Units: <span className="text-[#DC6D18]">{modalAssignments.length}</span>
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {modalAssignments.map((assignment, idx) => (
-                    <div
-                      key={assignment.serialNumber + idx}
-                      className="border border-[#DC6D18]/30 rounded-lg p-5 hover:shadow-md transition-shadow duration-200"
-                    >
-                      {/* Assignment Details */}
-                      <div className="space-y-3 mb-4">
-                        <div className="border-b border-gray-100 pb-2">
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">User ID</p>
-                          <p className="text-sm font-bold text-gray-800">{assignment.userId}</p>
-                        </div>
-                        
-                        {assignment.companyName && (
-                          <div className="border-b border-gray-100 pb-2">
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Company</p>
-                            <p className="text-sm font-medium text-gray-700">{assignment.companyName}</p>
-                          </div>
-                        )}
-
-                        <div className="border-b border-gray-100 pb-2">
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Serial Number</p>
-                          <p className="text-sm font-mono text-gray-800">{assignment.serialNumber}</p>
-                        </div>
-
-                        {assignment.location && (
-                          <div>
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</p>
-                            <p className="text-sm text-gray-700">{assignment.location}</p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* QR Code Display */}
-                      <div className="flex flex-col items-center space-y-3 py-4 border-t border-gray-100">
-                        {assignment.qrImage ? (
-                          <>
-                            <img
-                              src={assignment.qrImage}
-                              alt={`QR-${assignment.serialNumber}`}
-                              className="w-32 h-32 border-2 border-[#DC6D18] rounded p-1"
-                            />
-                            <button
-                              className="w-full px-4 py-2 bg-[#DC6D18] text-white font-semibold rounded-lg hover:bg-[#B85B14] transition-colors duration-150 flex items-center justify-center gap-2"
-                              onClick={() => {
-                                const link = document.createElement("a");
-                                link.href = assignment.qrImage;
-                                link.download = `QR-${modalSku}-${assignment.serialNumber}.png`;
-                                link.click();
-                              }}
-                            >
-                              ⬇ Download QR
-                            </button>
-                          </>
-                        ) : (
-                          <p className="text-gray-400 italic">No QR code available</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Modal Footer */}
-            <div className="mt-8 pt-4 border-t border-gray-200 flex justify-end">
-              <button
-                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-150 font-medium"
-                onClick={() => setModalOpen(false)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Expanded Edit Modal properly integrated */}
+      <EditInventoryModal
+        isOpen={editModal.open}
+        item={editModal.item}
+        isLoading={editModal.loading}
+        onClose={() => setEditModal({ open: false, item: null, loading: false })}
+        onSave={handleSaveEdit}
+      />
     </div>
   );
 }
