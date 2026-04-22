@@ -223,8 +223,9 @@ const handleSerialChange = (index, value) => {
     // By default, create equipment as unassigned so it appears in 'Assign Inventory' SKU list
     // If you want to assign on creation in future, add a field to the form to set `userId`.
     payload.userId = null;
-    // Location is no longer collected on add form; backend accepts missing/empty location
 
+    // Location is no longer collected on add form; backend accepts missing/empty location
+    payload.skuName = formData.equipmentName;
     // --- Conditional Validation and Payload Cleanup ---
    // ✅ Attach the manual serials to payload
     if (payload.equipmentType === "new") {

@@ -104,38 +104,54 @@ const [editedAssignments, setEditedAssignments] = useState([]);
   // Update form state if the equipment prop changes
   // We format the dates here for the form inputs
   useEffect(() => {
-    if (equipment) {
-
-    let specificSerial = equipment.serialNumber || ""; // Use this unit's serial number
-      // In flat structure, each document is a single unit with direct serialNumber field
-      if (equipment.serialNumber) {
-        specificSerial = equipment.serialNumber;
-      }
-
-    setFormData({
-        skuName: item.skuName || "",
-        quantity: item.quantity || "",
-        date: item.date ? new Date(item.date).toISOString().split('T')[0] : "",
-        // Populate technical details
-        capacity: item.capacity || "",
-        brand: item.brand || "",
-        content: item.content || "",
-        grossWeight: item.grossWeight || "",
-        batchNo: item.batchNo || "",
-        notes: item.notes || "",
-        mfgMonth: item.mfgMonth ? new Date(item.mfgMonth).toISOString().slice(0, 7) : "", // YYYY-MM
-        expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : "", // YYYY-MM-DD
-        refDue: item.refDue ? new Date(item.refDue).toISOString().split('T')[0] : "", // YYYY-MM-DD
+   if (equipment) {
+      setFormData({
+        equipmentName: equipment.equipmentName || "",
+        userId: equipment.userId || "",
+        capacity: equipment.capacity || "",
+        brand: equipment.brand || "",
+        content: equipment.content || "",
+        grossWeight: equipment.grossWeight || "",
+        batchNo: equipment.batchNo || "",
+        modelSeries: equipment.modelSeries || "",
+        notes: equipment.notes || "",
+        mfgMonth: equipment.mfgMonth ? new Date(equipment.mfgMonth).toISOString().slice(0, 7) : "", 
+        expiryDate: equipment.expiryDate ? new Date(equipment.expiryDate).toISOString().split('T')[0] : "", 
+        refDue: equipment.refDue ? new Date(equipment.refDue).toISOString().split('T')[0] : "", 
+        installationDate: equipment.installationDate ? new Date(equipment.installationDate).toISOString().split('T')[0] : "",
+        serialNumber: equipment.serialNumber || ""
       });
 
-      // 2. ✅ In flat structure, each document is a single unit
       // Create edit copy with just this unit's data
       setEditedAssignments([{ ...equipment }]);
     }
   }, [equipment]);
 
-  
   if (!isOpen) return null;
+  
+    
+    // setFormData({
+    //     skuName: item.skuName || "",
+    //     quantity: item.quantity || "",
+    //     date: item.date ? new Date(item.date).toISOString().split('T')[0] : "",
+    //     // Populate technical details
+    //     capacity: item.capacity || "",
+    //     brand: item.brand || "",
+    //     content: item.content || "",
+    //     grossWeight: item.grossWeight || "",
+    //     batchNo: item.batchNo || "",
+    //     notes: item.notes || "",
+    //     mfgMonth: item.mfgMonth ? new Date(item.mfgMonth).toISOString().slice(0, 7) : "", // YYYY-MM
+    //     expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : "", // YYYY-MM-DD
+    //     refDue: item.refDue ? new Date(item.refDue).toISOString().split('T')[0] : "", // YYYY-MM-DD
+    //   });
+
+      // 2. ✅ In flat structure, each document is a single unit
+      // Create edit copy with just this unit's data
+  //     setEditedAssignments([{ ...equipment }]);
+  //   }
+  // }, [equipment]);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;

@@ -276,8 +276,9 @@ export default function EquipmentList() {
       const uniqueUnitId = unit.equipmentId;
 
       const qrPayload = JSON.stringify({
-        eid: uniqueUnitId  ,              // use equipment id only
-        uid: unit.userId || "",       // userId -> uid
+        eid: uniqueUnitId,   
+        en: equipment.equipmentName || unit.equipmentName || "",
+        uid: unit.userId || "",      
         loc: unit.location || "",     // location -> loc
         ins: unitInstall ? new Date(unitInstall).toISOString().split('T')[0] : "", // installationDate -> ins
         cap: equipment.capacity,        // capacity -> cap
@@ -400,7 +401,7 @@ export default function EquipmentList() {
       };
 
       // Draw the dynamic fields
-      drawDataField("Type", equipment.equipmentName || "Fire Extinguisher");
+      drawDataField("Type", equipment.equipmentName || "");
       drawDataField("Cap", equipment.capacity);
       drawDataField("H.P. Tested", "");
       drawDataField("Installed on", formatDate(unitInstall));
@@ -408,9 +409,9 @@ export default function EquipmentList() {
       drawDataField("Refilled", "");
 
       // --- RIGHT SECTION: QR CODE ---
-      const qrSize = 600;
-      const qrX = 1500;
-      const qrY = 550;
+      const qrSize = 750;
+      const qrX = 1450;
+      const qrY = 480;
       
       // Draw QR code
       ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
