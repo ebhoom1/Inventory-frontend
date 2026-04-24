@@ -88,8 +88,6 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
     grossWeight: "",
     batchNo: "",
     mfgMonth: "",
-    expiryDate: "",
-    refDue: "",
     notes: "",
   });
 
@@ -110,8 +108,6 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
         grossWeight: item.grossWeight || "",
         batchNo: item.batchNo || "",
         mfgMonth: formatMonthForInput(item.mfgMonth),
-        expiryDate: formatDateForInput(item.expiryDate),
-        refDue: formatDateForInput(item.refDue),
         notes: item.notes || "",
       });
 
@@ -289,26 +285,6 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
                   type="month"
                   name="mfgMonth"
                   value={formData.mfgMonth}
-                  onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Expiry Date</label>
-                <input
-                  type="date"
-                  name="expiryDate"
-                  value={formData.expiryDate}
-                  onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Refilling Due</label>
-                <input
-                  type="date"
-                  name="refDue"
-                  value={formData.refDue}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#DC6D18] focus:border-[#DC6D18]"
                 />

@@ -238,151 +238,136 @@ export default function EquipmentList() {
     }
   };
 
-   const handlePrintUnitQR = async (unit, equipment) => {
+  const handlePrintUnitQR = async (unit, equipment) => {
+  try {
+    const isExisting = Boolean(equipment.spNumber);
+    const unitInstall = unit.installationDate || unit.assignedAt || equipment.installationDate || null;
+    const unitExpiry = unit.expiryDate || equipment.expiryDate || null;
+    const unitRefDue = unit.refDue || equipment.refDue || null;
+
+    const formatDate = (d) => {
+      if (!d) return "";
+      const dateObj = new Date(d);
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const year = dateObj.getFullYear();
+      return `${day}.${month}.${year}`;
+    };
+
+    const uniqueUnitId = unit.equipmentId;
+
+    const qrPayload = JSON.stringify({
+      eid: uniqueUnitId,   
+      en: equipment.equipmentName || unit.equipmentName || "",
+      uid: unit.userId || "",      
+      loc: unit.location || "",     
+      ins: unitInstall ? new Date(unitInstall).toISOString().split('T')[0] : "", 
+      cap: equipment.capacity,        
+      brd: equipment.brand,           
+      sn: unit.serialNumber,          
+      ref: unitRefDue ? new Date(unitRefDue).toISOString().split('T')[0] : "", 
+      typ: isExisting ? "E" : "N",    
+      exp: unitExpiry ? new Date(unitExpiry).toISOString().split('T')[0] : ""  
+    });
+
+    const generatedQRUrl = await QRCode.toDataURL(qrPayload, {
+      errorCorrectionLevel: "L", margin: 2, width: 1200
+    });
+
+    const canvasWidth = 2400; 
+    const canvasHeight = 1600;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "black";
+    ctx.strokeRect(30, 30, canvasWidth - 60, canvasHeight - 60);
+
+    const logoImg = new Image();
+    logoImg.src = logo;
+    const qrImg = new Image();
+    qrImg.src = generatedQRUrl;
+
+    await Promise.all([
+      new Promise((resolve) => (logoImg.onload = resolve)),
+      new Promise((resolve) => (qrImg.onload = resolve)),
+    ]);
+
+    // --- HEADER ---
+    ctx.drawImage(logoImg, 80, 50, 320, 320);
+    const textShiftX = 450;
+    ctx.fillStyle = "black";
+    ctx.font = "bold 90px Arial";
+    ctx.fillText("Safetik", textShiftX, 180);
+    ctx.font = "48px Arial";
+    ctx.fillText("1st Fl, Aiswarya Bldg., S.A.Rd,", textShiftX, 270);
+    ctx.fillText("Valanjambalam, Kochi-16", textShiftX, 345);
+    
+    ctx.fillStyle = "#FFD700";
+    ctx.beginPath(); 
+    ctx.roundRect(80, 400, 1060, 180, 30);
+    ctx.fill();
+    
+    ctx.fillStyle = "black";
+    ctx.font = "bold 60px Courier New";
+    ctx.fillText("0484 4117109 | 9846196537", 130, 490);
+    ctx.font = "bold 55px Courier New";
+    ctx.fillText("9895039921", 130, 560);
+
+    ctx.font = "45px Arial";
+    ctx.fillText("info@safetik.in | www.safetik.in", 80, 630);
+
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(1200, 60);
+    ctx.lineTo(1200, 1500);
+    ctx.stroke();
+
+    // --- LEFT SECTION: DATA FIELDS ---
+    const fieldX = 100;
+    let fieldY = 700;
+    const fieldLineSpacing = 145;
+    const labelWidth = 450;
+    const dotStartX = fieldX + labelWidth;
+    const dotEndX = 1100;
+
+    // Helper for multi-line Equipment Name
+    const drawWrappedText = (text, x, y, maxWidth, lineHeight) => {
+      const words = text.split(' ');
+      let line = '';
+      let currentY = y;
       
-    try {
-      const isExisting = Boolean(equipment.spNumber);
-
-      // Prefer unit (assignment) level dates; fall back to equipment-level values
-      const unitInstall = unit.installationDate || unit.assignedAt || equipment.installationDate || null;
-      const unitExpiry = unit.expiryDate || equipment.expiryDate || null;
-      const unitRefDue = unit.refDue || equipment.refDue || null;
-
-      // Configure Dynamic Labels and Values
-      let labelRow3, valueRow3, labelRow4, valueRow4;
-
-      if (isExisting) {
-        labelRow3 = "Exp. on";
-        valueRow3 = unitExpiry;
-        labelRow4 = "Next due";
-        valueRow4 = unitRefDue;
-      } else {
-        labelRow3 = "Installed";
-        valueRow3 = unitInstall;
-        labelRow4 = "Expiry Date";
-        valueRow4 = unitExpiry;
-      }
-
-      const formatDate = (d) => {
-        if (!d) return "";
-        const dateObj = new Date(d);
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const year = dateObj.getFullYear();
-        return `${day}.${month}.${year}`;
-      };
-      
-      // always print using the equipment's batch id
-      const uniqueUnitId = unit.equipmentId;
-
-      const qrPayload = JSON.stringify({
-        eid: uniqueUnitId,   
-        en: equipment.equipmentName || unit.equipmentName || "",
-        uid: unit.userId || "",      
-        loc: unit.location || "",     // location -> loc
-        ins: unitInstall ? new Date(unitInstall).toISOString().split('T')[0] : "", // installationDate -> ins
-        cap: equipment.capacity,        // capacity -> cap
-        brd: equipment.brand,           // brand -> brd
-        sn: unit.serialNumber,          // serialNumber -> sn
-        ref: unitRefDue ? new Date(unitRefDue).toISOString().split('T')[0] : "", // refillingDue -> ref
-        typ: isExisting ? "E" : "N",    // type -> typ (E/N for Existing/New)
-        exp: unitExpiry ? new Date(unitExpiry).toISOString().split('T')[0] : ""  // expiryDate -> exp
-      });
-
-      const generatedQRUrl = await QRCode.toDataURL(qrPayload, {
-        errorCorrectionLevel: "L",    
-        margin: 2,      
-        width: 1200,    
-        color: { 
-          dark: "#000000", 
-          light: "#FFFFFF" 
+      for(let n = 0; n < words.length; n++) {
+        let testLine = line + words[n] + ' ';
+        let metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          ctx.fillText(line, x, currentY);
+          line = words[n] + ' ';
+          currentY += lineHeight;
+        } else {
+          line = testLine;
         }
-      });
+      }
+      ctx.fillText(line, x, currentY);
+      return currentY;
+    };
 
-      // Canvas proportions: 2400x1600px for optimal resolution
-      const canvasWidth = 2400; 
-      const canvasHeight = 1600;
-      const canvas = document.createElement("canvas");
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
-      const ctx = canvas.getContext("2d");
-
-      // Set background and draw border
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = "black";
-      ctx.strokeRect(30, 30, canvasWidth - 60, canvasHeight - 60);
-
-      // Load logo and QR code images
-      const logoImg = new Image();
-      logoImg.src = logo;
-      const qrImg = new Image();
-      qrImg.src = generatedQRUrl;
-
-      await Promise.all([
-        new Promise((resolve) => (logoImg.onload = resolve)),
-        new Promise((resolve) => (qrImg.onload = resolve)),
-      ]);
-
-      // --- HEADER SECTION ---
-      // Logo - positioned at top left
-      const logoSize = 120;
-      ctx.drawImage(logoImg, 80, 60, logoSize, logoSize);
-      
-      // Company name "Safetik" next to logo
+    const drawDataField = (label, value, isMultiline = false) => {
       ctx.fillStyle = "black";
-      ctx.font = "bold 90px Arial, sans-serif";
-      ctx.fillText("Safetik", 220, 140);
+      ctx.font = "bold 60px Arial";
+      ctx.fillText(label, fieldX, fieldY);
+      ctx.fillText(":", fieldX + labelWidth - 50, fieldY);
 
-      // Address lines below company name
-      ctx.font = "48px Arial, sans-serif";
-      ctx.fillText("1st Fl, Aiswarya Bldg., S.A.Rd,", 80, 240);
-      ctx.fillText("Valanjambalam, Kochi-16", 80, 310);
-
-      // Yellow highlighted contact numbers
-      ctx.fillStyle = "#FFD700";
-      ctx.beginPath(); 
-      ctx.roundRect(80, 340, 900, 140, 30);
-      ctx.fill();
-      
-      ctx.fillStyle = "black";
-      ctx.font = "bold 60px Courier New, monospace";
-      ctx.fillText("0484 4117109 | 9846196537", 120, 410);
-      ctx.font = "bold 55px Courier New, monospace";
-      ctx.fillText("9895039921", 120, 480);
-
-      // Email and website
-      ctx.font = "45px Arial, sans-serif";
-      ctx.fillStyle = "black";
-      ctx.fillText("info@safetik.in | www.safetik.in", 80, 580);
-
-      // --- VERTICAL SEPARATOR LINE ---
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "black";
-      ctx.beginPath();
-      ctx.moveTo(1200, 60);
-      ctx.lineTo(1200, 1500);
-      ctx.stroke();
-
-      // --- LEFT SECTION: DATA FIELDS ---
-      const fieldX = 100;
-      let fieldY = 700;
-      const fieldLineSpacing = 145;
-      const labelWidth = 450;
-      const dotStartX = fieldX + labelWidth;
-      const dotEndX = 1100;
-
-      const drawDataField = (label, value) => {
-        // Label and colon - Made bold for clarity
-        ctx.fillStyle = "black";
-        ctx.font = "bold 55px Arial, sans-serif";
-        ctx.fillText(label, fieldX, fieldY);
-        ctx.fillText(":", fieldX + labelWidth - 50, fieldY);
-
-        // Dotted line - Moved down so it acts as an underline instead of a strike-through
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 3; // slightly thicker underline
+      if (isMultiline) {
+        // Draw wrapped value
+        ctx.font = "bold 55px Arial";
+        const lastY = drawWrappedText(value || "", dotStartX, fieldY, dotEndX - dotStartX, 65);
+        fieldY = lastY + 80; // Increment fieldY based on how many lines were drawn
+      } else {
         ctx.beginPath();
         ctx.setLineDash([15, 15]);
         ctx.moveTo(dotStartX, fieldY + 10); 
@@ -390,124 +375,63 @@ export default function EquipmentList() {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Value if provided - BOLD, LARGER ARIAL font for clear reading
         if (value) {
-          ctx.fillStyle = "black";
-          ctx.font = "bold 60px Arial, sans-serif";
-          ctx.fillText(value, dotStartX + 30, fieldY - 2); // Positioned nicely above the dotted line
+          ctx.font = "bold 60px Arial";
+          ctx.fillText(value, dotStartX + 10, fieldY - 2);
         }
-        
         fieldY += fieldLineSpacing;
-      };
+      }
+    };
 
-      // Draw the dynamic fields
-      drawDataField("Type", equipment.equipmentName || "");
-      drawDataField("Cap", equipment.capacity);
-      drawDataField("H.P. Tested", "");
-      drawDataField("Installed on", formatDate(unitInstall));
-      drawDataField("Exp.", formatDate(unitExpiry));
-      drawDataField("Refilled", "");
-
-      // --- RIGHT SECTION: QR CODE ---
-      const qrSize = 750;
-      const qrX = 1450;
-      const qrY = 480;
-      
-      // Draw QR code
-      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-
-      // Equipment ID below QR
-      ctx.font = "bold 48px Courier New, monospace";
-      ctx.fillStyle = "#666";
-      ctx.textAlign = "center";
-      ctx.fillText(uniqueUnitId, qrX + qrSize / 2, qrY + qrSize + 80);
-      ctx.textAlign = "left";
-
-      // --- FOOTER SECTION ---
-      // Red accent rectangle at top right
-      ctx.fillStyle = "#C1272D";
-      ctx.fillRect(canvasWidth - 280, 30, 250, 140);
-
-      // Serial Number at bottom
-      ctx.font = "bold 60px Arial, sans-serif";
-      ctx.fillStyle = "#DC6D18";
-      ctx.fillText("SERIAL NO:", 100, canvasHeight - 80);
-      
-      ctx.fillStyle = "black";
-      ctx.font = "bold 65px Courier New, monospace";
-      ctx.fillText(unit.serialNumber, 550, canvasHeight - 80);
-
-      // --- PRINTING ---
-      const finalDataUrl = canvas.toDataURL();
-      const printWindow = window.open("", "_blank");
-      
-      // Write HTML content to the new window
-      printWindow.document.open();
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Print Label - ${unit.serialNumber}</title>
-            <style>
-              /* OPTIMIZED: Print settings for 90mm × 60mm label */
-              @page {
-                size: 90mm 60mm;   
-                margin: 0;
-              }
-              
-              html, body {
-                margin: 0;
-                padding: 0;
-                width: 90mm;
-                height: 60mm;        
-              }
-              
-              body {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                background-color: white;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-                -webkit-font-smoothing: antialiased;
-                -moz-osx-font-smoothing: grayscale;
-              }
-              
-              img {
-                width: 90mm;
-                height: 60mm;         
-                object-fit: contain;
-                image-rendering: -webkit-optimize-contrast;
-                image-rendering: crisp-edges;
-                image-rendering: pixelated;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-              }
-              
-              @media print {
-                body {
-                  visibility: visible;
-                  background: white !important;
-                }
-                img {
-                  display: block;
-                  margin: 0;
-                  padding: 0;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <img src="${finalDataUrl}" onload="window.print(); window.close();" />
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    } catch (err) {
-      console.error("Failed to generate QR label:", err);
-      alert("Could not generate QR label. Please try again.");
+    // Draw fields
+    drawDataField("Type", equipment.equipmentName || "", true); // Enable text wrapping
+    drawDataField("Cap", equipment.capacity);
+    drawDataField("Installed", formatDate(unitInstall));
+    drawDataField("Exp.", formatDate(unitExpiry));
+    
+    // Only show refilling line if it is "Existing" equipment
+    if (isExisting) {
+      drawDataField("Next Refill", formatDate(unitRefDue));
     }
-  };
 
+    // --- RIGHT SECTION ---
+    const qrSize = 750;
+    const qrX = 1450;
+    const qrY = 480;
+    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+
+    ctx.font = "bold 48px Courier New";
+    ctx.fillStyle = "#666";
+    ctx.textAlign = "center";
+    ctx.fillText(uniqueUnitId, qrX + qrSize / 2, qrY + qrSize + 80);
+    ctx.textAlign = "left";
+
+    ctx.fillStyle = "#C1272D";
+    ctx.fillRect(canvasWidth - 280, 30, 250, 140);
+
+    ctx.font = "bold 60px Arial";
+    ctx.fillStyle = "#DC6D18";
+    ctx.fillText("SERIAL NO:", 100, canvasHeight - 80);
+    ctx.fillStyle = "black";
+    ctx.font = "bold 65px Courier New";
+    ctx.fillText(unit.serialNumber, 550, canvasHeight - 80);
+
+    const finalDataUrl = canvas.toDataURL();
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(`
+      <html>
+        <head><style>@page { size: 90mm 60mm; margin: 0; } img { width: 90mm; height: 60mm; }</style></head>
+        <body style="margin:0;"><img src="${finalDataUrl}" onload="window.print(); window.close();" /></body>
+      </html>
+    `);
+    printWindow.document.close();
+  } catch (err) {
+  console.error("Failed to generate QR label:", err);
+    alert("Could not generate QR label. Please try again.");
+  }
+};
+ // console.error("Failed to generate QR label:", err);
+      // alert("Could not generate QR label. Please try again.");
   const handleEdit = (equipment) => {
     setSelectedEquipment(equipment);
     setIsEditModalOpen(true);
@@ -592,6 +516,7 @@ export default function EquipmentList() {
                         canEdit={isEditAllowed}
                         numCols={numCols}
                         userMap={userMap}
+                        
                       />
                     ))
                   ) : (
