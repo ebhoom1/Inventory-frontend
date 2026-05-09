@@ -8,7 +8,11 @@ import {
   updateInventoryApi,
 } from './inventoryService';
 
-// existing thunks
+// ✅ IMPORT: Import the assignment action from the equipment slice
+import { assignEquipment } from '../equipment/equipmentSlice';
+
+// --- Thunks ---
+
 export const addInventory = createAsyncThunk('inventory/add', async (payload, thunkAPI) => {
   try {
     return await addInventoryApi(payload, thunkAPI.getState);
@@ -25,22 +29,18 @@ export const fetchInventory = createAsyncThunk('inventory/fetchAll', async (_, t
   }
 });
 
-// NEW: log usage
 export const logInventoryUsage = createAsyncThunk('inventory/logUsage', async (payload, thunkAPI) => {
   try {
-    // payload: { skuName, userId, quantityUsed, date, notes? }
     return await logUsageApi(payload, thunkAPI.getState);
   } catch (err) {
     return thunkAPI.rejectWithValue(err.message || 'Usage logging failed');
   }
 });
 
-// NEW: fetch summary for list view
 export const fetchInventorySummary = createAsyncThunk(
   'inventory/fetchSummary',
   async (userId = "all", thunkAPI) => {
     try {
-      // Pass selected userId (or "all") to API
       return await listSummaryApi(thunkAPI.getState, userId);
     } catch (err) {
       return thunkAPI.rejectWithValue(err.message || 'Fetch summary failed');
@@ -48,7 +48,6 @@ export const fetchInventorySummary = createAsyncThunk(
   }
 );
 
-// NEW: update inventory record
 export const updateInventory = createAsyncThunk(
   'inventory/update',
   async ({ id, ...payload }, thunkAPI) => {
@@ -61,14 +60,14 @@ export const updateInventory = createAsyncThunk(
 );
 
 const initialState = {
-  items: [],                 // raw add records (if you still need them)
-  summary: [],               // NEW: per-SKU summary
+  items: [],                 
+  summary: [],               
   loading: false,
   error: null,
   lastAdded: null,
-  usageLoading: false,       // NEW
-  usageError: null,          // NEW
-  lastUsage: null,           // NEW
+  usageLoading: false,       
+  usageError: null,          
+  lastUsage: null,           
 };
 
 const inventorySlice = createSlice({
@@ -117,7 +116,7 @@ const inventorySlice = createSlice({
         state.error = action.payload || 'Fetch inventory failed';
       })
 
-      // NEW: log usage
+      // log usage
       .addCase(logInventoryUsage.pending, (state) => {
         state.usageLoading = true;
         state.usageError = null;
@@ -132,7 +131,7 @@ const inventorySlice = createSlice({
         state.usageError = action.payload || 'Usage logging failed';
       })
 
-      // NEW: fetch summary
+      // fetch summary
       .addCase(fetchInventorySummary.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -146,14 +145,13 @@ const inventorySlice = createSlice({
         state.error = action.payload || 'Fetch summary failed';
       })
 
-      // NEW: update inventory
+      // update inventory
       .addCase(updateInventory.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(updateInventory.fulfilled, (state, action) => {
         state.loading = false;
-        // Update items list if exists
         const index = state.items.findIndex(item => item._id === action.meta.arg.id);
         if (index !== -1) {
           state.items[index] = { ...state.items[index], ...action.payload.inventory };
@@ -162,6 +160,36 @@ const inventorySlice = createSlice({
       .addCase(updateInventory.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Update failed';
+      })
+
+      // ✅ ADDED: Listen for successful assignments and update stock locally
+      .addCase(assignEquipment.fulfilled, (state, action) => {
+        const { skuName, assigned } = action.payload; 
+        const itemIndex = state.items.findIndex(item => item.skuName === skuName);
+        
+        if (itemIndex !== -1) {
+          // 1. Reduce the quantity in the local state
+          state.items[itemIndex].quantity -= assigned;
+          
+          // 2. Filter out the assigned serial numbers from the available list
+          if (state.items[itemIndex].serialNumbers && action.payload.serialNumbers) {
+            state.items[itemIndex].serialNumbers = state.items[itemIndex].serialNumbers.filter(
+              sn => !action.payload.serialNumbers.includes(sn)
+            );
+          }
+          
+          // 3. Remove item from list if stock reaches zero
+          if (state.items[itemIndex].quantity <= 0) {
+            state.items.splice(itemIndex, 1);
+          }
+        }
+         const summaryIndex = state.summary.findIndex(s => s.skuName === skuName);
+  if (summaryIndex !== -1) {
+    state.summary[summaryIndex].left -= assigned;
+    if (state.summary[summaryIndex].left <= 0) {
+      state.summary.splice(summaryIndex, 1);
+    }
+  }
       });
   },
 });

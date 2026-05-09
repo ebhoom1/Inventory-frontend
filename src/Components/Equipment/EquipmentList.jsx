@@ -444,13 +444,49 @@ export default function EquipmentList() {
 
   const handleSaveUpdate = async (formData) => {
     if (!selectedEquipment) return;
-    const id = selectedEquipment._id || selectedEquipment.equipmentId;
-    
-    const { _id, equipmentId, ...updatePayload } = formData;
     
     try {
-      await dispatch(updateEquipment({ id, updates: updatePayload })).unwrap();
-      handleCloseEdit();
+      // ✅ If multiple units exist, update each one individually
+      if (formData.units && Array.isArray(formData.units) && formData.units.length > 0) {
+        // Update each unit separately
+        const token = userInfo?.token || localStorage.getItem("token");
+        
+        for (const unit of formData.units) {
+          if (unit._id) {
+            // Build update payload for this specific unit
+            const unitUpdate = {
+              serialNumber: unit.serialNumber,
+              location: unit.location,
+              // Other fields can be updated too if needed
+            };
+
+            const res = await fetch(`${API_URL}/api/equipment/${unit._id}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(unitUpdate),
+            });
+
+            if (!res.ok) {
+              const errData = await res.json();
+              throw new Error(errData?.message || "Failed to update unit");
+            }
+          }
+        }
+        
+        // After all units updated, refresh the list
+        dispatch(getEquipments());
+        handleCloseEdit();
+      } else {
+        // Single unit update (legacy path)
+        const id = selectedEquipment._id || selectedEquipment.equipmentId;
+        const { _id, equipmentId, units, ...updatePayload } = formData;
+        
+        await dispatch(updateEquipment({ id, updates: updatePayload })).unwrap();
+        handleCloseEdit();
+      }
     } catch (err) {
       console.error("Failed to update equipment:", err);
     }

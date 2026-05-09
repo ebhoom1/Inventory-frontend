@@ -120,8 +120,13 @@ const equipmentSlice = createSlice({
       .addCase(createEquipment.fulfilled, (state, action) => {
         state.loading = false;
         state.successMessage = action.payload?.message || "Equipment created";
-        if (action.payload?.equipment) {
-          state.list = [action.payload.equipment, ...state.list]; // optimistic add
+        // ✅ FLAT STRUCTURE: payload.equipment is an ARRAY of individual units
+        if (action.payload?.equipment && Array.isArray(action.payload.equipment)) {
+          // Add all created units to the list
+          state.list = [...action.payload.equipment, ...state.list];
+        } else if (action.payload?.firstEquipment) {
+          // Backward compatibility: use firstEquipment if array not available
+          state.list = [action.payload.firstEquipment, ...state.list];
         }
       })
       .addCase(createEquipment.rejected, (state, action) => {
@@ -153,14 +158,16 @@ const equipmentSlice = createSlice({
       state.loading = false;
       state.successMessage = action.payload?.message || "Equipment assigned";
       
-      // Optimistic Update: In flat structure, each document is a single unit
-      // Find the exact unit by equipmentId and update it
-      const { equipmentId, assignment } = action.payload;
-      const eqIndex = state.list.findIndex(e => e.equipmentId === equipmentId);
-      
-      if (eqIndex !== -1 && assignment) {
-        // Update the unit directly since each document = 1 unit
-        state.list[eqIndex] = { ...state.list[eqIndex], ...assignment };
+      // ✅ FLAT STRUCTURE: Update each unit by serialNumber
+      const assignedSerials = action.payload?.serialNumbers || [];
+      if (assignedSerials.length > 0) {
+        state.list = state.list.map(equipment => {
+          if (assignedSerials.includes(equipment.serialNumber)) {
+            // Mark as updated (userId assigned)
+            return { ...equipment, updated: true };
+          }
+          return equipment;
+        });
       }
     })
     .addCase(assignEquipment.rejected, (state, action) => {

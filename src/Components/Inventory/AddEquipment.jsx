@@ -7,6 +7,7 @@ import {
   resetEquipmentState,
   getEquipments,
 } from "../../redux/features/equipment/equipmentSlice";
+import { fetchInventory } from "../../redux/features/inventory/inventorySlice";
 
 // Define the initial state structure for easy reset
 const getInitialFormState = () => ({
@@ -256,6 +257,7 @@ const handleSerialChange = (index, value) => {
       dispatch(resetEquipmentState());
       setSerialNumbers([""]);
       dispatch(getEquipments());
+      dispatch(fetchInventory());
       // Refresh equipment list so admin dropdowns reflect newly added equipment
       try {
         dispatch(getEquipments());

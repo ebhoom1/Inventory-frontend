@@ -86,10 +86,8 @@ const FormTextarea = ({ label, name, value, onChange, ...props }) => (
 export default function EditEquipmentModal
 ({ isOpen, onClose, equipment, onSave, isLoading }) {
  const [formData, setFormData] = useState({
-    skuName: "",
-    quantity: "",
-    date: "",
-    // Technical details fields added
+    equipmentName: "",
+    serialNumber: "",
     capacity: "",
     brand: "",
     content: "",
@@ -99,14 +97,25 @@ export default function EditEquipmentModal
     mfgMonth: "",
     expiryDate: "",
     refDue: "",
+    installationDate: "",
+    modelSeries: "",
+    userId: "",
+    location: "",
+    companyName: "",
+    units: [],  // ✅ Array for grouped equipment with multiple units
   });
-const [editedAssignments, setEditedAssignments] = useState([]);
+
   // Update form state if the equipment prop changes
   // We format the dates here for the form inputs
+  // ✅ FLAT STRUCTURE: Handle both single unit and grouped equipment
   useEffect(() => {
-   if (equipment) {
+    if (equipment) {
+      // ✅ If equipment has units array (grouped equipment), use it
+      const unitsArray = equipment.units && Array.isArray(equipment.units) ? equipment.units : [];
+      
       setFormData({
         equipmentName: equipment.equipmentName || "",
+        serialNumber: equipment.serialNumber || "",
         userId: equipment.userId || "",
         capacity: equipment.capacity || "",
         brand: equipment.brand || "",
@@ -115,15 +124,14 @@ const [editedAssignments, setEditedAssignments] = useState([]);
         batchNo: equipment.batchNo || "",
         modelSeries: equipment.modelSeries || "",
         notes: equipment.notes || "",
-        mfgMonth: equipment.mfgMonth ? new Date(equipment.mfgMonth).toISOString().slice(0, 7) : "", 
-        expiryDate: equipment.expiryDate ? new Date(equipment.expiryDate).toISOString().split('T')[0] : "", 
-        refDue: equipment.refDue ? new Date(equipment.refDue).toISOString().split('T')[0] : "", 
+        location: equipment.location || "",
+        companyName: equipment.companyName || "",
+        mfgMonth: equipment.mfgMonth ? new Date(equipment.mfgMonth).toISOString().slice(0, 7) : "",
+        expiryDate: equipment.expiryDate ? new Date(equipment.expiryDate).toISOString().split('T')[0] : "",
+        refDue: equipment.refDue ? new Date(equipment.refDue).toISOString().split('T')[0] : "",
         installationDate: equipment.installationDate ? new Date(equipment.installationDate).toISOString().split('T')[0] : "",
-        serialNumber: equipment.serialNumber || ""
+        units: unitsArray,  // ✅ Store units array for editing
       });
-
-      // Create edit copy with just this unit's data
-      setEditedAssignments([{ ...equipment }]);
     }
   }, [equipment]);
 
@@ -158,23 +166,27 @@ const [editedAssignments, setEditedAssignments] = useState([]);
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Handle Serial Number Change for Specific Unit
-  const handleAssignmentChange = (index, field, value) => {
-    const updated = [...editedAssignments];
-    updated[index][field] = value;
-    setEditedAssignments(updated);
+  // ✅ Handle edits to units array (for grouped equipment with multiple units)
+  const handleUnitChange = (index, field, value) => {
+    const updatedUnits = [...(formData.units || [])];
+    updatedUnits[index] = {
+      ...updatedUnits[index],
+      [field]: value,
+    };
+    setFormData((prev) => ({ ...prev, units: updatedUnits }));
   };
 
  const handleSubmit = (e) => {
     e.preventDefault();
     if (isLoading) return; 
     
-    const updatedSerialNumber = editedAssignments[0]?.serialNumber || formData.serialNumber;
-    // ✅ Include the updated assignments array in the save payload
+    // ✅ FLAT STRUCTURE: If editing grouped equipment with multiple units, pass units array
+    // Otherwise submit single unit data
     const payload = {
         ...formData,
-        assignments: editedAssignments ,
-        serialNumber: updatedSerialNumber
+        _id: equipment._id,
+        // Include units if this is grouped equipment
+        units: formData.units || [],
     };
     
     onSave(payload);
@@ -234,40 +246,53 @@ const [editedAssignments, setEditedAssignments] = useState([]);
             {/* Notes */}
             <FormTextarea label="Notes" name="notes" value={formData.notes} onChange={handleChange} />
 
-            {/* ✅ SERIAL NUMBERS MANAGEMENT SECTION */}
+            {/* ✅ SERIAL NUMBER & ASSIGNMENT SECTION - EDITABLE (FLAT STRUCTURE) */}
           <div className="border-t pt-4 mt-4">
-                <h4 className="text-lg font-bold text-[#DC6D18] mb-3">Manage Assigned Unit Serial Numbers</h4>
+                <h4 className="text-lg font-bold text-[#DC6D18] mb-4">Manage Assigned Unit Serial Numbers</h4>
                 
-                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
-                    <div className="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                        {editedAssignments.length > 0 ? (
-                            editedAssignments.map((unit, idx) => (
-                                <div key={idx} className="flex items-center gap-3 bg-white p-3 rounded border shadow-sm">
-                                    <span className="text-xs font-bold text-gray-400 w-8">#{idx+1}</span>
-                                    
-                                    <div className="flex-1">
-                                        <label className="text-[10px] text-gray-500 uppercase font-semibold">Serial Number</label>
-                                        <input 
-                                            type="text" 
-                                            value={unit.serialNumber || ""} 
-                                            onChange={(e) => handleAssignmentChange(idx, 'serialNumber', e.target.value)}
-                                            className="w-full text-sm font-mono border-b border-gray-300 focus:border-[#DC6D18] focus:outline-none py-1 transition-colors"
-                                        />
-                                    </div>
+                {formData.units && formData.units.length > 0 ? (
+                  <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-3 max-h-80 overflow-y-auto">
+                    {formData.units.map((unit, idx) => (
+                      <div key={idx} className="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-4">
+                        <span className="text-sm font-bold text-gray-400 min-w-fit">Unit #{idx + 1}:</span>
+                        
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div>
+                            <label className="text-xs font-semibold text-gray-600 block mb-1">Serial Number</label>
+                            <input 
+                              type="text" 
+                              value={unit.serialNumber || ""} 
+                              onChange={(e) => handleUnitChange(idx, 'serialNumber', e.target.value)}
+                              className="w-full text-sm font-mono border border-gray-300 rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#DC6D18] focus:border-transparent"
+                              placeholder="Enter serial number"
+                            />
+                          </div>
 
-                                    <div className="flex-1">
-                                         <label className="text-[10px] text-gray-500 uppercase font-semibold">Assigned To</label>
-                                         <div className="text-sm font-medium text-green-600">
-                                             {unit.userId}
-                                         </div>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-gray-500 italic text-sm text-center py-4">No assigned units available for this equipment.</p>
-                        )}
-                    </div>
-                </div>
+                          <div>
+                            <label className="text-xs font-semibold text-gray-600 block mb-1">Equipment ID</label>
+                            <input 
+                              type="text" 
+                              value={unit.equipmentId || ""} 
+                              disabled
+                              className="w-full text-sm font-mono border border-gray-300 rounded px-2 py-2 bg-gray-100 text-gray-500 cursor-not-allowed"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-gray-600 block mb-1">Assigned To</label>
+                            <div className="text-sm font-medium p-2 bg-green-50 border border-green-200 rounded text-green-700">
+                              {unit.userId || "Unassigned"}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center text-gray-500">
+                    <p>No assigned units available for this equipment.</p>
+                  </div>
+                )}
             </div>
 
           </form>

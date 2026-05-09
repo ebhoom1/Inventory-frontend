@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { API_URL } from "../../../utils/apiConfig";
+import { useSelector } from "react-redux";
 
 // --- Helper Functions for Date Formatting ---
 
@@ -78,6 +80,9 @@ const FormTextarea = ({ label, name, value, onChange, ...props }) => (
 );
 
 export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLoading }) {
+  const { userInfo } = useSelector((s) => s.users);
+  const authToken = userInfo?.token || localStorage.getItem("token");
+
   const [formData, setFormData] = useState({
     equipmentName: "",
     quantity: "",
@@ -85,6 +90,7 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
     brand: "",
     capacity: "",
     content: "",
+    serialNumbers:"",
     grossWeight: "",
     batchNo: "",
     mfgMonth: "",
@@ -94,6 +100,27 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
   // ✅ NEW: Serial numbers management state (matches Equipment edit modal)
   const [serialNumbers, setSerialNumbers] = useState([]);
   const [selectedSerialIndices, setSelectedSerialIndices] = useState(new Set());
+  const [remainingStock, setRemainingStock] = useState(null);
+  const [loadingStock, setLoadingStock] = useState(false);
+
+  // Fetch remaining stock data
+  const fetchRemainingStock = async (batchNo) => {
+    if (!batchNo) return;
+    setLoadingStock(true);
+    try {
+      const response = await fetch(`${API_URL}/api/inventory/remaining/${encodeURIComponent(batchNo)}`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setRemainingStock(data);
+        console.log("Remaining stock data:", data);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch remaining stock:", err);
+    }
+    setLoadingStock(false);
+  };
 
   // Populate form when modal opens with an item
   useEffect(() => {
@@ -111,21 +138,33 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
         notes: item.notes || "",
       });
 
-      // ✅ NEW: Initialize serial numbers array from batchNo or quantity
-      const qty = item.quantity || 0;
+      // Fetch remaining stock for this batch
+      if (item.batchNo) {
+        fetchRemainingStock(item.batchNo);
+      }
+
+      // ✅ Initialize serial numbers from Inventory record with remaining stock data
       const initSerials = [];
+      const existingSerials = item.serialNumbers || [];
+
+      // Use remaining stock serials if available, otherwise use item serials
+      const availableSerials = (remainingStock?.serialNumbers || existingSerials || []);
+      const qty = remainingStock?.remaining || item.quantity || 0;
+
       for (let i = 0; i < qty; i++) {
-        // Create a unique identifier for each serial slot
         initSerials.push({
-          id: `${item.batchNo}-${i}`,
-          value: item.batchNo ? `${item.batchNo}-${String(i + 1).padStart(3, "0")}` : "",
+          id: `unit-${i}`,
+          value: availableSerials[i] || "",
           new: false,
         });
       }
+
       setSerialNumbers(initSerials);
       setSelectedSerialIndices(new Set());
+      
+      console.log("EditInventoryModal - Remaining serials:", availableSerials, "Init serials:", initSerials);
     }
-  }, [item]);
+  }, [item, item?.serialNumbers, remainingStock]);
 
   if (!isOpen) return null;
 
@@ -241,17 +280,32 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
 
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Quantity
+                {remainingStock ? `Remaining in Stock (${remainingStock.remaining} of ${remainingStock.totalAdded})` : "Quantity"}
               </label>
-              <input
-                type="number"
-                name="quantity"
-                min="0"
-                value={formData.quantity}
-                onChange={handleQuantityChange}
-                required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-              />
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  type="number"
+                  name="quantity"
+                  min="0"
+                  value={formData.quantity}
+                  onChange={handleQuantityChange}
+                  disabled={remainingStock ? true : false}
+                  required
+                  className={`flex-1 px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18] ${
+                    remainingStock ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed' : 'border-gray-300'
+                  }`}
+                />
+                {remainingStock && remainingStock.assigned > 0 && (
+                  <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded whitespace-nowrap">
+                    {remainingStock.assigned} Assigned
+                  </span>
+                )}
+              </div>
+              {remainingStock && (
+                <p className="text-xs text-gray-500 mt-1">
+                  📦 View shows remaining unassigned units. Total added: {remainingStock.totalAdded}
+                </p>
+              )}
             </div>
 
             <div>
