@@ -13,17 +13,20 @@ import { fetchInventory } from "../../redux/features/inventory/inventorySlice";
 const getInitialFormState = () => ({
   equipmentName: "",
   modelSeries: "",
+  equipmentType: "new",
   capacity: "",
   brand: "",
   grossWeight: "",
   content: "",
   batchNo: "",
+  billNo: "",
   spNumber: "", // For "Existing"
   mfgMonth: "",
   // moved installationDate, expiryDate, refDue to assignment flow
   notes: "",
   quantity: "", // Start blank (user must enter quantity)
-  equipmentType: "new", // 'new' or 'existing'
+  isRestock: false,
+  restockedFromInventoryId: null,
 });
 
 function AddEquipment() {
@@ -31,12 +34,14 @@ function AddEquipment() {
   const { loading, error, successMessage } = useSelector((s) => s.equipment);
   const { userInfo } = useSelector((s) => s.users);
   const equipmentList = useSelector((s) => s.equipment?.list || []);
+  const inventoryList = useSelector((s) => s.inventory?.items || []);
 
   const [formData, setFormData] = useState(getInitialFormState());
+  const [inventoryLoadingState, setInventoryLoadingState] = useState(false);
   // equipmentLocations removed: locations are not collected on add form
 
 const [serialNumbers, setSerialNumbers] = useState([""]);
-
+const uniqueInventoryNames = [...new Set(equipmentList.map(it => it.equipmentName))].sort();
 // ✅ Update serial number array when quantity changes
   useEffect(() => {
     const qty = Number(formData.quantity) || 1;
@@ -57,6 +62,8 @@ const [serialNumbers, setSerialNumbers] = useState([""]);
   useEffect(() => {
     try {
       dispatch(getEquipments());
+      // ✅ NEW: Also fetch inventory list for restock feature
+      dispatch(fetchInventory());
     } catch (e) {
       // ignore
     }
@@ -84,10 +91,23 @@ const [serialNumbers, setSerialNumbers] = useState([""]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "quantity" ? value : value,
-    }));
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [name]: name === "quantity" ? value : value,
+      };
+      
+      // ✅ When equipment type changes to restock, enable restock mode
+      if (name === "equipmentType" && value === "restock") {
+        updated.isRestock = true;
+      } else if (name === "equipmentType" && value !== "restock") {
+        updated.isRestock = false;
+        updated.restockedFromInventoryId = null;
+        updated.equipmentName = "";
+      }
+      
+      return updated;
+    });
   };
 
 const handleSerialChange = (index, value) => {
@@ -122,6 +142,37 @@ const handleSerialChange = (index, value) => {
       return errs;
     });
   };
+
+  // restock autopopulate
+ const handleRestockSelection = (e) => {
+  const selectedName = e.target.value;
+  setFormData(prev => ({ ...prev, equipmentName: selectedName }));
+
+  if (selectedName) {
+    // Find a matching record in the current list to copy specs
+    const existing = equipmentList.find(eq => eq.equipmentName === selectedName);
+    if (existing) {
+      setFormData(prev => ({
+        ...prev,
+        modelSeries: existing.modelSeries || "",
+        capacity: existing.capacity || "",
+        brand: existing.brand || "",
+        grossWeight: existing.grossWeight || "",
+        content: existing.content || "",
+      }));
+    }
+    
+    // ✅ Also find the inventory record to get its ID for tracking
+    const inventoryRecord = inventoryList.find(inv => inv.skuName === selectedName);
+    if (inventoryRecord) {
+      setFormData(prev => ({
+        ...prev,
+        isRestock: true,
+        restockedFromInventoryId: inventoryRecord._id,
+      }));
+    }
+  }
+};
   
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -229,12 +280,22 @@ const handleSerialChange = (index, value) => {
     payload.skuName = formData.equipmentName;
     // --- Conditional Validation and Payload Cleanup ---
    // ✅ Attach the manual serials to payload
-    if (payload.equipmentType === "new") {
+    if (payload.equipmentType === "new" || payload.equipmentType === "restock") {
         payload.serialNumbers = serialNumbers; // Send array
         delete payload.spNumber;
     } else {
         delete payload.serialNumbers; 
     }
+    
+    // ✅ Add restock tracking fields
+    if (formData.isRestock) {
+      payload.isRestock = true;
+      payload.restockedFromInventoryId = formData.restockedFromInventoryId;
+    } else {
+      payload.isRestock = false;
+      payload.restockedFromInventoryId = null;
+    }
+    
     delete payload.equipmentType;
         
 
@@ -330,13 +391,67 @@ const handleSerialChange = (index, value) => {
             >
               <option value="new">New</option>
               <option value="existing">Existing</option>
+              <option value="restock">Restock</option>
             </select>
           </div>
 
+          {/* Bill Number Input */}
+<div className="relative">
+  <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+    Bill Number
+  </span>
+  <input
+    type="text"
+    name="billNo"
+    value={formData.billNo}
+    onChange={handleChange}
+    placeholder="e.g., BILL-9988"
+    className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 bg-orange-50"
+  />
+</div>
+
+{/* Conditional Equipment Name Field */}
+<div className="relative">
+  <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+    Equipment Name
+  </span>
+  {formData.equipmentType === "restock" ? (
+    <select
+      name="equipmentName"
+      value={formData.equipmentName}
+      onChange={handleRestockSelection}
+      className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 bg-orange-50"
+    >
+      <option value="">Select Existing Equipment to Restock</option>
+      {inventoryList && inventoryList.length > 0 && inventoryList
+        .filter(inv => inv.skuName && !inv.isRestock) // Filter out already restocked items
+        .map(inv => (
+          <option key={inv._id} value={inv.skuName}>
+            {inv.skuName} (Qty: {inv.quantity})
+          </option>
+        ))}
+      {(!inventoryList || inventoryList.length === 0) && (
+        <option disabled>No inventory available to restock</option>
+      )}
+    </select>
+  ) : (
+    <input
+      type="text"
+      name="equipmentName"
+      value={formData.equipmentName}
+      onChange={handleChange}
+      placeholder={formData.equipmentType === "existing" ? "Enter equipment name" : "e.g., Fire Extinguisher"}
+      className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 bg-orange-50"
+    />
+  )}
+</div>
+
        {/*  NEW: Manual Serial Numbers Section (Placed Correctly) */}
-        {formData.equipmentType === "new" && (
+        {(formData.equipmentType === "new" || formData.equipmentType === "restock") && (
           <div className="w-full p-4 border-2 border-dashed border-[#DC6D18] rounded-xl bg-gradient-to-r from-white to-[#FFF7ED] mt-6 md:col-span-2">
-            <h3 className="text-lg font-bold text-[#DC6D18] mb-3">Enter Serial Numbers</h3>
+            <h3 className="text-lg font-bold text-[#DC6D18] mb-3">
+              {formData.equipmentType === "restock" ? "Enter Serial Numbers for Restocked Units" : "Enter Serial Numbers"}
+            </h3>
             
             {/* Scrollable Container if > 5 items */}
             <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${serialNumbers.length > 5 ? 'max-h-60 overflow-y-auto pr-2 custom-scrollbar' : ''}`}>

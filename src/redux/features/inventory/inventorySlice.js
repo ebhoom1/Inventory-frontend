@@ -164,7 +164,7 @@ const inventorySlice = createSlice({
 
       // ✅ ADDED: Listen for successful assignments and update stock locally
       .addCase(assignEquipment.fulfilled, (state, action) => {
-        const { skuName, assigned } = action.payload; 
+        const { skuName, assigned, serialNumbers: assignedSerials } = action.payload; 
         const itemIndex = state.items.findIndex(item => item.skuName === skuName);
         
         if (itemIndex !== -1) {

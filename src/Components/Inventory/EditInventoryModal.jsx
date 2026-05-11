@@ -127,7 +127,7 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
     if (item) {
       setFormData({
         equipmentName: item.equipmentName || item.skuName || "",
-        quantity: item.quantity || "",
+        quantity: remainingStock ? remainingStock.remaining : (item.quantity || 0),
         date: formatDateForInput(item.date),
         brand: item.brand || "",
         capacity: item.capacity || "",
@@ -139,32 +139,46 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
       });
 
       // Fetch remaining stock for this batch
-      if (item.batchNo) {
-        fetchRemainingStock(item.batchNo);
-      }
+      if(item.batchNo && !remainingStock && !loadingStock) {
+      fetchRemainingStock(item.batchNo);
+    }
 
       // ✅ Initialize serial numbers from Inventory record with remaining stock data
-      const initSerials = [];
-      const existingSerials = item.serialNumbers || [];
+      // const initSerials = [];
+      // const existingSerials = item.serialNumbers || [];
 
       // Use remaining stock serials if available, otherwise use item serials
-      const availableSerials = (remainingStock?.serialNumbers || existingSerials || []);
-      const qty = remainingStock?.remaining || item.quantity || 0;
+    //   const availableSerials = (remainingStock?.serialNumbers || existingSerials || []);
+    //   const qty = remainingStock?.remaining || item.quantity || 0;
 
-      for (let i = 0; i < qty; i++) {
-        initSerials.push({
-          id: `unit-${i}`,
-          value: availableSerials[i] || "",
-          new: false,
-        });
-      }
+    //   for (let i = 0; i < qty; i++) {
+    //     initSerials.push({
+    //       id: `unit-${i}`,
+    //       value: availableSerials[i] || "",
+    //       new: false,
+    //     });
+    //   }
 
-      setSerialNumbers(initSerials);
-      setSelectedSerialIndices(new Set());
+    //   setSerialNumbers(initSerials);
+    //   setSelectedSerialIndices(new Set());
       
-      console.log("EditInventoryModal - Remaining serials:", availableSerials, "Init serials:", initSerials);
-    }
-  }, [item, item?.serialNumbers, remainingStock]);
+    //   console.log("EditInventoryModal - Remaining serials:", availableSerials, "Init serials:", initSerials);
+    if (remainingStock && remainingStock.serialNumbers) {
+    console.log("Syncing serials from live Equipment data:", remainingStock.serialNumbers);
+    
+    const liveSerials = remainingStock.serialNumbers.map((sn, i) => ({
+      id: `unit-${i}`,
+      value: sn,
+      new: false,
+    }));
+    
+    setSerialNumbers(liveSerials);
+    // Update quantity to match unassigned count
+    setFormData(prev => ({ ...prev, quantity: liveSerials.length }));
+  }
+  
+  }
+  }, [item, remainingStock]);
 
   if (!isOpen) return null;
 

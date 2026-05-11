@@ -457,7 +457,7 @@ export default function EquipmentList() {
             const unitUpdate = {
               serialNumber: unit.serialNumber,
               location: unit.location,
-              // Other fields can be updated too if needed
+             installationDate: formData.installationDate,
             };
 
             const res = await fetch(`${API_URL}/api/equipment/${unit._id}`, {

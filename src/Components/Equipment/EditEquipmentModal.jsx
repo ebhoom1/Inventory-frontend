@@ -126,10 +126,10 @@ export default function EditEquipmentModal
         notes: equipment.notes || "",
         location: equipment.location || "",
         companyName: equipment.companyName || "",
-        mfgMonth: equipment.mfgMonth ? new Date(equipment.mfgMonth).toISOString().slice(0, 7) : "",
-        expiryDate: equipment.expiryDate ? new Date(equipment.expiryDate).toISOString().split('T')[0] : "",
-        refDue: equipment.refDue ? new Date(equipment.refDue).toISOString().split('T')[0] : "",
-        installationDate: equipment.installationDate ? new Date(equipment.installationDate).toISOString().split('T')[0] : "",
+      mfgMonth: formatMonthForInput(equipment.mfgMonth),
+      expiryDate: formatDateForInput(equipment.expiryDate),
+      refDue: formatDateForInput(equipment.refDue),
+      installationDate: formatDateForInput(equipment.installationDate),
         units: unitsArray,  // ✅ Store units array for editing
       });
     }

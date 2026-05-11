@@ -427,39 +427,42 @@ const handleSubmit = (e) => {
       window.dispatchEvent(new CustomEvent('inventory:optimisticAdd', { detail: optimisticItem }));
 
       // ✅ 5. DISPATCH & RESET (Manual Reset Logic Added Here)
-      dispatch(logInventoryUsage(payload)).unwrap().then((res) => {
-        
-        // Notify Optimistic Update Confirmed
-        const usage = res?.usage || res;
-        window.dispatchEvent(new CustomEvent('inventory:confirmAdd', { detail: { tempId, usage } }));
+dispatch(assignEquipment(payload)).unwrap().then((res) => {
+    
+    // Notify Optimistic Update Confirmed
+    const usage = res?.usage || res;
+    window.dispatchEvent(new CustomEvent('inventory:confirmAdd', { detail: { tempId, usage } }));
 
-        // ✅ MANUAL SUCCESS & RESET LOGIC
-        Swal.fire({
-            icon: "success",
-            title: "Usage Logged",
-            text: `${payload.skuName}: -${payload.quantityUsed} assigned to ${payload.userId}`,
-            timer: 1500,
-            showConfirmButton: false,
-        });
+    // ✅ SUCCESS ALERT
+    Swal.fire({
+        icon: "success",
+        title: "Assignment Successful",
+        text: `${payload.skuName}: ${payload.quantityUsed} units assigned to ${payload.userId}`,
+        timer: 1500,
+        showConfirmButton: false,
+    });
 
-        // Reset Form Fields
-        setFormData({
-            skuName: "",
-            userId: isAdmin ? "" : userInfo?.userId || "",
-            quantityUsed: "",
-            location: "",
-            notes: "",
-            installationDate: "",
-            expiryDate: "",
-            refDue: "",
-        });
-        setSelectedSerials([]);
-        
-        // Refresh Lists
-        dispatch(resetInventoryState());
-        if (isAdmin) dispatch(getEquipments());
+    // ✅ RESET FORM FIELDS
+    setFormData({
+        skuName: "",
+        userId: isAdmin ? "" : userInfo?.userId || "",
+        quantityUsed: "",
+        location: "",
+        notes: "",
+        installationDate: "",
+        expiryDate: "",
+        refDue: "",
+    });
+    setSelectedSerials([]);
+    
+    // ✅ REFRESH LISTS
+    dispatch(resetInventoryState());
+    if (isAdmin) {
+        dispatch(getEquipments());
+        dispatch(fetchInventory()); // Also refresh inventory to see stock reduction
+    }
 
-      }).catch((err) => {
+}).catch((err) => {
         console.error("Submission Failed:", err);
         window.dispatchEvent(new CustomEvent('inventory:rollbackAdd', { detail: { tempId } }));
       });
