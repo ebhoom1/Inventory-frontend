@@ -102,11 +102,6 @@ function InventoryList() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalAssignments, setModalAssignments] = useState([]);
   const [modalSku, setModalSku] = useState("");
-  
-  // ✅ NEW: Restock modal state
-  const [restockModalOpen, setRestockModalOpen] = useState(false);
-  const [restockItems, setRestockItems] = useState([]);
-  const [restockSku, setRestockSku] = useState("");
 
   // Fetch equipment units for this SKU (equipmentId)
   const handleShowDetails = async (equipmentId, skuName) => {
@@ -132,42 +127,7 @@ function InventoryList() {
     setEditModal({ open: true, item, loading: false });
   };
 
-  // ✅ NEW: Fetch restocked equipment for a given inventory ID
-  const handleShowRestockedItems = async (inventoryId, skuName) => {
-    try {
-      // Get auth token from localStorage or Redux
-      let authToken = localStorage.getItem("token");
-      if (!authToken) {
-        Swal.fire({ icon: "error", title: "Authentication Error", text: "No token found" });
-        return;
-      }
-      
-      const res = await fetch(`${API_URL}/api/equipment?restockedFromInventoryId=${inventoryId}`, {
-        method: "GET",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${authToken}` 
-        }
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Failed to fetch restocked items");
-      }
-      
-      const data = await res.json();
-      
-      if (Array.isArray(data)) {
-        setRestockItems(data);
-        setRestockSku(skuName);
-        setRestockModalOpen(true);
-      } else {
-        Swal.fire({ icon: "error", title: "Failed", text: "Unexpected response format" });
-      }
-    } catch (e) {
-      Swal.fire({ icon: "error", title: "Error", text: e.message });
-    }
-  };
+
 
   const handleSaveEdit = async (id, updatedData) => {
     setEditModal((prev) => ({ ...prev, loading: true }));
@@ -253,17 +213,7 @@ function InventoryList() {
                         {item.date ? new Date(item.date).toLocaleDateString() : "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {item.isRestock ? (
-                          <button
-                            onClick={() => handleShowRestockedItems(item._id, item.skuName)}
-                            className="text-[#DC6D18] hover:text-[#B85B14] font-semibold underline hover:underline-offset-2"
-                            title="Click to view restocked items"
-                          >
-                            {item.skuName} ♻️
-                          </button>
-                        ) : (
-                          item.skuName
-                        )}
+                        {item.skuName} {item.isRestock && "♻️"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">{item.quantity}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">{item.batchNo || "N/A"}</td>
@@ -306,63 +256,7 @@ function InventoryList() {
         onSave={handleSaveEdit}
       />
 
-      {/* ✅ NEW: Restock Items Modal */}
-      {restockModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-96 overflow-y-auto">
-            <div className="sticky top-0 bg-orange-50 border-b p-4 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-[#DC6D18]">
-                Restocked Items - {restockSku} ♻️
-              </h3>
-              <button
-                onClick={() => setRestockModalOpen(false)}
-                className="text-gray-600 hover:text-gray-900 font-bold text-xl"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="p-6">
-              {restockItems && restockItems.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {restockItems.map((item, idx) => (
-                    <div key={item._id || idx} className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-white to-orange-50">
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <p className="font-semibold text-gray-600">Unit #</p>
-                          <p className="text-gray-900">{idx + 1}</p>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-600">Equipment ID</p>
-                          <p className="text-gray-900 font-mono">{item.equipmentId}</p>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-600">Serial No.</p>
-                          <p className="text-gray-900 font-mono">{item.serialNumber}</p>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-600">Status</p>
-                          <p className="text-gray-900">{item.userId ? "Assigned" : "In Stock"}</p>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="font-semibold text-gray-600">Brand</p>
-                          <p className="text-gray-900">{item.brand || "N/A"}</p>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="font-semibold text-gray-600">Batch No.</p>
-                          <p className="text-gray-900 font-mono">{item.batchNo || "N/A"}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-gray-500">No restocked items found for this inventory.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
