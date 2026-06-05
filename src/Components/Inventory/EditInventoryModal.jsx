@@ -102,6 +102,7 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
   const [selectedSerialIndices, setSelectedSerialIndices] = useState(new Set());
   const [remainingStock, setRemainingStock] = useState(null);
   const [loadingStock, setLoadingStock] = useState(false);
+  const [originalSerialCount, setOriginalSerialCount] = useState(0);  // ✅ NEW: Track original vs restock
 
   // Fetch remaining stock data
   const fetchRemainingStock = async (batchNo) => {
@@ -141,22 +142,36 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
         notes: item.notes || "",
       });
 
-      // ✅ Initialize serial numbers from item.serialNumbers IMMEDIATELY
-      // Don't wait for async remainingStock fetch
-      const existingSerials = item.serialNumbers || [];
+      // ✅ Initialize serial numbers from item.serialNumbers (BOTH original and restocked)
+      // The backend merges all serial numbers in order: [original...] + [restocked...]
+      // Also supports allSerialNumbers from merged frontend data
+      const existingSerials = item.allSerialNumbers || item.serialNumbers || [];
       const initSerials = [];
       
       for (let i = 0; i < initialQuantity; i++) {
         initSerials.push({
           id: `unit-${i}`,
           value: existingSerials[i] || "",
-          new: false,
+          isRestock: false,  // ✅ Will be updated if we can determine this
         });
       }
       
       setSerialNumbers(initSerials);
       setSelectedSerialIndices(new Set());
-      console.log("EditInventoryModal - Initial serials from item:", existingSerials, "Init serials:", initSerials);
+      
+      // ✅ Track original count for UI indicators (if available from item)
+      if (item.restockCount !== undefined && item.restockCount > 0) {
+        setOriginalSerialCount(initialQuantity - (item.restockCount * 5)); // Rough estimate
+      } else {
+        setOriginalSerialCount(initialQuantity); // All are original if not restocked
+      }
+      
+      console.log("EditInventoryModal - Loaded serials from item:", {
+        total: existingSerials.length,
+        quantity: initialQuantity,
+        serials: existingSerials,
+        restockCount: item.restockCount,
+      });
 
       // Fetch remaining stock for this batch (async, non-blocking)
       if(item.batchNo && !remainingStock && !loadingStock) {
@@ -372,7 +387,17 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
           {/* ✅ SERIAL NUMBERS MANAGEMENT SECTION (New) */}
           <div className="border-t border-gray-100 pt-5 mt-5">
             <div className="flex justify-between items-center mb-4">
-              <h4 className="text-lg font-bold text-[#DC6D18]">Manage Serial Numbers</h4>
+              <div>
+                <h4 className="text-lg font-bold text-[#DC6D18]">All Serial Numbers (Original + Restocked)</h4>
+                <p className="text-xs text-gray-500 mt-1">
+                  📦 Total: <span className="font-semibold">{serialNumbers.length} units</span> 
+                  {item?.restockCount > 0 && (
+                    <span className="ml-3">
+                      (Original: {Math.max(0, serialNumbers.length - (item.restockCount * 5))} + Restocked: {Math.min(serialNumbers.length, item.restockCount * 5)})
+                    </span>
+                  )}
+                </p>
+              </div>
               {selectedSerialIndices.size > 0 && (
                 <button
                   type="button"
@@ -384,49 +409,63 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
               )}
             </div>
 
-            <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-4">
               {serialNumbers.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
-                  {serialNumbers.map((serial, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex items-center gap-3 p-3 rounded border transition-colors ${
-                        selectedSerialIndices.has(idx)
-                          ? "bg-red-50 border-red-300"
-                          : "bg-white border-gray-200 shadow-sm"
-                      }`}
-                    >
-                      {/* Checkbox for selection */}
-                      <input
-                        type="checkbox"
-                        checked={selectedSerialIndices.has(idx)}
-                        onChange={() => toggleSerialSelection(idx)}
-                        className="w-4 h-4 text-red-600 rounded cursor-pointer"
-                        title="Select to remove this serial number"
-                      />
-
-                      {/* Serial number input */}
-                      <div className="flex-1">
-                        <label className="text-[10px] text-gray-500 uppercase font-semibold">
-                          Unit #{idx + 1}
-                        </label>
+                <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+                  {serialNumbers.map((serial, idx) => {
+                    // ✅ Visual indicator for original vs restocked serials
+                    // We don't always know which are restocked, so we highlight empty ones
+                    const isEmpty = !serial.value || serial.value.trim() === "";
+                    
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex items-center gap-3 p-3 rounded border transition-colors ${
+                          selectedSerialIndices.has(idx)
+                            ? "bg-red-50 border-red-300"
+                            : isEmpty
+                            ? "bg-yellow-50 border-yellow-200 shadow-sm"
+                            : "bg-white border-gray-200 shadow-sm"
+                        }`}
+                      >
+                        {/* Checkbox for selection */}
                         <input
-                          type="text"
-                          value={serial.value || ""}
-                          onChange={(e) => handleSerialChange(idx, e.target.value)}
-                          placeholder={`Serial number ${idx + 1}`}
-                          className="w-full text-sm font-mono border-b border-gray-300 focus:border-[#DC6D18] focus:outline-none py-1 transition-colors"
+                          type="checkbox"
+                          checked={selectedSerialIndices.has(idx)}
+                          onChange={() => toggleSerialSelection(idx)}
+                          className="w-4 h-4 text-red-600 rounded cursor-pointer flex-shrink-0"
+                          title="Select to remove this serial number"
                         />
-                      </div>
 
-                      {/* Badge for new serials */}
-                      {serial.new && (
-                        <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                          NEW
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                        {/* Serial number input */}
+                        <div className="flex-1">
+                          <label className="text-[10px] text-gray-600 uppercase font-semibold">
+                            Unit #{idx + 1} / {serialNumbers.length}
+                          </label>
+                          <input
+                            type="text"
+                            value={serial.value || ""}
+                            onChange={(e) => handleSerialChange(idx, e.target.value)}
+                            placeholder={`Serial number ${idx + 1}`}
+                            className="w-full text-sm font-mono border-b border-gray-300 focus:border-[#DC6D18] focus:outline-none py-1 transition-colors"
+                          />
+                        </div>
+
+                        {/* Status badge */}
+                        {isEmpty && (
+                          <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded flex-shrink-0 whitespace-nowrap">
+                            ⚠ EMPTY
+                          </span>
+                        )}
+                        
+                        {serial.value && (
+                          <span className="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded flex-shrink-0 whitespace-nowrap">
+                            ✓ FILLED
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-gray-500 italic text-sm text-center py-4">
@@ -435,7 +474,7 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
               )}
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              💡 Tip: Check the boxes next to serial numbers you want to remove, then click "Remove Selected" to deselect unwanted quantities.
+              💡 <strong>All {serialNumbers.length} serial numbers are displayed above.</strong> Edit any field, remove unwanted units, or add new ones by adjusting the quantity.
             </p>
           </div>
         </form>

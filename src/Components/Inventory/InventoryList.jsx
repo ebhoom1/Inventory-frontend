@@ -90,8 +90,58 @@ function InventoryList() {
       });
     }
 
+    // ✅ NEW: Group by skuName to merge restocked items with original inventory
+    // This prevents showing same item multiple times (original + all restocks as one)
+    const grouped = {};
+    result.forEach((item) => {
+      const key = item.skuName;
+      if (!grouped[key]) {
+        grouped[key] = {
+          ...item,
+          originalQuantity: item.quantity,
+          allBatchNos: [item.batchNo],
+          allSerialNumbers: [...(item.serialNumbers || [])],  // ✅ NEW: Track all serials
+          restockCount: 0,
+          lastRestockDate: null,
+        };
+      } else {
+        // ✅ Merge with existing: Add quantities
+        grouped[key].quantity += item.quantity;
+        grouped[key].originalQuantity += item.quantity;
+        
+        // ✅ Track all batch numbers
+        if (item.batchNo && !grouped[key].allBatchNos.includes(item.batchNo)) {
+          grouped[key].allBatchNos.push(item.batchNo);
+        }
+        
+        // ✅ Merge serial numbers (append new restocked serials to existing)
+        if (item.serialNumbers && Array.isArray(item.serialNumbers)) {
+          grouped[key].allSerialNumbers = [
+            ...grouped[key].allSerialNumbers,
+            ...item.serialNumbers
+          ];
+        }
+        
+        // ✅ Update to latest date
+        const currentDate = parseDate(grouped[key].date) || new Date(0);
+        const newDate = parseDate(item.date) || new Date(0);
+        if (newDate > currentDate) {
+          grouped[key].date = item.date;
+          grouped[key].lastRestockDate = item.date;
+        }
+        
+        // ✅ Track restock count
+        if (item.isRestock) {
+          grouped[key].restockCount += 1;
+        }
+      }
+    });
+
+    // Convert grouped object to array and sort
+    const mergedItems = Object.values(grouped);
+    
     // Sort by Date descending for list view consistency
-    return result.slice().sort((a, b) => {
+    return mergedItems.slice().sort((a, b) => {
       const da = parseDate(a.date) || new Date(0);
       const db = parseDate(b.date) || new Date(0);
       return db - da; 
@@ -206,20 +256,47 @@ function InventoryList() {
                     <td colSpan="5" className="text-center py-10 text-red-600 font-semibold">Failed to fetch inventory log: {reduxError}</td>
                   </tr>
               ) : filteredRawItems.length > 0 ? (
-                /* ✅ Render log list with Edit button on each row */
+                /* ✅ Render log list with merged items (original + restocks combined) */
                 filteredRawItems.map((item) => (
                     <tr key={item._id} className="hover:bg-orange-50/50 transition-colors duration-150">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                         {item.date ? new Date(item.date).toLocaleDateString() : "-"}
+                        {item.lastRestockDate && (
+                          <div className="text-xs text-gray-500">
+                            (Last: {new Date(item.lastRestockDate).toLocaleDateString()})
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {item.skuName} {item.isRestock && "♻️"}
+                        {item.skuName}
+                        {item.restockCount > 0 && (
+                          <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                            +{item.restockCount} restock{item.restockCount > 1 ? 's' : ''}
+                          </span>
+                        )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">{item.quantity}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">{item.batchNo || "N/A"}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">
+                        {item.quantity}
+                        {item.allBatchNos && item.allBatchNos.length > 1 && (
+                          <div className="text-xs text-gray-500 font-normal">
+                            ({item.allBatchNos.length} batch{item.allBatchNos.length > 1 ? 'es' : ''})
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">
+                        {item.allBatchNos && item.allBatchNos.length > 1 ? (
+                          <div className="space-y-1">
+                            {item.allBatchNos.map((bn, idx) => (
+                              <div key={idx} className="text-xs">{bn}</div>
+                            ))}
+                          </div>
+                        ) : (
+                          item.batchNo || "N/A"
+                        )}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${item.isRestock ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
-                          {item.isRestock ? "Restock" : "New"}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${item.restockCount > 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                          {item.restockCount > 0 ? `Merged (${item.restockCount} +)` : "Original"}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-center">

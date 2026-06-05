@@ -169,7 +169,15 @@ const handleSerialChange = (index, value) => {
         ...prev,
         isRestock: true,
         restockedFromInventoryId: inventoryRecord._id,
+        // ✅ EXCLUDE these fields - user must enter new values for restock:
+        // serialNumber is handled separately in serialNumbers state
+        // batchNo, mfgMonth, billNo should be empty (user enters)
+        batchNo: "",
+        billNo: "",
+        mfgMonth: "",
       }));
+      // Clear serial numbers for restock - user enters fresh ones
+      setSerialNumbers([""]);
     }
   }
 };

@@ -6,6 +6,7 @@ import {
 } from "../../redux/features/equipment/equipmentSlice";
 import { getAllUsers } from "../../redux/features/users/userSlice";
 import QRCode from "qrcode";
+import Swal from "sweetalert2";
 import EditEquipmentModal from "./EditEquipmentModal";
 import logo from '../../assets/safetik.png';
 import { API_URL } from "../../../utils/apiConfig";
@@ -583,6 +584,14 @@ export default function EquipmentList() {
 
             if (!res.ok) {
               const errData = await res.json();
+              
+              // ✅ NEW: Handle 409 Conflict - Duplicate Serial Number
+              if (res.status === 409) {
+                throw new Error(
+                  `Duplicate Serial: "${unit.serialNumber}" already used by equipment ${errData.existingEquipmentId} (${errData.existingEquipmentName}). Change the serial number or contact admin.`
+                );
+              }
+              
               throw new Error(errData?.message || "Failed to update unit");
             }
           }
@@ -599,6 +608,23 @@ export default function EquipmentList() {
       }
     } catch (err) {
       console.error("Failed to update equipment:", err);
+      
+      // ✅ NEW: Handle duplicate serial number error
+      if (err.message && err.message.includes("Duplicate Serial")) {
+        Swal.fire({
+          icon: "error",
+          title: "Duplicate Serial Number",
+          text: err.message,
+          confirmButtonColor: "#DC6D18",
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Update Failed",
+          text: err.message || "Failed to update equipment",
+          confirmButtonColor: "#DC6D18",
+        });
+      }
     }
   };
 
