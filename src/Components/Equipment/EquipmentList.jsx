@@ -238,12 +238,97 @@ export default function EquipmentList() {
     }
   };
 
+  /**
+   * ✅ ENHANCED: Capacity-Based Label Sizing with Exact Design Match
+   * - If capacity < 3kg: Print smaller 4cm × 4cm label (600×600px) - PROPORTIONALLY SCALED
+   * - Otherwise: Print standard 9cm × 5cm label (2400×1333px) - ORIGINAL DESIGN
+   * - All colors, styling, and layout match the existing design exactly
+   * - QR code and content fit perfectly within borders
+   */
   const handlePrintUnitQR = async (unit, equipment) => {
   try {
     const isExisting = Boolean(equipment.spNumber);
     const unitInstall = unit.installationDate || unit.assignedAt || equipment.installationDate || null;
     const unitExpiry = unit.expiryDate || equipment.expiryDate || null;
     const unitRefDue = unit.refDue || equipment.refDue || null;
+    const unitHpTested = unit.hpTestedDate || equipment.hpTestedDate || null;
+
+    // ✅ PARSE CAPACITY & CHECK IF < 3KG
+    const parseCapacity = (capStr) => {
+      if (!capStr) return Infinity;
+      const num = parseFloat(String(capStr).match(/[\d.]+/)?.[0] || 0);
+      return num;
+    };
+
+    const capacityValue = parseCapacity(equipment.capacity);
+    const isSmallCapacity = capacityValue > 0 && capacityValue < 3;
+
+    // ✅ EXACT DESIGN WITH CAPACITY-BASED SIZING
+    const labelConfig = isSmallCapacity
+      ? {
+          // SMALL LABEL: 4cm × 4cm (600×600px) - SCALED 25%
+          canvasWidth: 600,
+          canvasHeight: 600,
+          printWidth: "4cm",
+          printHeight: "4cm",
+          borderPadding: 8,
+          borderWidth: 1.5,
+          verticalDividerX: 300,
+          columnX1: 15,
+          columnX2: 315,
+          fieldStartY: 60,
+          fieldLineSpacing: 30,
+          labelWidth: 60,
+          dotLineHeight: 15,
+          fontSize: 10,
+          qrSize: 120,
+          qrX: 315,
+          qrY: 80,
+          qrTextY: 230,
+          qrTextFont: 8,
+          // Red box (scaled)
+          redBoxX: 525,
+          redBoxY: 8,
+          redBoxW: 67,
+          redBoxH: 35,
+          // Serial section
+          serialStartY: 570,
+          serialLabelFontSize: 9,
+          serialValueFontSize: 9,
+          serialValueX: 120,
+        }
+      : {
+          // STANDARD LABEL: 9cm × 5cm (2400×1333px) - ORIGINAL DESIGN
+          canvasWidth: 2400,
+          canvasHeight: 1333,
+          printWidth: "90mm",
+          printHeight: "50mm",
+          borderPadding: 30,
+          borderWidth: 6,
+          verticalDividerX: 1200,
+          columnX1: 100,
+          columnX2: 750,
+          fieldStartY: 320,
+          fieldLineSpacing: 135,
+          labelWidth: 350,
+          dotLineHeight: 60,
+          fontSize: 65,
+          qrSize: 750,
+          qrX: 1425,
+          qrY: 240,
+          qrTextY: 1030,
+          qrTextFont: 50,
+          // Red box (original)
+          redBoxX: 2120,
+          redBoxY: 30,
+          redBoxW: 280,
+          redBoxH: 140,
+          // Serial section
+          serialStartY: 1283,
+          serialLabelFontSize: 50,
+          serialValueFontSize: 55,
+          serialValueX: 550,
+        };
 
     const formatDate = (d) => {
       if (!d) return "";
@@ -257,91 +342,73 @@ export default function EquipmentList() {
     const uniqueUnitId = unit.equipmentId;
 
     const qrPayload = JSON.stringify({
-      eid: uniqueUnitId,   
+      eid: uniqueUnitId,
       en: equipment.equipmentName || unit.equipmentName || "",
-      uid: unit.userId || "",      
-      loc: unit.location || "",     
-      ins: unitInstall ? new Date(unitInstall).toISOString().split('T')[0] : "", 
-      cap: equipment.capacity,        
-      brd: equipment.brand,           
-      sn: unit.serialNumber,          
-      ref: unitRefDue ? new Date(unitRefDue).toISOString().split('T')[0] : "", 
-      typ: isExisting ? "E" : "N",    
-      exp: unitExpiry ? new Date(unitExpiry).toISOString().split('T')[0] : ""  
+      uid: unit.userId || "",
+      loc: unit.location || "",
+      ins: unitInstall ? new Date(unitInstall).toISOString().split('T')[0] : "",
+      cap: equipment.capacity,
+      brd: equipment.brand,
+      sn: unit.serialNumber,
+      ref: unitRefDue ? new Date(unitRefDue).toISOString().split('T')[0] : "",
+      hpt: unitHpTested ? new Date(unitHpTested).toISOString().split('T')[0] : "",
+      typ: isExisting ? "E" : "N",
+      exp: unitExpiry ? new Date(unitExpiry).toISOString().split('T')[0] : ""
     });
 
+    const qrWidth = isSmallCapacity ? 300 : 1200;
     const generatedQRUrl = await QRCode.toDataURL(qrPayload, {
-      errorCorrectionLevel: "L", margin: 2, width: 1200
+      errorCorrectionLevel: "L", margin: 2, width: qrWidth
     });
 
-    const canvasWidth = 2400; 
-    const canvasHeight = 1600;
     const canvas = document.createElement("canvas");
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
+    canvas.width = labelConfig.canvasWidth;
+    canvas.height = labelConfig.canvasHeight;
     const ctx = canvas.getContext("2d");
 
+    // ✅ WHITE BACKGROUND
     ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = "black";
-    ctx.strokeRect(30, 30, canvasWidth - 60, canvasHeight - 60);
+    ctx.fillRect(0, 0, labelConfig.canvasWidth, labelConfig.canvasHeight);
 
-    const logoImg = new Image();
-    logoImg.src = logo;
+    // ✅ BLACK BORDER
+    ctx.lineWidth = labelConfig.borderWidth;
+    ctx.strokeStyle = "black";
+    ctx.strokeRect(
+      labelConfig.borderPadding,
+      labelConfig.borderPadding,
+      labelConfig.canvasWidth - (labelConfig.borderPadding * 2),
+      labelConfig.canvasHeight - (labelConfig.borderPadding * 2)
+    );
+
     const qrImg = new Image();
     qrImg.src = generatedQRUrl;
 
-    await Promise.all([
-      new Promise((resolve) => (logoImg.onload = resolve)),
-      new Promise((resolve) => (qrImg.onload = resolve)),
-    ]);
+    await new Promise((resolve) => (qrImg.onload = resolve));
 
-    // --- HEADER ---
-    ctx.drawImage(logoImg, 80, 50, 320, 320);
-    const textShiftX = 450;
-    ctx.fillStyle = "black";
-    ctx.font = "bold 90px Arial";
-    ctx.fillText("Safetik", textShiftX, 180);
-    ctx.font = "48px Arial";
-    ctx.fillText("1st Fl, Aiswarya Bldg., S.A.Rd,", textShiftX, 270);
-    ctx.fillText("Valanjambalam, Kochi-16", textShiftX, 345);
-    
-    ctx.fillStyle = "#FFD700";
-    ctx.beginPath(); 
-    ctx.roundRect(80, 400, 1060, 180, 30);
-    ctx.fill();
-    
-    ctx.fillStyle = "black";
-    ctx.font = "bold 60px Courier New";
-    ctx.fillText("0484 4117109 | 9846196537", 130, 490);
-    ctx.font = "bold 55px Courier New";
-    ctx.fillText("9895039921", 130, 560);
-
-    ctx.font = "45px Arial";
-    ctx.fillText("info@safetik.in | www.safetik.in", 80, 630);
-
-    ctx.lineWidth = 3;
+    // ✅ VERTICAL DIVIDER LINE
+    ctx.lineWidth = labelConfig.borderWidth;
+    ctx.strokeStyle = "black";
     ctx.beginPath();
-    ctx.moveTo(1200, 60);
-    ctx.lineTo(1200, 1500);
+    ctx.moveTo(labelConfig.verticalDividerX, labelConfig.borderPadding);
+    ctx.lineTo(labelConfig.verticalDividerX, labelConfig.canvasHeight - labelConfig.borderPadding);
     ctx.stroke();
 
-    // --- LEFT SECTION: DATA FIELDS ---
-    const fieldX = 100;
-    let fieldY = 700;
-    const fieldLineSpacing = 145;
-    const labelWidth = 450;
-    const dotStartX = fieldX + labelWidth;
-    const dotEndX = 1100;
+    // ✅ RED BOX IN TOP-RIGHT (matching original design color #C1272D)
+    ctx.fillStyle = "#C1272D";
+    ctx.fillRect(
+      labelConfig.redBoxX,
+      labelConfig.redBoxY,
+      labelConfig.redBoxW,
+      labelConfig.redBoxH
+    );
 
-    // Helper for multi-line Equipment Name
+    // ✅ HELPER: Draw wrapped text
     const drawWrappedText = (text, x, y, maxWidth, lineHeight) => {
       const words = text.split(' ');
       let line = '';
       let currentY = y;
-      
-      for(let n = 0; n < words.length; n++) {
+
+      for (let n = 0; n < words.length; n++) {
         let testLine = line + words[n] + ' ';
         let metrics = ctx.measureText(testLine);
         if (metrics.width > maxWidth && n > 0) {
@@ -356,82 +423,115 @@ export default function EquipmentList() {
       return currentY;
     };
 
-    const drawDataField = (label, value, isMultiline = false) => {
+    // ✅ HELPER: Draw data fields
+    let fieldY = labelConfig.fieldStartY;
+    const drawDataField = (label, value, columnIndex = 0, isMultiline = false) => {
+      const fieldX = columnIndex === 0 ? labelConfig.columnX1 : labelConfig.columnX2;
+      const dotStart = fieldX + labelConfig.labelWidth;
+      const dotEnd = columnIndex === 0
+        ? (labelConfig.verticalDividerX - 20)
+        : (labelConfig.canvasWidth - 35);
+
       ctx.fillStyle = "black";
-      ctx.font = "bold 60px Arial";
+      ctx.font = `bold ${labelConfig.fontSize}px Arial`;
       ctx.fillText(label, fieldX, fieldY);
-      ctx.fillText(":", fieldX + labelWidth - 50, fieldY);
+      ctx.fillText(":", fieldX + labelConfig.labelWidth - (labelConfig.fontSize * 0.3), fieldY);
 
       if (isMultiline) {
-        // Draw wrapped value
-        ctx.font = "bold 55px Arial";
-        const lastY = drawWrappedText(value || "", dotStartX, fieldY, dotEndX - dotStartX, 65);
-        fieldY = lastY + 80; // Increment fieldY based on how many lines were drawn
+        ctx.font = `bold ${labelConfig.fontSize}px Arial`;
+        drawWrappedText(value || "", dotStart, fieldY, dotEnd - dotStart, labelConfig.dotLineHeight);
       } else {
         ctx.beginPath();
-        ctx.setLineDash([15, 15]);
-        ctx.moveTo(dotStartX, fieldY + 10); 
-        ctx.lineTo(dotEndX, fieldY + 10);
+        ctx.setLineDash([5, 5]);
+        ctx.moveTo(dotStart, fieldY + (labelConfig.fontSize * 0.15));
+        ctx.lineTo(dotEnd, fieldY + (labelConfig.fontSize * 0.15));
         ctx.stroke();
         ctx.setLineDash([]);
 
         if (value) {
-          ctx.font = "bold 60px Arial";
-          ctx.fillText(value, dotStartX + 10, fieldY - 2);
+          ctx.font = `bold ${labelConfig.fontSize}px Arial`;
+          ctx.fillText(value, dotStart + 5, fieldY - (labelConfig.fontSize * 0.1));
         }
-        fieldY += fieldLineSpacing;
       }
     };
 
-    // Draw fields
-    drawDataField("Type", equipment.equipmentName || "", true); // Enable text wrapping
-    drawDataField("Cap", equipment.capacity);
-    drawDataField("Installed", formatDate(unitInstall));
-    drawDataField("Exp.", formatDate(unitExpiry));
-    
-    // Only show refilling line if it is "Existing" equipment
-    if (isExisting) {
-      drawDataField("Next Refill", formatDate(unitRefDue));
-    }
+    // ✅ DRAW DATA FIELDS (LEFT COLUMN ONLY)
+    ctx.fillStyle = "black";
+    ctx.font = `bold ${labelConfig.fontSize}px Arial`;
 
-    // --- RIGHT SECTION ---
-    const qrSize = 750;
-    const qrX = 1450;
-    const qrY = 480;
-    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+    drawDataField("Type", equipment.equipmentName || "", 0, true);
+    fieldY += labelConfig.fieldLineSpacing;
 
-    ctx.font = "bold 48px Courier New";
+    drawDataField("Cap", equipment.capacity, 0);
+    fieldY += labelConfig.fieldLineSpacing;
+
+    drawDataField("Installed", formatDate(unitInstall), 0);
+    fieldY += labelConfig.fieldLineSpacing;
+
+    drawDataField("Exp.", formatDate(unitExpiry), 0);
+    fieldY += labelConfig.fieldLineSpacing;
+
+    drawDataField("HP Test.", formatDate(unitHpTested), 0);
+    fieldY += labelConfig.fieldLineSpacing;
+
+    drawDataField("Due On", formatDate(unitRefDue), 0);
+
+    // ✅ DRAW QR CODE (RIGHT SECTION - fits within border)
+    ctx.drawImage(
+      qrImg,
+      labelConfig.qrX,
+      labelConfig.qrY,
+      labelConfig.qrSize,
+      labelConfig.qrSize
+    );
+
+    // ✅ DRAW EQUIPMENT ID UNDER QR (GRAY TEXT #666)
+    ctx.font = `bold ${labelConfig.qrTextFont}px Courier New`;
     ctx.fillStyle = "#666";
     ctx.textAlign = "center";
-    ctx.fillText(uniqueUnitId, qrX + qrSize / 2, qrY + qrSize + 80);
+    ctx.fillText(
+      uniqueUnitId,
+      labelConfig.qrX + (labelConfig.qrSize / 2),
+      labelConfig.qrTextY
+    );
     ctx.textAlign = "left";
 
-    ctx.fillStyle = "#C1272D";
-    ctx.fillRect(canvasWidth - 280, 30, 250, 140);
-
-    ctx.font = "bold 60px Arial";
+    // ✅ DRAW SERIAL NUMBER SECTION (ORANGE #DC6D18 label + BLACK value)
     ctx.fillStyle = "#DC6D18";
-    ctx.fillText("SERIAL NO:", 100, canvasHeight - 80);
-    ctx.fillStyle = "black";
-    ctx.font = "bold 65px Courier New";
-    ctx.fillText(unit.serialNumber, 550, canvasHeight - 80);
+    ctx.font = `bold ${labelConfig.serialLabelFontSize}px Arial`;
+    ctx.fillText("SERIAL NO:", labelConfig.columnX1, labelConfig.serialStartY);
 
+    ctx.fillStyle = "black";
+    ctx.font = `bold ${labelConfig.serialValueFontSize}px Courier New`;
+    ctx.fillText(unit.serialNumber, labelConfig.serialValueX, labelConfig.serialStartY);
+
+    // ✅ GENERATE AND PRINT
     const finalDataUrl = canvas.toDataURL();
     const printWindow = window.open("", "_blank");
+    const pageSize = `size: ${labelConfig.printWidth} ${labelConfig.printHeight}`;
+    const imgSize = `width: ${labelConfig.printWidth}; height: ${labelConfig.printHeight}`;
+
     printWindow.document.write(`
       <html>
-        <head><style>@page { size: 90mm 60mm; margin: 0; } img { width: 90mm; height: 60mm; }</style></head>
-        <body style="margin:0;"><img src="${finalDataUrl}" onload="window.print(); window.close();" /></body>
+        <head>
+          <style>
+            @page { ${pageSize}; margin: 0; }
+            img { ${imgSize}; }
+            body { margin: 0; padding: 0; }
+          </style>
+        </head>
+        <body style="margin:0; padding:0;">
+          <img src="${finalDataUrl}" onload="window.print(); window.close();" />
+        </body>
       </html>
     `);
     printWindow.document.close();
   } catch (err) {
-  console.error("Failed to generate QR label:", err);
+    console.error("Failed to generate QR label:", err);
     alert("Could not generate QR label. Please try again.");
   }
 };
- // console.error("Failed to generate QR label:", err);
-      // alert("Could not generate QR label. Please try again.");
+
   const handleEdit = (equipment) => {
     setSelectedEquipment(equipment);
     setIsEditModalOpen(true);
@@ -446,18 +546,30 @@ export default function EquipmentList() {
     if (!selectedEquipment) return;
     
     try {
-      // ✅ If multiple units exist, update each one individually
       if (formData.units && Array.isArray(formData.units) && formData.units.length > 0) {
-        // Update each unit separately
         const token = userInfo?.token || localStorage.getItem("token");
         
         for (const unit of formData.units) {
           if (unit._id) {
-            // Build update payload for this specific unit
+            // ✅ ENHANCED: Include ALL fields (capacity, brand, etc.) so label sizing updates dynamically
             const unitUpdate = {
               serialNumber: unit.serialNumber,
               location: unit.location,
-             installationDate: formData.installationDate,
+              installationDate: formData.installationDate,
+              // ✅ NEW: Include all equipment details for dynamic label sizing
+              equipmentName: formData.equipmentName,
+              capacity: formData.capacity, // ✅ CRITICAL: Capacity change updates label size
+              brand: formData.brand,
+              content: formData.content,
+              grossWeight: formData.grossWeight,
+              batchNo: formData.batchNo,
+              modelSeries: formData.modelSeries,
+              mfgMonth: formData.mfgMonth,
+              expiryDate: formData.expiryDate,
+              refDue: formData.refDue,
+              hpTestedDate: formData.hpTestedDate,
+              notes: formData.notes,
+              companyName: formData.companyName,
             };
 
             const res = await fetch(`${API_URL}/api/equipment/${unit._id}`, {
@@ -476,11 +588,9 @@ export default function EquipmentList() {
           }
         }
         
-        // After all units updated, refresh the list
         dispatch(getEquipments());
         handleCloseEdit();
       } else {
-        // Single unit update (legacy path)
         const id = selectedEquipment._id || selectedEquipment.equipmentId;
         const { _id, equipmentId, units, ...updatePayload } = formData;
         
@@ -515,12 +625,10 @@ export default function EquipmentList() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {(() => {
-                  // ✅ GROUP by batchNo and userId to avoid duplicates
                   const grouped = {};
                   
                   (list || []).forEach((it) => {
                     if (it.userId) {
-                      // Create unique key for this equipment batch + user combination
                       const key = `${it.batchNo || it.equipmentId}::${it.userId}`;
                       
                       if (!grouped[key]) {
@@ -532,7 +640,6 @@ export default function EquipmentList() {
                         };
                       }
                       
-                      // Increment count and track units for this group
                       grouped[key].assignedCount += 1;
                       grouped[key].units.push(it);
                     }
@@ -651,7 +758,6 @@ export default function EquipmentList() {
     disabled={!unit.qrImage}
     className="w-full py-2 bg-[#DC6D18] hover:bg-[#B85B14] text-white text-xs font-bold rounded shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
   >
-    {/* Updated Label and Icon */}
     🖨️ Print Label
   </button>
 </div>

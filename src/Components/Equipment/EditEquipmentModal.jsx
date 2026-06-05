@@ -97,6 +97,7 @@ export default function EditEquipmentModal
     mfgMonth: "",
     expiryDate: "",
     refDue: "",
+    hpTestedDate: "", // ✅ NEW: HP Tested date
     installationDate: "",
     modelSeries: "",
     userId: "",
@@ -126,10 +127,11 @@ export default function EditEquipmentModal
         notes: equipment.notes || "",
         location: equipment.location || "",
         companyName: equipment.companyName || "",
-      mfgMonth: formatMonthForInput(equipment.mfgMonth),
-      expiryDate: formatDateForInput(equipment.expiryDate),
-      refDue: formatDateForInput(equipment.refDue),
-      installationDate: formatDateForInput(equipment.installationDate),
+        mfgMonth: formatMonthForInput(equipment.mfgMonth),
+        expiryDate: formatDateForInput(equipment.expiryDate),
+        refDue: formatDateForInput(equipment.refDue),
+        hpTestedDate: formatDateForInput(equipment.hpTestedDate), // ✅ NEW: HP Tested date
+        installationDate: formatDateForInput(equipment.installationDate),
         units: unitsArray,  // ✅ Store units array for editing
       });
     }
@@ -240,6 +242,7 @@ export default function EditEquipmentModal
               {/* Column 3 */}
               <FormInput label="Expiry Date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} type="date" />
               <FormInput label="REF Due" name="refDue" value={formData.refDue} onChange={handleChange} type="date" />
+              <FormInput label="HP Tested Date" name="hpTestedDate" value={formData.hpTestedDate} onChange={handleChange} type="date" /> {/* ✅ NEW: HP Tested Date */}
               {/* Default Location removed from edit modal UI per request */}
             </div>
 

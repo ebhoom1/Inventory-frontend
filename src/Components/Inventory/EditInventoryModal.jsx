@@ -122,12 +122,15 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
     setLoadingStock(false);
   };
 
-  // Populate form when modal opens with an item
+  // ✅ FIXED: Populate form immediately from item data (don't wait for async)
   useEffect(() => {
     if (item) {
+      // ✅ Use item.quantity immediately (don't wait for remainingStock)
+      const initialQuantity = item.quantity || 0;
+      
       setFormData({
         equipmentName: item.equipmentName || item.skuName || "",
-        quantity: remainingStock ? remainingStock.remaining : (item.quantity || 0),
+        quantity: initialQuantity,
         date: formatDateForInput(item.date),
         brand: item.brand || "",
         capacity: item.capacity || "",
@@ -138,47 +141,50 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
         notes: item.notes || "",
       });
 
-      // Fetch remaining stock for this batch
-      if(item.batchNo && !remainingStock && !loadingStock) {
-      fetchRemainingStock(item.batchNo);
-    }
-
-      // ✅ Initialize serial numbers from Inventory record with remaining stock data
-      // const initSerials = [];
-      // const existingSerials = item.serialNumbers || [];
-
-      // Use remaining stock serials if available, otherwise use item serials
-    //   const availableSerials = (remainingStock?.serialNumbers || existingSerials || []);
-    //   const qty = remainingStock?.remaining || item.quantity || 0;
-
-    //   for (let i = 0; i < qty; i++) {
-    //     initSerials.push({
-    //       id: `unit-${i}`,
-    //       value: availableSerials[i] || "",
-    //       new: false,
-    //     });
-    //   }
-
-    //   setSerialNumbers(initSerials);
-    //   setSelectedSerialIndices(new Set());
+      // ✅ Initialize serial numbers from item.serialNumbers IMMEDIATELY
+      // Don't wait for async remainingStock fetch
+      const existingSerials = item.serialNumbers || [];
+      const initSerials = [];
       
-    //   console.log("EditInventoryModal - Remaining serials:", availableSerials, "Init serials:", initSerials);
-    if (remainingStock && remainingStock.serialNumbers) {
-    console.log("Syncing serials from live Equipment data:", remainingStock.serialNumbers);
-    
-    const liveSerials = remainingStock.serialNumbers.map((sn, i) => ({
-      id: `unit-${i}`,
-      value: sn,
-      new: false,
-    }));
-    
-    setSerialNumbers(liveSerials);
-    // Update quantity to match unassigned count
-    setFormData(prev => ({ ...prev, quantity: liveSerials.length }));
-  }
+      for (let i = 0; i < initialQuantity; i++) {
+        initSerials.push({
+          id: `unit-${i}`,
+          value: existingSerials[i] || "",
+          new: false,
+        });
+      }
+      
+      setSerialNumbers(initSerials);
+      setSelectedSerialIndices(new Set());
+      console.log("EditInventoryModal - Initial serials from item:", existingSerials, "Init serials:", initSerials);
+
+      // Fetch remaining stock for this batch (async, non-blocking)
+      if(item.batchNo && !remainingStock && !loadingStock) {
+        fetchRemainingStock(item.batchNo);
+      }
+    }
+  }, [item]); // Only depend on item, not remainingStock
   
-  }
-  }, [item, remainingStock]);
+  // ✅ Separate effect: Update serials if remainingStock arrives with new data
+  useEffect(() => {
+    if (remainingStock && remainingStock.serialNumbers && item) {
+      console.log("Syncing serials from live Equipment data:", remainingStock.serialNumbers);
+      
+      const liveSerials = remainingStock.serialNumbers.map((sn, i) => ({
+        id: `unit-${i}`,
+        value: sn,
+        new: false,
+      }));
+      
+      // Only update if the data is different
+      if (liveSerials.length !== serialNumbers.length || 
+          liveSerials.some((s, i) => s.value !== serialNumbers[i]?.value)) {
+        setSerialNumbers(liveSerials);
+        // Update quantity to match unassigned count
+        setFormData(prev => ({ ...prev, quantity: liveSerials.length }));
+      }
+    }
+  }, [remainingStock]);
 
   if (!isOpen) return null;
 
