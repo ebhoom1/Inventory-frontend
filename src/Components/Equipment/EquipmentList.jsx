@@ -506,16 +506,11 @@ export default function EquipmentList() {
     ctx.font = `bold ${labelConfig.serialValueFontSize}px Courier New`;
     ctx.fillText(unit.serialNumber, labelConfig.serialValueX, labelConfig.serialStartY);
 
-    // ✅ GENERATE AND PRINT - Mobile/iOS Friendly
+    // ✅ GENERATE AND PRINT - Label Only (iOS/Android/Desktop Compatible)
     const pageSize = `size: ${labelConfig.printWidth} ${labelConfig.printHeight}`;
     const imgSize = `width: ${labelConfig.printWidth}; height: ${labelConfig.printHeight}`;
-    
-    // Detect device type
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isAndroid = /Android/.test(navigator.userAgent);
-    const isMobile = isIOS || isAndroid;
 
-    // Convert canvas to blob for better performance & mobile compatibility
+    // Convert canvas to blob for better performance
     canvas.toBlob((blob) => {
       if (!blob) {
         alert("Could not generate QR label. Please try again.");
@@ -524,88 +519,84 @@ export default function EquipmentList() {
 
       const blobUrl = URL.createObjectURL(blob);
 
-      if (isIOS) {
-        // iOS: Create fullscreen iframe with print hint
-        const printFrame = document.createElement("iframe");
-        printFrame.style.position = "fixed";
-        printFrame.style.top = "0";
-        printFrame.style.left = "0";
-        printFrame.style.width = "100vw";
-        printFrame.style.height = "100vh";
-        printFrame.style.border = "none";
-        printFrame.style.zIndex = "9999";
-        document.body.appendChild(printFrame);
-
-        const frameDoc = printFrame.contentDocument || printFrame.contentWindow.document;
-        frameDoc.write(`
-          <html>
-            <head>
-              <style>
-                @page { ${pageSize}; margin: 0; }
-                body { margin: 0; padding: 0; }
-                img { ${imgSize}; display: block; }
-                .print-hint { position: fixed; top: 10px; right: 10px; background: #DC6D18; color: white; padding: 10px 15px; border-radius: 5px; font-size: 12px; z-index: 10000; }
-                @media print { .print-hint { display: none; } }
-              </style>
-            </head>
-            <body style="margin:0; padding:0;">
-              <div class="print-hint">📱 Use Share → Print</div>
-              <img src="${blobUrl}" />
-            </body>
-          </html>
-        `);
-        frameDoc.close();
-
-        // Auto-trigger print after short delay
-        setTimeout(() => {
-          try {
-            printFrame.contentWindow.print();
-          } catch (e) {
-            console.log("Print auto-trigger failed, user can use Share menu");
-          }
-        }, 500);
-
-        // Clean up blob URL
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
-      } else if (isMobile) {
-        // Android/Other mobile: Open in new tab with blob URL
-        const printWindow = window.open(blobUrl, "_blank");
-        if (!printWindow) {
-          alert("Pop-ups blocked. Please enable pop-ups in browser settings.");
-          URL.revokeObjectURL(blobUrl);
-          return;
-        }
-        setTimeout(() => {
-          printWindow.print();
-          URL.revokeObjectURL(blobUrl);
-        }, 800);
-      } else {
-        // Desktop browsers
-        const printWindow = window.open("", "_blank");
-        if (!printWindow) {
-          alert("Could not open print window. Please enable pop-ups.");
-          URL.revokeObjectURL(blobUrl);
-          return;
-        }
-
-        printWindow.document.write(`
-          <html>
-            <head>
-              <style>
-                @page { ${pageSize}; margin: 0; }
-                img { ${imgSize}; }
-                body { margin: 0; padding: 0; }
-              </style>
-            </head>
-            <body style="margin:0; padding:0;">
-              <img src="${blobUrl}" onload="window.print(); window.close();" onerror="alert('Failed to load image'); window.close();" />
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-        
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+      // Create print window with ONLY the label (no fullscreen, no extra content)
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        alert("Could not open print window. Please enable pop-ups in browser settings.");
+        URL.revokeObjectURL(blobUrl);
+        return;
       }
+
+      // Minimal HTML - ONLY the label image, centered
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <style>
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              
+              @page {
+                ${pageSize}
+                margin: 0;
+                padding: 0;
+              }
+              
+              body {
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                background: #ffffff;
+              }
+              
+              .label-container {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                ${pageSize}
+              }
+              
+              img {
+                ${imgSize}
+                display: block;
+                object-fit: contain;
+              }
+              
+              @media print {
+                body {
+                  margin: 0;
+                  padding: 0;
+                  min-height: auto;
+                  background: white;
+                }
+                .label-container {
+                  page-break-after: avoid;
+                  break-inside: avoid;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="label-container">
+              <img src="${blobUrl}" onload="window.focus(); setTimeout(() => window.print(), 300);" onerror="alert('Failed to load label image'); window.close();" alt="Equipment Label" />
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+
+      // Clean up blob URL after printing
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+      }, 8000);
     }, "image/png", 0.95);
   } catch (err) {
     console.error("Failed to generate QR label:", err);
