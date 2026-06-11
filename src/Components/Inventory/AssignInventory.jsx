@@ -264,36 +264,69 @@ const isAdmin = role === "admin" || role === "super admin" || role === "technici
 
   // Admin SKU options from Redux inventory list
   // ✅ UPDATED: Show ALL inventory items, not filtered by user
+  // ✅ DEDUPLICATION: Properly handles restocked inventory (original + restock batches)
   const adminSkuOptions = useMemo(() => {
     if (!isAdmin) return [];
-    // Show all SKUs from all users - no userId filtering
-    const names = (allInventoryItems || [])
-      .map((it) => it?.skuName)
-      .filter(Boolean);
+    
+    // ✅ Step 1: Deduplicate inventory SKUs (removes duplicates from original + restock batches)
+    const uniqueSkuMap = new Map();
+    (allInventoryItems || []).forEach((it) => {
+      if (it?.skuName) {
+        // Keep first occurrence, discard duplicates
+        if (!uniqueSkuMap.has(it.skuName)) {
+          uniqueSkuMap.set(it.skuName, it);
+        }
+      }
+    });
+    
+    // ✅ Step 2: Filter by remaining stock
+    const skuOptionsFiltered = Array.from(uniqueSkuMap.keys()).filter(
+      n => (skuLeftMap[n] === undefined) || (Number(skuLeftMap[n]) > 0)
+    );
 
-    // Combine with unassigned equipment names so new equipment shows in the list
-    const unassignedEquipmentList = (equipmentItems || [])
-      .filter((e) => !e.userId)  // Equipment is unassigned if userId is null/empty
-      .filter(Boolean);
+    // ✅ Step 3: Create SKU options (already deduplicated)
+    const skuOptions = skuOptionsFiltered.map((n) => ({ 
+      type: 'sku', 
+      label: n, 
+      value: `sku:${n}`, 
+      skuName: n 
+    }));
 
-    // Combine all options, but exclude SKUs with zero left
-    const skuOptionsFiltered = [...new Set(names)].filter(n => (skuLeftMap[n] === undefined) || (Number(skuLeftMap[n]) > 0));
-    const allOptions = [
-      ...skuOptionsFiltered.map((n) => ({ type: 'sku', label: n, value: `sku:${n}`, skuName: n })),
-      ...unassignedEquipmentList.map((e) => ({ type: 'equipment', label: e.equipmentName, value: `eq:${e._id}`, equipmentId: e._id, equipmentName: e.equipmentName }))
-    ];
+    // ✅ Step 4: Deduplicate equipment items (remove duplicates by equipmentName)
+    const uniqueEquipmentMap = new Map();
+    (equipmentItems || [])
+      .filter((e) => !e.userId)  // Only unassigned equipment
+      .forEach((e) => {
+        if (e?.equipmentName) {
+          // Keep first occurrence by equipmentName, discard duplicates
+          const key = e.equipmentName;
+          if (!uniqueEquipmentMap.has(key)) {
+            uniqueEquipmentMap.set(key, e);
+          }
+        }
+      });
 
-    // Deduplicate by label (equipment/inventory name)
-    const dedupedOptions = [];
+    // ✅ Step 5: Create equipment options (already deduplicated)
+    const equipmentOptions = Array.from(uniqueEquipmentMap.values()).map((e) => ({ 
+      type: 'equipment', 
+      label: e.equipmentName, 
+      value: `eq:${e._id}`, 
+      equipmentId: e._id, 
+      equipmentName: e.equipmentName 
+    }));
+
+    // ✅ Step 6: Final deduplication by label (in case SKU name matches equipment name)
+    const finalOptions = [];
     const seenLabels = new Set();
-    for (const opt of allOptions) {
+    for (const opt of [...skuOptions, ...equipmentOptions]) {
       if (opt.label && !seenLabels.has(opt.label)) {
-        dedupedOptions.push(opt);
+        finalOptions.push(opt);
         seenLabels.add(opt.label);
       }
     }
-    return dedupedOptions.sort((a, b) => a.label.localeCompare(b.label));
-  }, [isAdmin, allInventoryItems, equipmentItems]);
+    
+    return finalOptions.sort((a, b) => a.label.localeCompare(b.label));
+  }, [isAdmin, allInventoryItems, equipmentItems, skuLeftMap]);
 
   // Admin user options from Redux users list
   const userOptions = useMemo(() => {

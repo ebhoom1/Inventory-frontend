@@ -100,28 +100,12 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
   // ✅ NEW: Serial numbers management state (matches Equipment edit modal)
   const [serialNumbers, setSerialNumbers] = useState([]);
   const [selectedSerialIndices, setSelectedSerialIndices] = useState(new Set());
-  const [remainingStock, setRemainingStock] = useState(null);
-  const [loadingStock, setLoadingStock] = useState(false);
-  const [originalSerialCount, setOriginalSerialCount] = useState(0);  // ✅ NEW: Track original vs restock
+  // ✅ REMOVED: remainingStock and loadingStock state - no longer needed
+  // We only use item.serialNumbers which are batch-specific
 
-  // Fetch remaining stock data
-  const fetchRemainingStock = async (batchNo) => {
-    if (!batchNo) return;
-    setLoadingStock(true);
-    try {
-      const response = await fetch(`${API_URL}/api/inventory/remaining/${encodeURIComponent(batchNo)}`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setRemainingStock(data);
-        console.log("Remaining stock data:", data);
-      }
-    } catch (err) {
-      console.warn("Failed to fetch remaining stock:", err);
-    }
-    setLoadingStock(false);
-  };
+  // ✅ REMOVED: fetchRemainingStock was fetching ALL equipment with the same SKU
+  // This was incorrect - we only need the batch-specific serial numbers from item.serialNumbers
+  // Previously this caused the modal to show 96 units instead of just the 8 for this batch
 
   // ✅ FIXED: Populate form immediately from item data (don't wait for async)
   useEffect(() => {
@@ -142,9 +126,9 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
         notes: item.notes || "",
       });
 
-      // ✅ Initialize serial numbers from item.serialNumbers (BOTH original and restocked)
-      // The backend merges all serial numbers in order: [original...] + [restocked...]
-      // Also supports allSerialNumbers from merged frontend data
+      // ✅ Initialize serial numbers from ALL batches (original + restocks combined)
+      // Use allSerialNumbers if available (contains merged serials from all batches)
+      // Fall back to serialNumbers for backward compatibility
       const existingSerials = item.allSerialNumbers || item.serialNumbers || [];
       const initSerials = [];
       
@@ -152,54 +136,33 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
         initSerials.push({
           id: `unit-${i}`,
           value: existingSerials[i] || "",
-          isRestock: false,  // ✅ Will be updated if we can determine this
+          isRestock: false,
         });
       }
       
       setSerialNumbers(initSerials);
       setSelectedSerialIndices(new Set());
       
-      // ✅ Track original count for UI indicators (if available from item)
-      if (item.restockCount !== undefined && item.restockCount > 0) {
-        setOriginalSerialCount(initialQuantity - (item.restockCount * 5)); // Rough estimate
-      } else {
-        setOriginalSerialCount(initialQuantity); // All are original if not restocked
-      }
-      
-      console.log("EditInventoryModal - Loaded serials from item:", {
-        total: existingSerials.length,
-        quantity: initialQuantity,
-        serials: existingSerials,
-        restockCount: item.restockCount,
+      console.log("EditInventoryModal - Loaded from item:", {
+        skuName: item.equipmentName || item.skuName,
+        total: initialQuantity,
+        allSerials: existingSerials,
+        fromAllBatches: item.allSerialNumbers ? "YES (combined original + restock)" : "NO (single batch)"
       });
 
-      // Fetch remaining stock for this batch (async, non-blocking)
-      if(item.batchNo && !remainingStock && !loadingStock) {
-        fetchRemainingStock(item.batchNo);
-      }
+      // ✅ NOTE: Removed fetchRemainingStock call - we only need batch-specific serials
+      // The remainingStock concept was showing ALL unassigned equipment, not just this batch
     }
-  }, [item]); // Only depend on item, not remainingStock
+  }, [item]);
   
-  // ✅ Separate effect: Update serials if remainingStock arrives with new data
-  useEffect(() => {
-    if (remainingStock && remainingStock.serialNumbers && item) {
-      console.log("Syncing serials from live Equipment data:", remainingStock.serialNumbers);
-      
-      const liveSerials = remainingStock.serialNumbers.map((sn, i) => ({
-        id: `unit-${i}`,
-        value: sn,
-        new: false,
-      }));
-      
-      // Only update if the data is different
-      if (liveSerials.length !== serialNumbers.length || 
-          liveSerials.some((s, i) => s.value !== serialNumbers[i]?.value)) {
-        setSerialNumbers(liveSerials);
-        // Update quantity to match unassigned count
-        setFormData(prev => ({ ...prev, quantity: liveSerials.length }));
-      }
-    }
-  }, [remainingStock]);
+  // ✅ REMOVED: No longer replace batch serials with remainingStock
+  // Previously this was replacing item.serialNumbers with ALL unassigned equipment units
+  // Now we always display ONLY the serial numbers specific to this inventory batch
+  // The remainingStock concept was incorrect - it showed all equipment, not just this batch
+
+  // ✅ REMOVED: No longer listening for assignment events to refresh remainingStock
+  // Since we only display batch-specific serials (item.serialNumbers), 
+  // there's no need to refresh from equipment collection
 
   if (!isOpen) return null;
 
@@ -315,7 +278,7 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
 
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                {remainingStock ? `Remaining in Stock (${remainingStock.remaining} of ${remainingStock.totalAdded})` : "Quantity"}
+                Quantity
               </label>
               <div className="mt-1 flex items-center gap-2">
                 <input
@@ -324,23 +287,10 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
                   min="0"
                   value={formData.quantity}
                   onChange={handleQuantityChange}
-                  disabled={remainingStock ? true : false}
                   required
-                  className={`flex-1 px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18] ${
-                    remainingStock ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed' : 'border-gray-300'
-                  }`}
+                  className={`flex-1 px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18] border-gray-300`}
                 />
-                {remainingStock && remainingStock.assigned > 0 && (
-                  <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded whitespace-nowrap">
-                    {remainingStock.assigned} Assigned
-                  </span>
-                )}
               </div>
-              {remainingStock && (
-                <p className="text-xs text-gray-500 mt-1">
-                  📦 View shows remaining unassigned units. Total added: {remainingStock.totalAdded}
-                </p>
-              )}
             </div>
 
             <div>
@@ -384,16 +334,23 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
           {/* Notes */}
           <FormTextarea label="Optional Notes" name="notes" value={formData.notes} onChange={handleChange} />
 
-          {/* ✅ SERIAL NUMBERS MANAGEMENT SECTION (New) */}
+          {/* ✅ SERIAL NUMBERS MANAGEMENT SECTION - Shows all serials from all batches */}
           <div className="border-t border-gray-100 pt-5 mt-5">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h4 className="text-lg font-bold text-[#DC6D18]">All Serial Numbers (Original + Restocked)</h4>
+                <h4 className="text-lg font-bold text-[#DC6D18]">
+                  Serial Numbers 
+                  {item?.restockCount > 0 ? ` (Original + ${item.restockCount} Restock${item.restockCount > 1 ? 's' : ''})` : ' for This Batch'}
+                </h4>
                 <p className="text-xs text-gray-500 mt-1">
                   📦 Total: <span className="font-semibold">{serialNumbers.length} units</span> 
-                  {item?.restockCount > 0 && (
+                  {item?.restockCount > 0 ? (
                     <span className="ml-3">
-                      (Original: {Math.max(0, serialNumbers.length - (item.restockCount * 5))} + Restocked: {Math.min(serialNumbers.length, item.restockCount * 5)})
+                      (All serial numbers from original batch + all restock batches combined)
+                    </span>
+                  ) : (
+                    <span className="ml-3">
+                      (Only serial numbers from this specific inventory batch are displayed)
                     </span>
                   )}
                 </p>
@@ -474,7 +431,11 @@ export default function EditInventoryModal({ isOpen, onClose, item, onSave, isLo
               )}
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              💡 <strong>All {serialNumbers.length} serial numbers are displayed above.</strong> Edit any field, remove unwanted units, or add new ones by adjusting the quantity.
+              💡 <strong>All {serialNumbers.length} serial numbers are displayed above.</strong> 
+              {item?.restockCount > 0 
+                ? ` These include serials from the original batch plus all ${item.restockCount} restock batch(es).` 
+                : ' These are the serial numbers for this inventory batch.'
+              } Edit any field or remove unwanted units.
             </p>
           </div>
         </form>
