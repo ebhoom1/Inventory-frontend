@@ -1,6 +1,6 @@
 
-  // export const API_URL ='https://api.safetik.in';
- //export const API_URL ='http://13.203.39.180:5001';
+// export const API_URL ='https://api.safetik.in';
+//export const API_URL ='http://13.203.39.180:5001';
 
 // ✅ production (deployed)
 // export const API_URL = 'https://api.safetik.in';
