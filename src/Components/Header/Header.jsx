@@ -432,13 +432,18 @@ function Header({ onSidebarToggle }) {
 
       {/* Right side */}
       <div className="ml-2 flex items-center space-x-4 font-semibold relative">
-        <span
-          className="hidden md:inline"
+        {/* Logged-in user — name/ID + role (desktop) */}
+        <div
+          className="hidden md:flex flex-col items-end leading-tight"
           title={userInfo ? `Logged in as: ${userInfo.email}` : "Not logged in"}
         >
-          {getUserTypeDisplay()}
-        </span>
+          <span className="text-sm font-bold truncate max-w-[180px]">
+            {getDisplayName()}
+          </span>
+          <span className="text-xs opacity-80">{getUserTypeDisplay()}</span>
+        </div>
 
+        {/* Logged-in user — compact (mobile) */}
         <span
           className="md:hidden text-sm truncate max-w-20"
           title={getDisplayName()}

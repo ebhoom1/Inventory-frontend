@@ -103,6 +103,7 @@ console.log("usserData:",userData)
       };
 
       localStorage.setItem('userInfo', JSON.stringify(cleanedUserInfo));
+      sessionStorage.setItem('justLoggedIn', 'true');
       return cleanedUserInfo;
     } catch (error) {
       return rejectWithValue(

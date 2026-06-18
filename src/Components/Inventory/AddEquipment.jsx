@@ -73,6 +73,7 @@ const uniqueInventoryNames = [...new Set(equipmentList.map(it => it.equipmentNam
   const [serialErrors, setSerialErrors] = useState([""]);
 
   const normalize = (s) => (s || "").toString().trim().toLowerCase();
+  const clean = (v) => (typeof v === "string" ? v.trim() : v);
 
   const checkExistingConflict = (serial) => {
     if (!serial || !formData.equipmentName) return null;
@@ -80,7 +81,7 @@ const uniqueInventoryNames = [...new Set(equipmentList.map(it => it.equipmentNam
     for (const eq of equipmentList || []) {
       if (!eq) continue;
       // only consider same equipment type/name
-      if ((eq.equipmentName || "") !== (formData.equipmentName || "")) continue;
+      if (normalize(eq.equipmentName || "") !== normalize(formData.equipmentName || "")) continue;
       // In flat structure, each document is a single unit with direct serialNumber field
       if (eq.serialNumber && normalize(eq.serialNumber) === n) {
         return { equipment: eq, assignment: null };
@@ -150,7 +151,7 @@ const handleSerialChange = (index, value) => {
 
   if (selectedName) {
     // Find a matching record in the current list to copy specs
-    const existing = equipmentList.find(eq => eq.equipmentName === selectedName);
+    const existing = equipmentList.find(eq => normalize(eq.equipmentName) === normalize(selectedName));
     if (existing) {
       setFormData(prev => ({
         ...prev,
@@ -163,7 +164,9 @@ const handleSerialChange = (index, value) => {
     }
     
     // ✅ Also find the inventory record to get its ID for tracking
-    const inventoryRecord = inventoryList.find(inv => inv.skuName === selectedName);
+    const inventoryRecord = inventoryList.find(
+  (inv) => normalize(inv.skuName) === normalize(selectedName)
+);
     if (inventoryRecord) {
       setFormData(prev => ({
         ...prev,
@@ -181,7 +184,9 @@ const handleSerialChange = (index, value) => {
     }
   }
 };
-  
+
+ 
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -276,35 +281,42 @@ const handleSerialChange = (index, value) => {
     }
 
     // Create a copy to manipulate for submission
-    const payload = { ...formData };
-    // Ensure quantity is numeric when sending to backend
-    payload.quantity = Number(formData.quantity);
+ const payload = {
+  ...formData,
 
-    // By default, create equipment as unassigned so it appears in 'Assign Inventory' SKU list
-    // If you want to assign on creation in future, add a field to the form to set `userId`.
-    payload.userId = null;
+  equipmentName: clean(formData.equipmentName),
+  skuName: clean(formData.equipmentName),
+  modelSeries: clean(formData.modelSeries),
+  capacity: clean(formData.capacity),
+  brand: clean(formData.brand),
+  grossWeight: clean(formData.grossWeight),
+  content: clean(formData.content),
+  batchNo: clean(formData.batchNo),
+  billNo: clean(formData.billNo),
+  spNumber: clean(formData.spNumber),
+  mfgMonth: clean(formData.mfgMonth),
+  notes: clean(formData.notes),
 
-    // Location is no longer collected on add form; backend accepts missing/empty location
-    payload.skuName = formData.equipmentName;
-    // --- Conditional Validation and Payload Cleanup ---
-   // ✅ Attach the manual serials to payload
-    if (payload.equipmentType === "new" || payload.equipmentType === "restock") {
-        payload.serialNumbers = serialNumbers; // Send array
-        delete payload.spNumber;
-    } else {
-        delete payload.serialNumbers; 
-    }
-    
-    // ✅ Add restock tracking fields
-    if (formData.isRestock) {
-      payload.isRestock = true;
-      payload.restockedFromInventoryId = formData.restockedFromInventoryId;
-    } else {
-      payload.isRestock = false;
-      payload.restockedFromInventoryId = null;
-    }
-    
-    delete payload.equipmentType;
+  quantity: Number(formData.quantity),
+  userId: null,
+};
+
+if (payload.equipmentType === "new" || payload.equipmentType === "restock") {
+  payload.serialNumbers = serialNumbers.map((s) => clean(s)).filter(Boolean);
+  delete payload.spNumber;
+} else {
+  delete payload.serialNumbers;
+}
+
+if (formData.isRestock) {
+  payload.isRestock = true;
+  payload.restockedFromInventoryId = formData.restockedFromInventoryId;
+} else {
+  payload.isRestock = false;
+  payload.restockedFromInventoryId = null;
+}
+
+delete payload.equipmentType;
         
 
     console.log("Submitting equipment payload:", payload);

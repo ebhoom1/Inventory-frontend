@@ -1576,7 +1576,7 @@ function RequestService() {
     ["Added By (User ID)", "userId"],
     ["Service Type", "serviceType"],
     ["Date", "date"],
-    ["Branch/Location", "branchLocation"],
+    ["Place of Installation", "branchLocation"],
     ["Address", "address"],
     ["Location", "location"],
     ["Pincode", "pincode"],
@@ -2265,7 +2265,7 @@ function RequestService() {
               {[
                 ["branchLocation", "Place of installation"],
                 ["address", "Address"],
-                ["location", "Branch/Location"],
+                ["location", "Location"],
                 ["pincode", "Pincode/Area"],
                 ["brand", "Brand"],
                 ["content", "Content"],
