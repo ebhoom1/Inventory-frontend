@@ -134,25 +134,70 @@ const AddUser = () => {
     });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setFormError("");
-    if (form.password !== form.confirmPassword) {
-      setFormError("Passwords do not match!");
-      Swal.fire({
-        icon: "warning",
-        title: "Password mismatch",
-        text: "Please make sure both password fields match.",
-        confirmButtonText: "Fix it",
-        confirmButtonColor: "#DC6D18",
-      });
-      return;
-    }
-    dispatch(registerUser({
-      ...form,
-      equipmentLocations: form.equipmentLocations ? form.equipmentLocations.filter(Boolean) : [],
-    }));
+  const clean = (v) => (typeof v === "string" ? v.trim() : v);
+
+const cleanCommaList = (value) =>
+  value
+    ? value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .join(",")
+    : "";
+
+    const handleSubmit = (e) => {
+  e.preventDefault();
+  setFormError("");
+
+  // Do NOT trim passwords silently
+  if (form.password !== form.confirmPassword) {
+    setFormError("Passwords do not match!");
+    Swal.fire({
+      icon: "warning",
+      title: "Password mismatch",
+      text: "Please make sure both password fields match.",
+      confirmButtonText: "Fix it",
+      confirmButtonColor: "#DC6D18",
+    });
+    return;
+  }
+
+  const cleanedPayload = {
+    ...form,
+
+    userId: clean(form.userId),
+    companyName: clean(form.companyName),
+    firstName: clean(form.firstName),
+    email: clean(form.email),
+    mobileNumber: clean(form.mobileNumber),
+    subscriptionPlan: clean(form.subscriptionPlan),
+    userType: clean(form.userType),
+    adminType: clean(form.adminType),
+    assignTerritorialManager: clean(form.assignTerritorialManager),
+    district: clean(form.district),
+    state: clean(form.state),
+    address: clean(form.address),
+    latitude: clean(form.latitude),
+    longitude: clean(form.longitude),
+
+    // keep password as typed
+    password: form.password,
+    confirmPassword: form.confirmPassword,
+
+    // comma fields cleaned
+    additionalEmails: cleanCommaList(form.additionalEmails),
+    assignOperators: cleanCommaList(form.assignOperators),
+    assignTechnicians: cleanCommaList(form.assignTechnicians),
+
+    // array field cleaned
+    equipmentLocations: form.equipmentLocations
+      ? form.equipmentLocations.map((loc) => clean(loc)).filter(Boolean)
+      : [],
   };
+
+  dispatch(registerUser(cleanedPayload));
+};
+ 
 
   const roleOptions =
     userInfo?.userType === "Admin"

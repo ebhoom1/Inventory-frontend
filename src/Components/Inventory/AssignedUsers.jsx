@@ -16,30 +16,119 @@ function AssignedUsers() {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('');
 
-  const fetchAssigned = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`${API_URL}/api/inventory/assigned-users`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || 'Failed to load assigned users');
-      // sort newest first by createdAt, fallback lastUsedAt
-      const arr = Array.isArray(data) ? data.slice() : [];
-      const timeOf = (r) => {
-        const t = r?.createdAt || r?.lastUsedAt || r?.updatedAt || null;
-        const v = t ? new Date(t).getTime() : 0;
-        return Number.isFinite(v) ? v : 0;
-      };
-      arr.sort((a, b) => timeOf(b) - timeOf(a));
-      setRows(arr);
-    } catch (e) {
-      setError(e.message || 'Failed to load');
-    } finally {
-      setLoading(false);
+ const fetchAssigned = useCallback(async () => {
+  setLoading(true);
+  setError(null);
+
+  try {
+    console.log("AssignedUsers userInfo:", userInfo);
+    console.log("AssignedUsers userType:", userInfo?.userType);
+
+    const res = await fetch(`${API_URL}/api/equipment`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data?.message || "Failed to load assigned users");
     }
-  }, [token]);
+
+    const equipmentList = Array.isArray(data) ? data : [];
+
+    const loggedUserId = userInfo?.userId || userInfo?.id || userInfo?._id || "";
+
+    const isNormalUser =
+      (userInfo?.userType || "").toLowerCase() === "user";
+
+    const filteredList = equipmentList.filter((it) => {
+      if (!it?.userId) return false;
+
+      // Same as EquipmentList.jsx
+      // Admin / Super Admin / Technician can see all assigned equipment
+      if (!isNormalUser) return true;
+
+      // Normal user should see only their own assigned equipment
+      return String(it.userId) === String(loggedUserId);
+    });
+
+    const grouped = {};
+
+    filteredList.forEach((it) => {
+      const assignedUser = it.userId;
+      const key = `${it.batchNo || it.equipmentId}::${assignedUser}`;
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          userId: assignedUser,
+          username: assignedUser,
+
+          companyName: it.companyName || "",
+          skuName: it.equipmentName || "",
+          equipmentName: it.equipmentName || "",
+          modelSeries: it.modelSeries || "",
+
+          batchNo: it.batchNo || "",
+          equipmentId: it.equipmentId || "",
+
+          location: it.location || "",
+          totalUsed: 0,
+
+          lastUsedAt: it.updatedAt || it.installationDate || it.createdAt || null,
+          createdAt: it.createdAt || null,
+          installationDate: it.installationDate || null,
+
+          serialNumbers: [],
+        };
+      }
+
+      grouped[key].totalUsed += 1;
+
+      if (it.serialNumber) {
+        grouped[key].serialNumbers.push(it.serialNumber);
+      }
+
+      const oldTime = grouped[key].lastUsedAt
+        ? new Date(grouped[key].lastUsedAt).getTime()
+        : 0;
+
+      const newTime = it.updatedAt || it.installationDate || it.createdAt;
+      const newTimeValue = newTime ? new Date(newTime).getTime() : 0;
+
+      if (newTimeValue > oldTime) {
+        grouped[key].lastUsedAt = newTime;
+      }
+
+      if (!grouped[key].companyName && it.companyName) {
+        grouped[key].companyName = it.companyName;
+      }
+
+      if (!grouped[key].location && it.location) {
+        grouped[key].location = it.location;
+      }
+    });
+
+    const arr = Object.values(grouped);
+
+    arr.sort((a, b) => {
+      const da = a.lastUsedAt ? new Date(a.lastUsedAt).getTime() : 0;
+      const db = b.lastUsedAt ? new Date(b.lastUsedAt).getTime() : 0;
+      return db - da;
+    });
+
+    console.log("AssignedUsers rows from equipment:", arr);
+    console.log(
+      "AirBlower rows:",
+      arr.filter((r) => r.skuName === "AirBlower")
+    );
+
+    setRows(arr);
+  } catch (e) {
+    setError(e.message || "Failed to load");
+  } finally {
+    setLoading(false);
+  }
+}, [token, userInfo]);
 
   useEffect(() => {
     fetchAssigned();

@@ -104,6 +104,7 @@ export const loginUser = createAsyncThunk(
       };
 
       localStorage.setItem('userInfo', JSON.stringify(cleanedUserInfo));
+      sessionStorage.setItem('justLoggedIn', 'true');
       return cleanedUserInfo;
     } catch (error) {
       return rejectWithValue(
