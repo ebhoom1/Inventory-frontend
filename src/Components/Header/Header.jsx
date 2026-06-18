@@ -344,7 +344,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../redux/features/users/userSlice";
+import { logout, logoutUserBackend } from "../../redux/features/users/userSlice";
 import safetickLogo from "../../assets/safetik.png";
 
 function Header({ onSidebarToggle }) {
@@ -371,9 +371,11 @@ function Header({ onSidebarToggle }) {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("userInfo");
-    dispatch(logout());
-    navigate("/");
+    dispatch(logoutUserBackend()).finally(() => {
+      localStorage.removeItem("userInfo");
+      dispatch(logout());
+      navigate("/");
+    });
   };
 
   const getDisplayName = () =>

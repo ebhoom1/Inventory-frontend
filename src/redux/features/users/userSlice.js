@@ -92,7 +92,7 @@ export const loginUser = createAsyncThunk(
         userData,
         config
       );
-console.log("usserData:",userData)
+
       const cleanedUserInfo = {
         _id: data._id,
         userId: data.userId,
@@ -100,6 +100,7 @@ console.log("usserData:",userData)
         email: data.email,
         userType: data.userType,
         token: data.token,
+        activeAttendanceId: data.activeAttendanceId || null, // Capture attendance ID
       };
 
       localStorage.setItem('userInfo', JSON.stringify(cleanedUserInfo));
@@ -108,6 +109,28 @@ console.log("usserData:",userData)
       return rejectWithValue(
         error.response?.data?.message || 'Login failed'
       );
+    }
+  }
+);
+
+// 2.5 Logout User from Backend (To capture attendance checkOut)
+export const logoutUserBackend = createAsyncThunk(
+  'users/logoutBackend',
+  async (_, { rejectWithValue, getState }) => {
+    try {
+      const { userInfo } = getState().users;
+      if (userInfo?.activeAttendanceId) {
+        const config = {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${userInfo.token}`,
+          },
+        };
+        await axios.post(`${API_URL}/api/auth/logout`, { activeAttendanceId: userInfo.activeAttendanceId }, config);
+      }
+      return true;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Backend logout failed');
     }
   }
 );

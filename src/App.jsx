@@ -52,7 +52,7 @@ function App() {
       <Route path="/view-report" element={<ViewReport />} />
       <Route path="/inventory" element={<InventoryLayout />} />
       <Route path="/equipment" element={<EquipmentLayout />} />
-      {/* <Route path="/attendence" element={<Attendence />} /> */}
+      <Route path="/attendence" element={<Attendence />} />
       <Route path="/previous-attendence" element={<PreviousAttendence />} />
 
       <Route path="/services" element={<ServiceLayout />} />
