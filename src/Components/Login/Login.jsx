@@ -14,6 +14,7 @@ const Login = () => {
   const [isLocating, setIsLocating] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState("");
+  const [manualLocation, setManualLocation] = useState("");
   const [step, setStep] = useState(1);
   const [cameraError, setCameraError] = useState("");
   const [capturedImage, setCapturedImage] = useState(null);
@@ -72,6 +73,7 @@ const Login = () => {
     } else {
       setUserLocation(null);
       setLocationError("");
+      setManualLocation("");
     }
   }, [userType]);
 
@@ -137,10 +139,6 @@ const Login = () => {
 
     if (userType === 'Technician') {
       if (step === 1) {
-        if (!userLocation) {
-          alert("Location access is required for Technician login. Please allow location permissions and try again.");
-          return;
-        }
         setStep(2);
         setTimeout(() => startCamera(), 100); // Wait for video element to render
         return;
@@ -155,8 +153,9 @@ const Login = () => {
           email,
           password,
           userType,
-          latitude: userLocation.latitude,
-          longitude: userLocation.longitude,
+          latitude: userLocation ? userLocation.latitude : "",
+          longitude: userLocation ? userLocation.longitude : "",
+          location: manualLocation,
           image: capturedImage
         };
         dispatch(loginUser(userData));
@@ -291,22 +290,36 @@ const Login = () => {
               
               {/* Location Display for Technician */}
               {userType === 'Technician' && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h3 className="font-semibold text-blue-800 text-sm mb-1">
-                    <i className="fa-solid fa-location-dot mr-2"></i> Location Required
-                  </h3>
-                  <p className="text-xs text-blue-700 mb-2">Location access is required to verify you are at a valid site.</p>
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-semibold text-blue-800 text-sm">
+                      <i className="fa-solid fa-location-dot mr-2"></i> Location (Optional)
+                    </h3>
+                    <span className="text-[10px] bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full font-semibold uppercase">Optional</span>
+                  </div>
                   
                   {isLocating ? (
-                    <p className="text-xs text-blue-600 animate-pulse">Fetching your location...</p>
+                    <p className="text-xs text-blue-600 animate-pulse">Fetching GPS location...</p>
                   ) : locationError ? (
-                    <p className="text-xs text-red-600 font-medium"><i className="fa-solid fa-triangle-exclamation mr-1"></i> {locationError}</p>
+                    <p className="text-xs text-blue-500 font-medium"><i className="fa-solid fa-triangle-exclamation mr-1"></i> GPS: {locationError}</p>
                   ) : userLocation ? (
-                    <div className="text-xs text-blue-800 bg-blue-100 p-2 rounded inline-block w-full">
-                      <span className="block font-mono">Lat: {userLocation.latitude.toFixed(6)}</span>
-                      <span className="block font-mono">Lng: {userLocation.longitude.toFixed(6)}</span>
+                    <div className="text-xs text-blue-800 bg-blue-100 p-2 rounded-lg inline-block w-full">
+                      <span className="block font-mono">GPS Lat: {userLocation.latitude.toFixed(6)}</span>
+                      <span className="block font-mono">GPS Lng: {userLocation.longitude.toFixed(6)}</span>
                     </div>
                   ) : null}
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-gray-600">Manual Location / Site Name</label>
+                    <input
+                      type="text"
+                      placeholder="Enter location or site name..."
+                      value={manualLocation}
+                      onChange={(e) => setManualLocation(e.target.value)}
+                      disabled={loading}
+                      className="w-full px-3 py-2 text-sm border-2 border-dotted border-[#DC6D18] rounded-lg focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-[#DC6D18] transition disabled:opacity-50"
+                    />
+                  </div>
                 </div>
               )}
               
