@@ -363,6 +363,7 @@ export default function EquipmentList() {
       "Assigned User ID",
       "Company Name",
       "Location",
+      "Floor / Building",
       "Batch No",
       "Model/Series",
       "Capacity",
@@ -385,6 +386,7 @@ export default function EquipmentList() {
       it.userId,
       it.companyName || userMap[it.userId]?.companyName || "",
       it.location,
+      it.floor,
       it.batchNo,
       it.modelSeries,
       it.capacity,
@@ -1813,6 +1815,7 @@ export default function EquipmentList() {
             const unitUpdate = {
               serialNumber: unit.serialNumber,
               location: unit.location,
+              floor: unit.floor,
               installationDate: formData.installationDate,
               // ✅ NEW: Include all equipment details for dynamic label sizing
               equipmentName: formData.equipmentName,
@@ -2102,6 +2105,11 @@ export default function EquipmentList() {
                             {unit.location && (
                               <p className="text-[10px] text-gray-500 truncate">
                                 📍 {unit.location}
+                              </p>
+                            )}
+                            {unit.floor && (
+                              <p className="text-[10px] text-gray-500 truncate">
+                                🏢 {unit.floor}
                               </p>
                             )}
                           </div>

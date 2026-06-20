@@ -978,6 +978,7 @@ function UseInventory() {
   const [availableSerials, setAvailableSerials] = useState([]);
   const [selectedSerials, setSelectedSerials] = useState([]);
   const [serialLocationMap, setSerialLocationMap] = useState({});
+  const [serialFloorMap, setSerialFloorMap] = useState({});
 
   const [userSkuOptions, setUserSkuOptions] = useState([]);
   const [userSkuLoading, setUserSkuLoading] = useState(false);
@@ -1098,6 +1099,7 @@ function UseInventory() {
       setAvailableSerials([]);
       setSelectedSerials([]);
       setSerialLocationMap({});
+      setSerialFloorMap({});
       return;
     }
 
@@ -1117,6 +1119,7 @@ function UseInventory() {
       setAvailableSerials([]);
       setSelectedSerials([]);
       setSerialLocationMap({});
+      setSerialFloorMap({});
       return;
     }
 
@@ -1217,6 +1220,7 @@ function UseInventory() {
       if (!selectedUserId) {
         setLocationOptions([]);
         setSerialLocationMap({});
+        setSerialFloorMap({});
         return;
       }
 
@@ -1242,10 +1246,12 @@ function UseInventory() {
         }
 
         setSerialLocationMap({});
+        setSerialFloorMap({});
       } catch (e) {
         console.error("Error fetching locations:", e);
         setLocationOptions([]);
         setSerialLocationMap({});
+        setSerialFloorMap({});
       } finally {
         setLocationLoading(false);
       }
@@ -1265,6 +1271,7 @@ function UseInventory() {
     if (name === "userId") {
       setSelectedSerials([]);
       setSerialLocationMap({});
+      setSerialFloorMap({});
     }
   };
 
@@ -1288,6 +1295,18 @@ function UseInventory() {
         return nextMap;
       });
 
+      setSerialFloorMap((prevMap) => {
+        const nextMap = { ...prevMap };
+
+        if (isAlreadySelected) {
+          delete nextMap[serial];
+        } else {
+          nextMap[serial] = "";
+        }
+
+        return nextMap;
+      });
+
       return nextSelected;
     });
   };
@@ -1296,6 +1315,13 @@ function UseInventory() {
     setSerialLocationMap((prev) => ({
       ...prev,
       [serial]: location,
+    }));
+  };
+
+  const handleSerialFloorChange = (serial, floor) => {
+    setSerialFloorMap((prev) => ({
+      ...prev,
+      [serial]: floor,
     }));
   };
 
@@ -1378,6 +1404,12 @@ function UseInventory() {
       return acc;
     }, {});
 
+    // Floor / Building is optional free text — no validation needed
+    const selectedSerialFloorMap = selectedSerials.reduce((acc, serial) => {
+      acc[serial] = String(serialFloorMap[serial] || "").trim();
+      return acc;
+    }, {});
+
     const missingLocationSerials = selectedSerials.filter(
       (serial) => !selectedSerialLocationMap[serial]
     );
@@ -1421,6 +1453,8 @@ function UseInventory() {
       serialNumbers: selectedSerials.length > 0 ? selectedSerials : undefined,
       serialLocationMap:
         selectedSerials.length > 0 ? selectedSerialLocationMap : undefined,
+      serialFloorMap:
+        selectedSerials.length > 0 ? selectedSerialFloorMap : undefined,
     };
 
     console.log("Submitting Payload:", payload);
@@ -1485,6 +1519,7 @@ function UseInventory() {
         setAvailableSerials([]);
         setSelectedSerials([]);
         setSerialLocationMap({});
+        setSerialFloorMap({});
         setLocationOptions([]);
 
         dispatch(resetInventoryState());
@@ -1606,7 +1641,7 @@ function UseInventory() {
           {isAdmin && availableSerials.length > 0 && (
             <div className="relative md:col-span-2">
               <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
-                Select Serial Numbers & Location
+                Select Serial Numbers, Location & Floor / Building
               </span>
 
               <div className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl p-4 bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md">
@@ -1627,7 +1662,7 @@ function UseInventory() {
                       return (
                         <div
                           key={serial}
-                          className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center bg-white/60 rounded-lg p-3 border border-orange-100"
+                          className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center bg-white/60 rounded-lg p-3 border border-orange-100"
                         >
                           <label className="flex items-center gap-3 text-sm font-medium text-gray-800">
                             <input
@@ -1663,6 +1698,23 @@ function UseInventory() {
                                 </option>
                               ))}
                             </select>
+                          </div>
+
+                          <div className="md:col-span-2">
+                            <input
+                              type="text"
+                              value={serialFloorMap[serial] || ""}
+                              onChange={(e) =>
+                                handleSerialFloorChange(serial, e.target.value)
+                              }
+                              disabled={!checked}
+                              placeholder={
+                                checked
+                                  ? "Floor / Building (optional)"
+                                  : "Select serial first"
+                              }
+                              className="w-full border border-orange-300 rounded-lg py-2 px-3 bg-white disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                            />
                           </div>
                         </div>
                       );

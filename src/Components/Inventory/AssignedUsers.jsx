@@ -72,6 +72,7 @@ function AssignedUsers() {
           equipmentId: it.equipmentId || "",
 
           location: it.location || "",
+          floor: it.floor || "",
           totalUsed: 0,
 
           lastUsedAt: it.updatedAt || it.installationDate || it.createdAt || null,
@@ -105,6 +106,10 @@ function AssignedUsers() {
 
       if (!grouped[key].location && it.location) {
         grouped[key].location = it.location;
+      }
+
+      if (!grouped[key].floor && it.floor) {
+        grouped[key].floor = it.floor;
       }
     });
 
@@ -255,6 +260,7 @@ function AssignedUsers() {
                 <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Company</th>
                 <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Inventory (SKU)</th>
                 <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Location</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Floor / Building</th>
                 <th className="px-4 py-2 text-right text-sm font-medium text-gray-700">Quantity</th>
                 <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Last Used</th>
               </tr>
@@ -288,6 +294,7 @@ function AssignedUsers() {
                     </td>
 
                     <td className="px-4 py-3 text-sm text-gray-700">{r.location || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{r.floor || '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-700 text-right font-mono">{r.totalUsed}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">
                       {r.lastUsedAt ? new Date(r.lastUsedAt).toLocaleDateString() : '-'}

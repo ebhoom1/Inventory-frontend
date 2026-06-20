@@ -1424,6 +1424,7 @@ function RequestService() {
     branchLocation: "",
     address: "",
     location: "",
+    floor: "",
     pincode: "",
     brand: "",
     type: "",
@@ -1579,6 +1580,7 @@ function RequestService() {
     ["Place of Installation", "branchLocation"],
     ["Address", "address"],
     ["Location", "location"],
+    ["Floor / Building", "floor"],
     ["Pincode", "pincode"],
     ["Brand", "brand"],
     ["Type", "type"],
@@ -1780,6 +1782,13 @@ function RequestService() {
             mappedData.location ||
             prev.location,
 
+          // Floor / Building: Assignment > Equipment > QR > Previous
+          floor:
+            (preferredAssignment && preferredAssignment.floor) ||
+            eq.floor ||
+            mappedData.floor ||
+            prev.floor,
+
           brand: eq.brand || prev.brand,
           capacity: eq.capacity || prev.capacity,
           type: eq.modelSeries || prev.type,
@@ -1836,6 +1845,7 @@ function RequestService() {
                 branchLocation: last.branchLocation ?? prev.branchLocation,
                 address: last.address ?? prev.address,
                 location: last.location ?? prev.location,
+                floor: last.floor ?? prev.floor,
                 pincode: last.pincode ?? prev.pincode,
                 brand: last.brand ?? prev.brand,
                 type: last.type ?? prev.type,
@@ -2266,6 +2276,7 @@ function RequestService() {
                 ["branchLocation", "Place of installation"],
                 ["address", "Address"],
                 ["location", "Location"],
+                ["floor", "Floor / Building"],
                 ["pincode", "Pincode/Area"],
                 ["brand", "Brand"],
                 ["content", "Content"],

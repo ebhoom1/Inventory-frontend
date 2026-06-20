@@ -259,7 +259,7 @@ export default function EditEquipmentModal
                       <div key={idx} className="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-4">
                         <span className="text-sm font-bold text-gray-400 min-w-fit">Unit #{idx + 1}:</span>
                         
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
                           <div>
                             <label className="text-xs font-semibold text-gray-600 block mb-1">Serial Number</label>
                             <input 
@@ -278,6 +278,17 @@ export default function EditEquipmentModal
                               value={unit.equipmentId || ""} 
                               disabled
                               className="w-full text-sm font-mono border border-gray-300 rounded px-2 py-2 bg-gray-100 text-gray-500 cursor-not-allowed"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-gray-600 block mb-1">Floor / Building</label>
+                            <input
+                              type="text"
+                              value={unit.floor || ""}
+                              onChange={(e) => handleUnitChange(idx, 'floor', e.target.value)}
+                              className="w-full text-sm border border-gray-300 rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#DC6D18] focus:border-transparent"
+                              placeholder="Floor / Building (optional)"
                             />
                           </div>
 
