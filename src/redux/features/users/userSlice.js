@@ -101,6 +101,7 @@ export const loginUser = createAsyncThunk(
         userType: data.userType,
         token: data.token,
         activeAttendanceId: data.activeAttendanceId || null, // Capture attendance ID
+        loginTime: data.loginTime || null, // Capture login time
       };
 
       localStorage.setItem('userInfo', JSON.stringify(cleanedUserInfo));

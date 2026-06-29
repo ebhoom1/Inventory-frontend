@@ -346,6 +346,9 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout, logoutUserBackend } from "../../redux/features/users/userSlice";
 import safetickLogo from "../../assets/safetik.png";
+import axios from "axios";
+import Swal from "sweetalert2";
+import { API_URL } from "../../../utils/apiConfig";
 
 function Header({ onSidebarToggle }) {
   const [onlineStatus, setOnlineStatus] = useState(
@@ -357,6 +360,63 @@ function Header({ onSidebarToggle }) {
   const dispatch = useDispatch();
 
   const { userInfo } = useSelector((state) => state.users);
+
+  const [loginTimestamp, setLoginTimestamp] = useState(
+    userInfo?.loginTime ? new Date(userInfo.loginTime) : null
+  );
+  const [elapsedTime, setElapsedTime] = useState("");
+
+  useEffect(() => {
+    if (userInfo && userInfo.userType === "Technician" && userInfo.activeAttendanceId) {
+      const fetchActiveAttendance = async () => {
+        try {
+          const config = {
+            headers: {
+              Authorization: `Bearer ${userInfo.token}`,
+            },
+          };
+          const { data } = await axios.get(`${API_URL}/api/auth/active-attendance`, config);
+          if (data && data.checkIn) {
+            setLoginTimestamp(new Date(data.checkIn));
+          }
+        } catch (err) {
+          console.error("Error fetching active attendance:", err);
+          if (userInfo.loginTime) {
+            setLoginTimestamp(new Date(userInfo.loginTime));
+          }
+        }
+      };
+      fetchActiveAttendance();
+    } else {
+      setLoginTimestamp(null);
+    }
+  }, [userInfo]);
+
+  useEffect(() => {
+    if (loginTimestamp) {
+      const updateTime = () => {
+        const diffMs = new Date() - loginTimestamp;
+        const diffMins = Math.max(0, Math.floor(diffMs / 60000));
+        if (diffMins < 60) {
+          setElapsedTime(`${diffMins} mins`);
+        } else {
+          const hrs = Math.floor(diffMins / 60);
+          const remainingMins = diffMins % 60;
+          if (remainingMins === 0) {
+            setElapsedTime(`${hrs} ${hrs === 1 ? 'hr' : 'hrs'}`);
+          } else {
+            setElapsedTime(`${hrs} ${hrs === 1 ? 'hr' : 'hrs'} ${remainingMins} mins`);
+          }
+        }
+      };
+
+      updateTime();
+      const interval = setInterval(updateTime, 10000);
+      return () => clearInterval(interval);
+    } else {
+      setElapsedTime("");
+    }
+  }, [loginTimestamp]);
 
   useEffect(() => {
     const handleOnlineStatusChange = () => {
@@ -371,6 +431,37 @@ function Header({ onSidebarToggle }) {
   }, []);
 
   const handleLogout = () => {
+    if (userInfo && userInfo.userType === "Technician" && elapsedTime) {
+      Swal.fire({
+        title: "Confirm Logout",
+        html: `
+          <div class="text-center">
+            <p class="text-gray-600 mb-2">Your total login duration is:</p>
+            <p class="text-3xl font-extrabold text-[#DC6D18] mb-4 tracking-tight">${elapsedTime}</p>
+            <p class="text-sm text-gray-500">Are you sure you want to log out?</p>
+          </div>
+        `,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Logout",
+        cancelButtonText: "Cancel",
+        buttonsStyling: false,
+        customClass: {
+          popup: "rounded-2xl border border-orange-100 shadow-xl",
+          confirmButton: "px-6 py-2.5 font-semibold text-white rounded-lg bg-[#DC6D18] hover:bg-[#B85B14] transition-colors outline-none mx-2",
+          cancelButton: "px-6 py-2.5 font-semibold text-white rounded-lg bg-gray-500 hover:bg-gray-600 transition-colors outline-none mx-2",
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          performLogout();
+        }
+      });
+    } else {
+      performLogout();
+    }
+  };
+
+  const performLogout = () => {
     dispatch(logoutUserBackend()).finally(() => {
       localStorage.removeItem("userInfo");
       dispatch(logout());
@@ -443,15 +534,27 @@ function Header({ onSidebarToggle }) {
             {getDisplayName()}
           </span>
           <span className="text-xs opacity-80">{getUserTypeDisplay()}</span>
+          {userInfo?.userType === "Technician" && elapsedTime && (
+            <span className="text-[10px] text-green-300 font-bold bg-[#B85B14]/40 px-1.5 py-0.5 rounded mt-1 animate-pulse">
+              ⏱ {elapsedTime}
+            </span>
+          )}
         </div>
 
         {/* Logged-in user — compact (mobile) */}
-        <span
-          className="md:hidden text-sm truncate max-w-20"
-          title={getDisplayName()}
-        >
-          {getDisplayName()}
-        </span>
+        <div className="md:hidden flex flex-col items-end leading-tight mr-1">
+          <span
+            className="text-sm font-bold truncate max-w-20"
+            title={getDisplayName()}
+          >
+            {getDisplayName()}
+          </span>
+          {userInfo?.userType === "Technician" && elapsedTime && (
+            <span className="text-[9px] text-green-300 font-bold animate-pulse">
+              ⏱ {elapsedTime}
+            </span>
+          )}
+        </div>
 
         <span
           className={`w-3 h-3 rounded-full animate-pulse ${

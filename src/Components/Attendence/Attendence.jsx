@@ -58,6 +58,23 @@ const Attendance = () => {
     navigate('/previous-attendence');
   };
 
+  // Format duration from minutes to hours and minutes if it exceeds 60 minutes
+  const formatDuration = (minutes) => {
+    if (minutes == null) return '-';
+    const totalMinutes = Number(minutes);
+    if (isNaN(totalMinutes)) return '-';
+    
+    if (totalMinutes < 60) {
+      return `${totalMinutes} mins`;
+    }
+    const hrs = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    if (mins === 0) {
+      return `${hrs} ${hrs === 1 ? 'hr' : 'hrs'}`;
+    }
+    return `${hrs} ${hrs === 1 ? 'hr' : 'hrs'} ${mins} mins`;
+  };
+
   // Get and format today's date for the title
   const today = new Date().toLocaleDateString('en-IN', {
     weekday: 'long',
@@ -197,7 +214,7 @@ const Attendance = () => {
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            {record.duration != null ? `${record.duration} mins` : '-'}
+                            {formatDuration(record.duration)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${record.status === 'active'
