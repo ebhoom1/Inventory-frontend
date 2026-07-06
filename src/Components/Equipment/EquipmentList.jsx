@@ -959,11 +959,11 @@ export default function EquipmentList() {
             serialValueFontSize: 26,
           }
         : {
-            // STANDARD LABEL: 9cm × 5cm (2400×1333px) - ORIGINAL DESIGN
+            // STANDARD LABEL: 9cm × 3cm - changed 9 x 5 to 9 x 3
             canvasWidth: 2400,
             canvasHeight: 1333,
             printWidth: "90mm",
-            printHeight: "50mm",
+            printHeight: "30mm",
             borderPadding: 30,
             borderWidth: 6,
             verticalDividerX: 1200,
@@ -1218,7 +1218,7 @@ export default function EquipmentList() {
           canvasWidth: 2400,
           canvasHeight: 1333,
           printWidthMm: 90,
-          printHeightMm: 50,
+          printHeightMm: 30,
           borderPadding: 30,
           borderWidth: 6,
           verticalDividerX: 1200,
@@ -1487,7 +1487,7 @@ export default function EquipmentList() {
     const isSmall = labelType === "small";
 
     const labelWidth = isSmall ? 40 : 90;
-    const labelHeight = isSmall ? 40 : 50;
+    const labelHeight = isSmall ? 40 : 30;
 
     const columns = isSmall ? 7 : 3;
     const rows = isSmall ? 5 : 4;
