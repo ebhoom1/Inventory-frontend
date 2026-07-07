@@ -55,6 +55,23 @@ const DeleteIcon = () => (
   </svg>
 );
 
+const LogoutIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-5 w-5"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+
 const UserList = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -70,6 +87,7 @@ const UserList = () => {
   // filterMode: 'users' or 'admins', or 'technicians' (only super admin can switch)
   const [filterMode, setFilterMode] = useState("users");
   const [deletingId, setDeletingId] = useState(null);
+  const [loggingOutId, setLoggingOutId] = useState(null);
 
   useEffect(() => {
     dispatch(getAllUsers());
@@ -185,6 +203,87 @@ const UserList = () => {
       });
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleForceLogout = async (targetUser) => {
+    if (!targetUser || !targetUser._id) return;
+
+    const confirmResult = await Swal.fire({
+      title: "Force Logout?",
+      html: `
+        <div style="text-align: center; padding: 20px;">
+          <div style="font-size: 48px; margin-bottom: 20px;">🚪</div>
+          <p style="font-size: 18px; color: #374151; margin-bottom: 15px; font-weight: 600;">
+            Are you sure you want to log out technician <strong style="color: #DC6D18;">"${
+              targetUser.userId || targetUser.firstName || targetUser.companyName || "this technician"
+            }"</strong>?
+          </p>
+          <p style="font-size: 16px; color: #6b7280; line-height: 1.5;">
+            This will invalidate their current session and check out any active attendance they have.
+          </p>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: "Yes, Logout",
+      cancelButtonText: "Cancel",
+      buttonsStyling: false,
+      customClass: {
+        popup: "rounded-2xl border border-orange-100 shadow-xl font-sans bg-white",
+        confirmButton: "px-6 py-2.5 font-semibold text-white rounded-lg bg-[#DC6D18] hover:bg-[#B85B14] transition-colors outline-none mx-2",
+        cancelButton: "px-6 py-2.5 font-semibold text-white rounded-lg bg-gray-500 hover:bg-gray-600 transition-colors outline-none mx-2",
+        actions: "mt-4 flex justify-center gap-2",
+      },
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
+    try {
+      setLoggingOutId(targetUser._id);
+
+      Swal.fire({
+        title: "Logging out...",
+        html: "Please wait while we force logout the technician.",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${userInfo?.token}`,
+        },
+      };
+
+      await axios.post(`${API_URL}/api/auth/force-logout/${targetUser._id}`, {}, config);
+
+      await Swal.fire({
+        icon: "success",
+        title: "✅ Logged Out Successfully!",
+        text: "Technician has been forced logged out.",
+        confirmButtonColor: "#059669",
+        confirmButtonText: "OK",
+        timer: 2000,
+        timerProgressBar: true,
+      });
+
+      dispatch(getAllUsers());
+    } catch (err) {
+      console.error("Error forcing logout:", err);
+      Swal.fire({
+        icon: "error",
+        title: "❌ Logout Failed",
+        text:
+          err?.response?.data?.message ||
+          "Failed to logout technician. Please try again.",
+        confirmButtonColor: "#dc2626",
+        confirmButtonText: "OK",
+        allowOutsideClick: true,
+      });
+    } finally {
+      setLoggingOutId(null);
     }
   };
 
@@ -416,6 +515,23 @@ const UserList = () => {
                             <DeleteIcon />
                           )}
                         </button>
+
+                        {user._id !== userInfo?._id && (
+                          <button
+                            className="text-[#DC6D18] hover:text-white hover:bg-[#DC6D18] transition-all duration-200 p-3 rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-110"
+                            onClick={() => handleForceLogout(user)}
+                            title="Force Logout"
+                            disabled={isDeleting || loggingOutId === user._id}
+                          >
+                            {loggingOutId === user._id ? (
+                              <div className="flex items-center">
+                                <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                              </div>
+                            ) : (
+                              <LogoutIcon />
+                            )}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
