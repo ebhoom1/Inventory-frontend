@@ -6,6 +6,7 @@ import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { API_URL } from '../../../utils/apiConfig'; // Adjust the import path as needed
 import * as XLSX from 'xlsx';
+import Swal from 'sweetalert2';
 
 const Attendance = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -18,9 +19,92 @@ const Attendance = () => {
   const [endDate, setEndDate] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTechnician, setSelectedTechnician] = useState(null);
+  const [loggingOutId, setLoggingOutId] = useState(null);
 
   const navigate = useNavigate();
   const { userInfo } = useSelector((state) => state.users || {});
+
+  const handleForceLogout = async (targetUser) => {
+    if (!targetUser || !targetUser._id) return;
+
+    const confirmResult = await Swal.fire({
+      title: "Force Logout?",
+      html: `
+        <div style="text-align: center; padding: 20px;">
+          <div style="font-size: 48px; margin-bottom: 20px;">🚪</div>
+          <p style="font-size: 18px; color: #374151; margin-bottom: 15px; font-weight: 600;">
+            Are you sure you want to log out technician <strong style="color: #DC6D18;">"${
+              targetUser.firstName || targetUser.userId || "this technician"
+            }"</strong>?
+          </p>
+          <p style="font-size: 16px; color: #6b7280; line-height: 1.5;">
+            This will invalidate their current session and check out their active attendance record.
+          </p>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: "Yes, Logout",
+      cancelButtonText: "Cancel",
+      buttonsStyling: false,
+      customClass: {
+        popup: "rounded-2xl border border-orange-100 shadow-xl font-sans bg-white",
+        confirmButton: "px-6 py-2.5 font-semibold text-white rounded-lg bg-[#DC6D18] hover:bg-[#B85B14] transition-colors outline-none mx-2",
+        cancelButton: "px-6 py-2.5 font-semibold text-white rounded-lg bg-gray-500 hover:bg-gray-600 transition-colors outline-none mx-2",
+        actions: "mt-4 flex justify-center gap-2",
+      },
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
+    try {
+      setLoggingOutId(targetUser._id);
+
+      Swal.fire({
+        title: "Logging out...",
+        html: "Please wait while we force logout the technician.",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${userInfo?.token}`,
+        },
+      };
+
+      await axios.post(`${API_URL}/api/auth/force-logout/${targetUser._id}`, {}, config);
+
+      await Swal.fire({
+        icon: "success",
+        title: "✅ Logged Out Successfully!",
+        text: "Technician has been forced logged out.",
+        confirmButtonColor: "#059669",
+        confirmButtonText: "OK",
+        timer: 2000,
+        timerProgressBar: true,
+      });
+
+      // Refresh attendance records
+      fetchAttendance();
+    } catch (err) {
+      console.error("Error forcing logout:", err);
+      Swal.fire({
+        icon: "error",
+        title: "❌ Logout Failed",
+        text:
+          err?.response?.data?.message ||
+          "Failed to logout technician. Please try again.",
+        confirmButtonColor: "#dc2626",
+        confirmButtonText: "OK",
+        allowOutsideClick: true,
+      });
+    } finally {
+      setLoggingOutId(null);
+    }
+  };
 
   const fetchAttendance = async () => {
     setLoading(true);
@@ -464,10 +548,25 @@ const Attendance = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               {record.status === 'active' ? (
-                                <span className="flex items-center gap-2 text-green-600 font-semibold">
-                                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-                                  Active
-                                </span>
+                                <div className="flex items-center gap-3">
+                                  <span className="flex items-center gap-2 text-green-600 font-semibold">
+                                    <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                                    Active
+                                  </span>
+                                  {(userInfo?.userType === 'Admin' || userInfo?.userType === 'Super Admin') && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleForceLogout(record.technicianId);
+                                      }}
+                                      disabled={loggingOutId === record.technicianId?._id}
+                                      className="text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-full hover:bg-red-200 transition-colors font-semibold disabled:opacity-50"
+                                      title="Force Logout technician"
+                                    >
+                                      {loggingOutId === record.technicianId?._id ? "Logging out..." : "Force Logout"}
+                                    </button>
+                                  )}
+                                </div>
                               ) : (
                                 <span className="text-gray-700">
                                   {record.checkOut ? new Date(record.checkOut).toLocaleString('en-IN') : '-'}

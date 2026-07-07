@@ -1,5 +1,11 @@
+import React, { useEffect } from "react";
 import "./App.css";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "./redux/features/users/userSlice";
+import Swal from "sweetalert2";
+import { API_URL } from "../utils/apiConfig";
 
 // Auth pages
 import Login from "./Components/Login/Login";
@@ -29,6 +35,60 @@ import ViewUser from "./Components/ManageUser/ViewUser";
 import RequestService from "./Components/Services/RequestService";
 
 function App() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { userInfo } = useSelector((state) => state.users || {});
+
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response && error.response.status === 401) {
+          if (window.location.pathname !== "/") {
+            dispatch(logout());
+            navigate("/");
+            Swal.fire({
+              icon: "warning",
+              title: "Session Expired",
+              text: error.response.data?.message || "You have been logged out. Please log in again.",
+              confirmButtonColor: "#DC6D18",
+            });
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, [dispatch, navigate]);
+
+  useEffect(() => {
+    if (!userInfo || !userInfo.token) return;
+
+    const checkSession = async () => {
+      try {
+        const config = {
+          headers: {
+            Authorization: `Bearer ${userInfo.token}`,
+          },
+        };
+        await axios.get(`${API_URL}/api/auth/check-session`, config);
+      } catch (err) {
+        // Axios response interceptor will catch the 401 and handle redirect/alert
+      }
+    };
+
+    // Initial check
+    checkSession();
+
+    // Check session validity every 5 seconds
+    const interval = setInterval(checkSession, 5000);
+
+    return () => clearInterval(interval);
+  }, [userInfo]);
+
   return (
     <Routes>
       {/* Auth */}

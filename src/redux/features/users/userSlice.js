@@ -121,14 +121,14 @@ export const logoutUserBackend = createAsyncThunk(
   async (_, { rejectWithValue, getState }) => {
     try {
       const { userInfo } = getState().users;
-      if (userInfo?.activeAttendanceId) {
+      if (userInfo) {
         const config = {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${userInfo.token}`,
           },
         };
-        await axios.post(`${API_URL}/api/auth/logout`, { activeAttendanceId: userInfo.activeAttendanceId }, config);
+        await axios.post(`${API_URL}/api/auth/logout`, { activeAttendanceId: userInfo.activeAttendanceId || null }, config);
       }
       return true;
     } catch (error) {
