@@ -364,6 +364,7 @@ export default function EquipmentList() {
       "Company Name",
       "Location",
       "Floor / Building",
+      "Place of Installation",
       "Batch No",
       "Model/Series",
       "Capacity",
@@ -387,6 +388,7 @@ export default function EquipmentList() {
       it.companyName || userMap[it.userId]?.companyName || "",
       it.location,
       it.floor,
+       it.placeOfInstallation,
       it.batchNo,
       it.modelSeries,
       it.capacity,
@@ -1816,6 +1818,7 @@ export default function EquipmentList() {
               serialNumber: unit.serialNumber,
               location: unit.location,
               floor: unit.floor,
+              placeOfInstallation: unit.placeOfInstallation,
               installationDate: formData.installationDate,
               // ✅ NEW: Include all equipment details for dynamic label sizing
               equipmentName: formData.equipmentName,
