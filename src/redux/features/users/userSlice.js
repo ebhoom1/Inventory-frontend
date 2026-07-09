@@ -108,8 +108,11 @@ export const loginUser = createAsyncThunk(
       sessionStorage.setItem('justLoggedIn', 'true');
       return cleanedUserInfo;
     } catch (error) {
+      if (error.response && error.response.data) {
+        return rejectWithValue(error.response.data);
+      }
       return rejectWithValue(
-        error.response?.data?.message || 'Login failed'
+        error.message || 'Login failed'
       );
     }
   }
@@ -162,8 +165,8 @@ export const updateUser = createAsyncThunk(
   'users/update',
   async ({ id, updatedData }, { rejectWithValue, getState }) => {
     try {
-      console.log("user slice",updatedData);
-      
+      console.log("user slice", updatedData);
+
       const { userInfo } = getState().users;
       const config = {
         headers: {
@@ -231,6 +234,7 @@ const initialState = {
   selectedUser: null,
   allUsers: [],
   error: null,
+  errorStatus: null,
 
   // Flags & payloads for flows
   loginSuccess: false,
@@ -252,6 +256,7 @@ const userSlice = createSlice({
     reset: (state) => {
       state.loading = false;
       state.error = null;
+      state.errorStatus = null;
       state.loginSuccess = false;
       state.registerSuccess = false;
       state.updateSuccess = false;
@@ -267,6 +272,7 @@ const userSlice = createSlice({
       state.selectedUser = null;
       state.allUsers = [];
       state.error = null;
+      state.errorStatus = null;
       state.loginSuccess = false;
       state.registerSuccess = false;
       state.updateSuccess = false;
@@ -277,6 +283,7 @@ const userSlice = createSlice({
     },
     clearError: (state) => {
       state.error = null;
+      state.errorStatus = null;
     },
   },
   extraReducers: (builder) => {
@@ -312,6 +319,7 @@ const userSlice = createSlice({
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.errorStatus = null;
         state.loginSuccess = false;
       })
       .addCase(loginUser.fulfilled, (state, action) => {
@@ -319,10 +327,18 @@ const userSlice = createSlice({
         state.userInfo = action.payload;
         state.loginSuccess = true;
         state.error = null;
+        state.errorStatus = null;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error =
+          typeof action.payload === 'object' && action.payload !== null
+            ? action.payload.message
+            : action.payload || 'Login failed';
+        state.errorStatus =
+          typeof action.payload === 'object' && action.payload !== null
+            ? action.payload.status
+            : null;
         state.loginSuccess = false;
       })
 

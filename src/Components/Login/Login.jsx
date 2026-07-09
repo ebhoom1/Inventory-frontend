@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser, reset } from '../../redux/features/users/userSlice'; // Adjust path as needed
+import { loginUser, reset, clearError } from '../../redux/features/users/userSlice'; // Adjust path as needed
 import safetickLogo from '../../assets/safetik.png';
 
 const Login = () => {
@@ -18,30 +18,38 @@ const Login = () => {
   const [step, setStep] = useState(1);
   const [cameraError, setCameraError] = useState("");
   const [capturedImage, setCapturedImage] = useState(null);
+  const [showForceLoginModal, setShowForceLoginModal] = useState(false);
   const videoRef = React.useRef(null);
   const canvasRef = React.useRef(null);
   const streamRef = React.useRef(null);
-  
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   // Get state from Redux store
-  const { loading, userInfo, error } = useSelector((state) => state.users);
+  const { loading, userInfo, error, errorStatus } = useSelector((state) => state.users);
 
   // Effect to handle successful login
   useEffect(() => {
     if (userInfo) {
       setShowSuccessMessage(true);
-      
+
       // Hide success message and navigate after 2 seconds
       const timer = setTimeout(() => {
         setShowSuccessMessage(false);
         navigate('/equipment');
       }, 1000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [userInfo, navigate]);
+
+  // Effect to handle already logged-in session error status
+  useEffect(() => {
+    if (errorStatus === 'SESSION_EXISTS') {
+      setShowForceLoginModal(true);
+    }
+  }, [errorStatus]);
 
   // Effect to request location when Technician is selected
   useEffect(() => {
@@ -130,9 +138,9 @@ const Login = () => {
   };
 
   // Handle form submission
-  const handleLogin = async (e) => {
+  const handleLogin = async (e, isForced = false) => {
     if (e && e.preventDefault) e.preventDefault();
-    
+
     if (!email || !password || !userType) {
       return;
     }
@@ -156,7 +164,8 @@ const Login = () => {
           latitude: userLocation ? userLocation.latitude : "",
           longitude: userLocation ? userLocation.longitude : "",
           location: manualLocation,
-          image: capturedImage
+          image: capturedImage,
+          forceLogin: isForced
         };
         dispatch(loginUser(userData));
       }
@@ -164,9 +173,14 @@ const Login = () => {
       const userData = {
         email,
         password,
-        userType
+        userType,
+        forceLogin: isForced
       };
       dispatch(loginUser(userData));
+    }
+
+    if (isForced) {
+      setShowForceLoginModal(false);
     }
   };
 
@@ -179,18 +193,18 @@ const Login = () => {
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
             <i className="fa-solid fa-check text-green-500 text-2xl"></i>
           </div>
-          
+
           {/* Success Text */}
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Login Successful!</h2>
           <p className="text-lg text-[#DC6D18] font-semibold mb-4">Welcome!!!</p>
-          
+
           {/* User Info */}
           {userInfo && (
             <p className="text-sm text-gray-600">
               Hello, {userInfo.firstName || userInfo.email}
             </p>
           )}
-          
+
           {/* Loading animation */}
           <div className="flex justify-center mt-4">
             <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#DC6D18] border-t-transparent"></div>
@@ -201,17 +215,63 @@ const Login = () => {
     </div>
   );
 
+  // Force Login Confirmation Modal Component
+  const ForceLoginModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 animate-fade-in">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 mx-4 max-w-sm w-full transform animate-bounce-in border border-[#DC6D18]/10">
+        <div className="text-center">
+          {/* Warning Icon */}
+          <div className="mx-auto w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mb-4 border border-amber-100 animate-pulse">
+            <i className="fa-solid fa-circle-exclamation text-amber-500 text-3xl animate-bounce"></i>
+          </div>
+          
+          {/* Alert Title */}
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Already Logged In</h2>
+          <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+            You are currently logged in on another device. Logging in here will automatically disconnect that session. Do you want to proceed?
+          </p>
+          
+          {/* Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowForceLoginModal(false);
+                dispatch(clearError());
+              }}
+              className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition focus:outline-none focus:ring-2 focus:ring-gray-300"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                handleLogin(null, true);
+              }}
+              className="flex-1 bg-[#DC6D18] text-white py-3 rounded-lg font-semibold hover:bg-opacity-95 transition-transform transform active:scale-95 shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18] flex items-center justify-center"
+            >
+              Yes, Log In
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <>
       {/* Success Message Overlay */}
       {showSuccessMessage && <SuccessMessage />}
-      
+
+      {/* Force Login Confirmation Overlay */}
+      {showForceLoginModal && <ForceLoginModal />}
+
       {/* Main container with gradient background, centered content, and responsive padding */}
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-[#efe1d3] to-[#FDECDA] p-4">
-        
+
         {/* Login Card: Responsive width, padding, and styling */}
         <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8 space-y-6">
-          
+
           {/* Logo and Title Section */}
           <div className="text-center">
             <img src={safetickLogo} alt="Safetick Logo" className="w-24 sm:w-28 mx-auto mb-4" />
@@ -223,7 +283,7 @@ const Login = () => {
           </div>
 
           {/* Error Message */}
-          {error && (
+          {error && errorStatus !== 'SESSION_EXISTS' && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">
               <div className="flex items-center">
                 <i className="fa-solid fa-exclamation-triangle text-red-500 mr-2"></i>
@@ -235,7 +295,7 @@ const Login = () => {
           {/* Login Form / Camera Step */}
           {step === 1 ? (
             <form onSubmit={handleLogin} className="space-y-5">
-              
+
               {/* Email Field */}
               <div className="relative">
                 <i className="fa-solid fa-envelope absolute top-1/2 left-4 -translate-y-1/2 text-gray-400"></i>
@@ -287,7 +347,7 @@ const Login = () => {
                 </select>
                 <i className="fa-solid fa-chevron-down absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
               </div>
-              
+
               {/* Location Display for Technician */}
               {userType === 'Technician' && (
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-3">
@@ -297,7 +357,7 @@ const Login = () => {
                     </h3>
                     <span className="text-[10px] bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full font-semibold uppercase">Optional</span>
                   </div>
-                  
+
                   {isLocating ? (
                     <p className="text-xs text-blue-600 animate-pulse">Fetching GPS location...</p>
                   ) : locationError ? (
@@ -322,13 +382,13 @@ const Login = () => {
                   </div>
                 </div>
               )}
-              
-                {/* Forgot Password Link */}
-                 <div className="text-right text-sm">
-                 <a href="/resetpassword" className="font-medium text-[#DC6D18] hover:underline">
-                   Forgot password?
-                  </a>
-                </div>
+
+              {/* Forgot Password Link */}
+              <div className="text-right text-sm">
+                <a href="/resetpassword" className="font-medium text-[#DC6D18] hover:underline">
+                  Forgot password?
+                </a>
+              </div>
 
               {/* Login Button */}
               <button
@@ -350,7 +410,7 @@ const Login = () => {
             <div className="space-y-5 animate-fade-in">
               <h2 className="text-xl font-semibold text-gray-800 text-center"><i className="fa-solid fa-camera mr-2"></i> Take a Photo</h2>
               <p className="text-sm text-center text-gray-500">A live photo is required to complete attendance.</p>
-              
+
               {cameraError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 flex items-center justify-between">
                   <div>
@@ -359,7 +419,7 @@ const Login = () => {
                   <button type="button" onClick={startCamera} className="underline font-semibold whitespace-nowrap ml-2">Try Again</button>
                 </div>
               )}
-              
+
               {!capturedImage ? (
                 <div className="relative rounded-xl overflow-hidden bg-gray-900 aspect-[3/4] flex items-center justify-center shadow-inner">
                   {!cameraError && (
@@ -377,9 +437,9 @@ const Login = () => {
                   </button>
                 </div>
               )}
-              
+
               <canvas ref={canvasRef} className="hidden"></canvas>
-              
+
               <div className="flex gap-4">
                 <button type="button" onClick={() => { setStep(1); stopCamera(); }} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition focus:ring-2 focus:ring-gray-300">
                   Back

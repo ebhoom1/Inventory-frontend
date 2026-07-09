@@ -101,13 +101,15 @@ const Attendance = () => {
         confirmButtonText: "OK",
         allowOutsideClick: true,
       });
+      // Refresh list to sync state (e.g. if the user was already logged out)
+      fetchAttendance();
     } finally {
       setLoggingOutId(null);
     }
   };
 
-  const fetchAttendance = async () => {
-    setLoading(true);
+  const fetchAttendance = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const config = {
         headers: {
@@ -124,15 +126,24 @@ const Attendance = () => {
       setError(null);
     } catch (err) {
       console.error("Attendance fetch error:", err);
-      setError(err.response?.data?.message || 'Failed to fetch attendance records');
+      if (!isSilent) {
+        setError(err.response?.data?.message || 'Failed to fetch attendance records');
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   };
 
   useEffect(() => {
     if (userInfo) {
       fetchAttendance();
+
+      // Poll in the background every 30 seconds for real-time updates
+      const intervalId = setInterval(() => {
+        fetchAttendance(true);
+      }, 30000);
+
+      return () => clearInterval(intervalId);
     }
   }, [userInfo, startDate, endDate]);
 
