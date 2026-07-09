@@ -100,6 +100,10 @@ function Sidebar({ isOpen, onClose }) {
             <span className="mr-4 text-xl" />
             <span>Equipments</span>
           </li>
+          <li className={navItemClasses} onClick={() => navigate("/report")}>
+            <span className="mr-4 text-xl" />
+            <span>Report</span>
+          </li>
           <li className={navItemClasses} onClick={() => navigate("/account")}>
             <span className="mr-4 text-xl" />
             <span>Account</span>

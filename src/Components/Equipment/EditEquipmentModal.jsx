@@ -29,18 +29,17 @@ const formatMonthForInput = (dateStr) => {
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return "";
-    
+
     // Get year and month, pad month with '0' if needed
     const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+
     return `${year}-${month}`;
   } catch (error) {
     console.error("Invalid month value:", dateStr, error);
     return "";
   }
 };
-
 
 // Simple reusable input component
 const FormInput = ({ label, name, value, onChange, disabled, ...props }) => (
@@ -56,7 +55,7 @@ const FormInput = ({ label, name, value, onChange, disabled, ...props }) => (
       onChange={onChange}
       disabled={disabled} // Pass disabled prop
       className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm 
-        ${disabled ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed' : 'border-gray-300 focus:ring-[#DC6D18] focus:border-[#DC6D18]'}`}
+        ${disabled ? "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed" : "border-gray-300 focus:ring-[#DC6D18] focus:border-[#DC6D18]"}`}
       {...props}
     />
   </div>
@@ -65,10 +64,7 @@ const FormInput = ({ label, name, value, onChange, disabled, ...props }) => (
 // Simple reusable textarea component
 const FormTextarea = ({ label, name, value, onChange, ...props }) => (
   <div>
-    <label
-      htmlFor={name}
-      className="block text-sm font-medium text-gray-700"
-    >
+    <label htmlFor={name} className="block text-sm font-medium text-gray-700">
       {label}
     </label>
     <textarea
@@ -83,9 +79,14 @@ const FormTextarea = ({ label, name, value, onChange, ...props }) => (
   </div>
 );
 
-export default function EditEquipmentModal
-({ isOpen, onClose, equipment, onSave, isLoading }) {
- const [formData, setFormData] = useState({
+export default function EditEquipmentModal({
+  isOpen,
+  onClose,
+  equipment,
+  onSave,
+  isLoading,
+}) {
+  const [formData, setFormData] = useState({
     equipmentName: "",
     serialNumber: "",
     capacity: "",
@@ -102,8 +103,9 @@ export default function EditEquipmentModal
     modelSeries: "",
     userId: "",
     location: "",
+    placeOfInstallation: "",
     companyName: "",
-    units: [],  // ✅ Array for grouped equipment with multiple units
+    units: [], // ✅ Array for grouped equipment with multiple units
   });
 
   // Update form state if the equipment prop changes
@@ -112,8 +114,11 @@ export default function EditEquipmentModal
   useEffect(() => {
     if (equipment) {
       // ✅ If equipment has units array (grouped equipment), use it
-      const unitsArray = equipment.units && Array.isArray(equipment.units) ? equipment.units : [];
-      
+      const unitsArray =
+        equipment.units && Array.isArray(equipment.units)
+          ? equipment.units
+          : [];
+
       setFormData({
         equipmentName: equipment.equipmentName || "",
         serialNumber: equipment.serialNumber || "",
@@ -126,42 +131,41 @@ export default function EditEquipmentModal
         modelSeries: equipment.modelSeries || "",
         notes: equipment.notes || "",
         location: equipment.location || "",
+        placeOfInstallation: equipment.placeOfInstallation || "",
         companyName: equipment.companyName || "",
         mfgMonth: formatMonthForInput(equipment.mfgMonth),
         expiryDate: formatDateForInput(equipment.expiryDate),
         refDue: formatDateForInput(equipment.refDue),
         hpTestedDate: formatDateForInput(equipment.hpTestedDate), // ✅ NEW: HP Tested date
         installationDate: formatDateForInput(equipment.installationDate),
-        units: unitsArray,  // ✅ Store units array for editing
+        units: unitsArray, // ✅ Store units array for editing
       });
     }
   }, [equipment]);
 
   if (!isOpen) return null;
-  
-    
-    // setFormData({
-    //     skuName: item.skuName || "",
-    //     quantity: item.quantity || "",
-    //     date: item.date ? new Date(item.date).toISOString().split('T')[0] : "",
-    //     // Populate technical details
-    //     capacity: item.capacity || "",
-    //     brand: item.brand || "",
-    //     content: item.content || "",
-    //     grossWeight: item.grossWeight || "",
-    //     batchNo: item.batchNo || "",
-    //     notes: item.notes || "",
-    //     mfgMonth: item.mfgMonth ? new Date(item.mfgMonth).toISOString().slice(0, 7) : "", // YYYY-MM
-    //     expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : "", // YYYY-MM-DD
-    //     refDue: item.refDue ? new Date(item.refDue).toISOString().split('T')[0] : "", // YYYY-MM-DD
-    //   });
 
-      // 2. ✅ In flat structure, each document is a single unit
-      // Create edit copy with just this unit's data
+  // setFormData({
+  //     skuName: item.skuName || "",
+  //     quantity: item.quantity || "",
+  //     date: item.date ? new Date(item.date).toISOString().split('T')[0] : "",
+  //     // Populate technical details
+  //     capacity: item.capacity || "",
+  //     brand: item.brand || "",
+  //     content: item.content || "",
+  //     grossWeight: item.grossWeight || "",
+  //     batchNo: item.batchNo || "",
+  //     notes: item.notes || "",
+  //     mfgMonth: item.mfgMonth ? new Date(item.mfgMonth).toISOString().slice(0, 7) : "", // YYYY-MM
+  //     expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : "", // YYYY-MM-DD
+  //     refDue: item.refDue ? new Date(item.refDue).toISOString().split('T')[0] : "", // YYYY-MM-DD
+  //   });
+
+  // 2. ✅ In flat structure, each document is a single unit
+  // Create edit copy with just this unit's data
   //     setEditedAssignments([{ ...equipment }]);
   //   }
   // }, [equipment]);
-
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -178,25 +182,24 @@ export default function EditEquipmentModal
     setFormData((prev) => ({ ...prev, units: updatedUnits }));
   };
 
- const handleSubmit = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    if (isLoading) return; 
-    
+    if (isLoading) return;
+
     // ✅ FLAT STRUCTURE: If editing grouped equipment with multiple units, pass units array
     // Otherwise submit single unit data
     const payload = {
-        ...formData,
-        _id: equipment._id,
-        // Include units if this is grouped equipment
-        units: formData.units || [],
+      ...formData,
+      _id: equipment._id,
+      // Include units if this is grouped equipment
+      units: formData.units || [],
     };
-    
+
     onSave(payload);
   };
-  
 
   return (
-   <div
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity"
       onClick={onClose}
     >
@@ -222,93 +225,216 @@ export default function EditEquipmentModal
         {/* Body - Scrollable Form */}
         <div className="overflow-y-auto flex-1 p-6">
           <form id="edit-form" onSubmit={handleSubmit} className="space-y-6">
-            
             {/* --- Top Level Fields (Grid) --- */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Column 1 */}
-              <FormInput label="Equipment Name" name="equipmentName" value={formData.equipmentName} onChange={handleChange} />
-              <FormInput label="Assigned User (View Only)" name="userId" value={formData.userId} onChange={handleChange} disabled={true} />
-              <FormInput label="Brand" name="brand" value={formData.brand} onChange={handleChange} />
-              <FormInput label="Capacity" name="capacity" value={formData.capacity} onChange={handleChange} />
-              <FormInput label="Installation Date" name="installationDate" value={formData.installationDate} onChange={handleChange} type="date" />
-
+              <FormInput
+                label="Equipment Name"
+                name="equipmentName"
+                value={formData.equipmentName}
+                onChange={handleChange}
+              />
+              <FormInput
+                label="Assigned User (View Only)"
+                name="userId"
+                value={formData.userId}
+                onChange={handleChange}
+                disabled={true}
+              />
+              <FormInput
+                label="Brand"
+                name="brand"
+                value={formData.brand}
+                onChange={handleChange}
+              />
+              <FormInput
+                label="Capacity"
+                name="capacity"
+                value={formData.capacity}
+                onChange={handleChange}
+              />
+              <FormInput
+                label="Installation Date"
+                name="installationDate"
+                value={formData.installationDate}
+                onChange={handleChange}
+                type="date"
+              />
               {/* Column 2 */}
-              <FormInput label="Model/Series" name="modelSeries" value={formData.modelSeries} onChange={handleChange} />
-              <FormInput label="Gross Weight" name="grossWeight" value={formData.grossWeight} onChange={handleChange} />
-              <FormInput label="Content" name="content" value={formData.content} onChange={handleChange} />
-              <FormInput label="Batch No" name="batchNo" value={formData.batchNo} onChange={handleChange} />
-              <FormInput label="MFG Month" name="mfgMonth" value={formData.mfgMonth} onChange={handleChange} type="month" />
-
+              <FormInput
+                label="Model/Series"
+                name="modelSeries"
+                value={formData.modelSeries}
+                onChange={handleChange}
+              />
+              <FormInput
+                label="Gross Weight"
+                name="grossWeight"
+                value={formData.grossWeight}
+                onChange={handleChange}
+              />
+              <FormInput
+                label="Content"
+                name="content"
+                value={formData.content}
+                onChange={handleChange}
+              />
+              <FormInput
+                label="Batch No"
+                name="batchNo"
+                value={formData.batchNo}
+                onChange={handleChange}
+              />
+              <FormInput
+                label="MFG Month"
+                name="mfgMonth"
+                value={formData.mfgMonth}
+                onChange={handleChange}
+                type="month"
+              />
               {/* Column 3 */}
-              <FormInput label="Expiry Date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} type="date" />
-              <FormInput label="REF Due" name="refDue" value={formData.refDue} onChange={handleChange} type="date" />
-              <FormInput label="HP Tested Date" name="hpTestedDate" value={formData.hpTestedDate} onChange={handleChange} type="date" /> {/* ✅ NEW: HP Tested Date */}
+              <FormInput
+                label="Expiry Date"
+                name="expiryDate"
+                value={formData.expiryDate}
+                onChange={handleChange}
+                type="date"
+              />
+              <FormInput
+                label="REF Due"
+                name="refDue"
+                value={formData.refDue}
+                onChange={handleChange}
+                type="date"
+              />
+              <FormInput
+                label="HP Tested Date"
+                name="hpTestedDate"
+                value={formData.hpTestedDate}
+                onChange={handleChange}
+                type="date"
+              />{" "}
+              {/* ✅ NEW: HP Tested Date */}
               {/* Default Location removed from edit modal UI per request */}
             </div>
 
             {/* Notes */}
-            <FormTextarea label="Notes" name="notes" value={formData.notes} onChange={handleChange} />
+            <FormTextarea
+              label="Notes"
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+            />
 
             {/* ✅ SERIAL NUMBER & ASSIGNMENT SECTION - EDITABLE (FLAT STRUCTURE) */}
-          <div className="border-t pt-4 mt-4">
-                <h4 className="text-lg font-bold text-[#DC6D18] mb-4">Manage Assigned Unit Serial Numbers</h4>
-                
-                {formData.units && formData.units.length > 0 ? (
-                  <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-3 max-h-80 overflow-y-auto">
-                    {formData.units.map((unit, idx) => (
-                      <div key={idx} className="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-4">
-                        <span className="text-sm font-bold text-gray-400 min-w-fit">Unit #{idx + 1}:</span>
-                        
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
-                          <div>
-                            <label className="text-xs font-semibold text-gray-600 block mb-1">Serial Number</label>
-                            <input 
-                              type="text" 
-                              value={unit.serialNumber || ""} 
-                              onChange={(e) => handleUnitChange(idx, 'serialNumber', e.target.value)}
-                              className="w-full text-sm font-mono border border-gray-300 rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#DC6D18] focus:border-transparent"
-                              placeholder="Enter serial number"
-                            />
-                          </div>
+            <div className="border-t pt-4 mt-4">
+              <h4 className="text-lg font-bold text-[#DC6D18] mb-4">
+                Manage Assigned Unit Serial Numbers
+              </h4>
 
-                          <div>
-                            <label className="text-xs font-semibold text-gray-600 block mb-1">Equipment ID</label>
-                            <input 
-                              type="text" 
-                              value={unit.equipmentId || ""} 
-                              disabled
-                              className="w-full text-sm font-mono border border-gray-300 rounded px-2 py-2 bg-gray-100 text-gray-500 cursor-not-allowed"
-                            />
-                          </div>
+              {formData.units && formData.units.length > 0 ? (
+                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-3 max-h-80 overflow-y-auto">
+                  {formData.units.map((unit, idx) => (
+                    <div
+                      key={unit._id || unit.equipmentId || idx}
+                      className="bg-white rounded-lg border border-gray-200 p-4"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-bold text-[#DC6D18]">
+                          Unit #{idx + 1}
+                        </span>
 
-                          <div>
-                            <label className="text-xs font-semibold text-gray-600 block mb-1">Floor / Building</label>
-                            <input
-                              type="text"
-                              value={unit.floor || ""}
-                              onChange={(e) => handleUnitChange(idx, 'floor', e.target.value)}
-                              className="w-full text-sm border border-gray-300 rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#DC6D18] focus:border-transparent"
-                              placeholder="Floor / Building (optional)"
-                            />
-                          </div>
+                        <span className="text-xs text-gray-500">
+                          {unit.equipmentName || formData.equipmentName}
+                        </span>
+                      </div>
 
-                          <div>
-                            <label className="text-xs font-semibold text-gray-600 block mb-1">Assigned To</label>
-                            <div className="text-sm font-medium p-2 bg-green-50 border border-green-200 rounded text-green-700">
-                              {unit.userId || "Unassigned"}
-                            </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                        <div>
+                          <label className="text-xs font-semibold text-gray-600 block mb-1">
+                            Serial Number
+                          </label>
+                          <input
+                            type="text"
+                            value={unit.serialNumber || ""}
+                            onChange={(e) =>
+                              handleUnitChange(
+                                idx,
+                                "serialNumber",
+                                e.target.value,
+                              )
+                            }
+                            className="w-full text-sm font-mono border border-gray-300 rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#DC6D18] focus:border-transparent"
+                            placeholder="Enter serial number"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-semibold text-gray-600 block mb-1">
+                            Equipment ID
+                          </label>
+                          <input
+                            type="text"
+                            value={unit.equipmentId || ""}
+                            disabled
+                            className="w-full text-sm font-mono border border-gray-300 rounded px-2 py-2 bg-gray-100 text-gray-500 cursor-not-allowed"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-semibold text-gray-600 block mb-1">
+                            Assigned To
+                          </label>
+                          <div className="text-sm font-medium p-2 bg-green-50 border border-green-200 rounded text-green-700">
+                            {unit.userId || "Unassigned"}
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center text-gray-500">
-                    <p>No assigned units available for this equipment.</p>
-                  </div>
-                )}
-            </div>
 
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-semibold text-gray-600 block mb-1">
+                            Place of Installation
+                          </label>
+                          <input
+                            type="text"
+                            value={unit.placeOfInstallation || ""}
+                            onChange={(e) =>
+                              handleUnitChange(
+                                idx,
+                                "placeOfInstallation",
+                                e.target.value,
+                              )
+                            }
+                            className="w-full text-sm border border-gray-300 rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#DC6D18] focus:border-transparent"
+                            placeholder="Example: Near main entrance"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-semibold text-gray-600 block mb-1">
+                            Floor / Building
+                          </label>
+                          <input
+                            type="text"
+                            value={unit.floor || ""}
+                            onChange={(e) =>
+                              handleUnitChange(idx, "floor", e.target.value)
+                            }
+                            className="w-full text-sm border border-gray-300 rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#DC6D18] focus:border-transparent"
+                            placeholder="Example: Basement B1 / Tower A"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center text-gray-500">
+                  <p>No assigned units available for this equipment.</p>
+                </div>
+              )}
+            </div>
           </form>
         </div>
 
@@ -334,4 +460,4 @@ export default function EditEquipmentModal
       </div>
     </div>
   );
-}          
+}

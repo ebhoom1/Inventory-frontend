@@ -33,6 +33,7 @@ import PreviousAttendence from "./Components/Attendence/PreviousAttendence";
 import EditUser from "./Components/ManageUser/EditUser";
 import ViewUser from "./Components/ManageUser/ViewUser";
 import RequestService from "./Components/Services/RequestService";
+import InstallationReport from "./Components/InstallationReport/InstallationReport";
 
 function App() {
   const dispatch = useDispatch();
@@ -116,6 +117,7 @@ function App() {
       <Route path="/previous-attendence" element={<PreviousAttendence />} />
 
       <Route path="/services" element={<ServiceLayout />} />
+      <Route path="/report" element={<InstallationReport />} />
       {/* <Route path="/service" element={<RequestService />} /> */}
       {/* <Route path="/services" element={<RequestService />} /> */}
     </Routes>
