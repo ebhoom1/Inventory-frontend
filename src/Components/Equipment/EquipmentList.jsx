@@ -388,7 +388,7 @@ export default function EquipmentList() {
       it.companyName || userMap[it.userId]?.companyName || "",
       it.location,
       it.floor,
-       it.placeOfInstallation,
+      it.placeOfInstallation,
       it.batchNo,
       it.modelSeries,
       it.capacity,
@@ -543,19 +543,18 @@ export default function EquipmentList() {
     );
     ctx.stroke();
 
-    // Red accent box (top-right, same theme as big label)
-    ctx.fillStyle = "#C1272D";
-    ctx.fillRect(
-      labelConfig.redBoxX,
-      labelConfig.redBoxY,
-      labelConfig.redBoxW,
-      labelConfig.redBoxH,
-    );
+    // // Red accent box (top-right, same theme as big label)
+    // ctx.fillStyle = "#C1272D";
+    // ctx.fillRect(
+    //   labelConfig.redBoxX,
+    //   labelConfig.redBoxY,
+    //   labelConfig.redBoxW,
+    //   labelConfig.redBoxH,
+    // );
 
     // Stacked detail fields (left column)
     ctx.textAlign = "left";
-    const valueMaxW =
-      labelConfig.verticalDividerX - labelConfig.columnX1 - 48;
+    const valueMaxW = labelConfig.verticalDividerX - labelConfig.columnX1 - 48;
     const dividerX2 = labelConfig.verticalDividerX - 48;
 
     const detailFields = [
@@ -706,13 +705,6 @@ export default function EquipmentList() {
     );
     ctx.stroke();
 
-    ctx.fillStyle = "#C1272D";
-    ctx.fillRect(
-      labelConfig.redBoxX,
-      labelConfig.redBoxY,
-      labelConfig.redBoxW,
-      labelConfig.redBoxH,
-    );
 
     let fieldY = labelConfig.fieldStartY;
 
@@ -950,47 +942,51 @@ export default function EquipmentList() {
             qrTextY: 410,
             qrTextFont: 30,
 
-            // Red box, same theme as big label
-            redBoxX: 525,
-            redBoxY: 8,
-            redBoxW: 67,
-            redBoxH: 35,
+            // // Red box, same theme as big label
+            // redBoxX: 525,
+            // redBoxY: 8,
+            // redBoxW: 67,
+            // redBoxH: 35,
 
             // Serial section, same theme as big label
             serialLabelFontSize: 16,
             serialValueFontSize: 26,
           }
         : {
-            // STANDARD LABEL: 9cm × 3cm - changed 9 x 5 to 9 x 3
+            // STANDARD LABEL: 90mm × 40mm
+            // Reduced height by 1cm, but keeps readable text/QR
             canvasWidth: 2400,
-            canvasHeight: 1333,
+            canvasHeight: 1067,
+
             printWidth: "90mm",
-            printHeight: "30mm",
-            borderPadding: 30,
+            printHeight: "40mm",
+
+            borderPadding: 12,
             borderWidth: 6,
-            verticalDividerX: 1200,
-            columnX1: 100,
-            columnX2: 750,
-            fieldStartY: 320,
-            fieldLineSpacing: 135,
-            labelWidth: 350,
-            dotLineHeight: 60,
+
+            verticalDividerX: 1180,
+
+            columnX1: 55,
+            columnX2: 720,
+
+            fieldStartY: 150,
+            fieldLineSpacing: 105,
+            labelWidth: 330,
+            dotLineHeight: 58,
             fontSize: 65,
+
             qrSize: 750,
-            qrX: 1425,
-            qrY: 240,
-            qrTextY: 1030,
+            qrX: 1415,
+            qrY: 90,
+            qrTextY: 900,
             qrTextFont: 64,
-            // Red box (original)
-            redBoxX: 2120,
-            redBoxY: 30,
-            redBoxW: 280,
-            redBoxH: 140,
-            // Serial section
-            serialStartY: 1283,
+
+            
+
+            serialStartY: 1015,
             serialLabelFontSize: 60,
             serialValueFontSize: 68,
-            serialValueX: 550,
+            serialValueX: 500,
           };
 
       const formatDate = (d) => {
@@ -1206,10 +1202,10 @@ export default function EquipmentList() {
           qrTextFont: 30,
 
           // Red box, same theme as big label
-          redBoxX: 525,
-          redBoxY: 8,
-          redBoxW: 67,
-          redBoxH: 35,
+          // redBoxX: 525,
+          // redBoxY: 8,
+          // redBoxW: 67,
+          // redBoxH: 35,
 
           // Serial section, same theme as big label
           serialLabelFontSize: 16,
@@ -1217,33 +1213,40 @@ export default function EquipmentList() {
         }
       : {
           type: "standard",
+
+          // STANDARD LABEL: 90mm × 40mm
           canvasWidth: 2400,
-          canvasHeight: 1333,
+          canvasHeight: 1067,
+
           printWidthMm: 90,
-          printHeightMm: 30,
-          borderPadding: 30,
+          printHeightMm: 40,
+
+          borderPadding: 12,
           borderWidth: 6,
-          verticalDividerX: 1200,
-          columnX1: 100,
-          columnX2: 750,
-          fieldStartY: 320,
-          fieldLineSpacing: 135,
-          labelWidth: 350,
-          dotLineHeight: 60,
+
+          verticalDividerX: 1180,
+
+          columnX1: 55,
+          columnX2: 720,
+
+          fieldStartY: 150,
+          fieldLineSpacing: 105,
+          labelWidth: 330,
+          dotLineHeight: 58,
           fontSize: 65,
+
           qrSize: 750,
-          qrX: 1425,
-          qrY: 240,
-          qrTextY: 1030,
+          qrX: 1415,
+          qrY: 90,
+          qrTextY: 900,
           qrTextFont: 64,
-          redBoxX: 2120,
-          redBoxY: 30,
-          redBoxW: 280,
-          redBoxH: 140,
-          serialStartY: 1283,
+
+        
+
+          serialStartY: 1015,
           serialLabelFontSize: 60,
           serialValueFontSize: 68,
-          serialValueX: 550,
+          serialValueX: 500,
         };
   };
 
@@ -1320,157 +1323,155 @@ export default function EquipmentList() {
         formatDate,
       });
     } else {
-    ctx.lineWidth = labelConfig.borderWidth;
-    ctx.strokeStyle = "black";
-    ctx.beginPath();
-    ctx.moveTo(labelConfig.verticalDividerX, labelConfig.borderPadding);
-    ctx.lineTo(
-      labelConfig.verticalDividerX,
-      labelConfig.canvasHeight - labelConfig.borderPadding,
-    );
-    ctx.stroke();
+      ctx.lineWidth = labelConfig.borderWidth;
+      ctx.strokeStyle = "black";
+      ctx.beginPath();
+      ctx.moveTo(labelConfig.verticalDividerX, labelConfig.borderPadding);
+      ctx.lineTo(
+        labelConfig.verticalDividerX,
+        labelConfig.canvasHeight - labelConfig.borderPadding,
+      );
+      ctx.stroke();
 
-    ctx.fillStyle = "#C1272D";
-    ctx.fillRect(
-      labelConfig.redBoxX,
-      labelConfig.redBoxY,
-      labelConfig.redBoxW,
-      labelConfig.redBoxH,
-    );
+    
 
-    const drawWrappedText = (text, x, y, maxWidth, lineHeight) => {
-      const words = String(text || "").split(" ");
-      let line = "";
-      let currentY = y;
+      const drawWrappedText = (text, x, y, maxWidth, lineHeight) => {
+        const words = String(text || "").split(" ");
+        let line = "";
+        let currentY = y;
 
-      for (let n = 0; n < words.length; n++) {
-        const testLine = line + words[n] + " ";
-        const metrics = ctx.measureText(testLine);
+        for (let n = 0; n < words.length; n++) {
+          const testLine = line + words[n] + " ";
+          const metrics = ctx.measureText(testLine);
 
-        if (metrics.width > maxWidth && n > 0) {
-          ctx.fillText(line, x, currentY);
-          line = words[n] + " ";
-          currentY += lineHeight;
-        } else {
-          line = testLine;
+          if (metrics.width > maxWidth && n > 0) {
+            ctx.fillText(line, x, currentY);
+            line = words[n] + " ";
+            currentY += lineHeight;
+          } else {
+            line = testLine;
+          }
         }
-      }
 
-      ctx.fillText(line, x, currentY);
-      return currentY;
-    };
+        ctx.fillText(line, x, currentY);
+        return currentY;
+      };
 
-    let fieldY = labelConfig.fieldStartY;
+      let fieldY = labelConfig.fieldStartY;
 
-    const drawDataField = (
-      label,
-      value,
-      columnIndex = 0,
-      isMultiline = false,
-    ) => {
-      const fieldX =
-        columnIndex === 0 ? labelConfig.columnX1 : labelConfig.columnX2;
+      const drawDataField = (
+        label,
+        value,
+        columnIndex = 0,
+        isMultiline = false,
+      ) => {
+        const fieldX =
+          columnIndex === 0 ? labelConfig.columnX1 : labelConfig.columnX2;
 
-      const dotStart = fieldX + labelConfig.labelWidth;
+        const dotStart = fieldX + labelConfig.labelWidth;
 
-      const dotEnd =
-        columnIndex === 0
-          ? labelConfig.verticalDividerX - 20
-          : labelConfig.canvasWidth - 35;
+        const dotEnd =
+          columnIndex === 0
+            ? labelConfig.verticalDividerX - 20
+            : labelConfig.canvasWidth - 35;
 
-      ctx.fillStyle = "black";
-      ctx.font = `bold ${labelConfig.fontSize}px Arial`;
-      ctx.fillText(label, fieldX, fieldY);
-      ctx.fillText(
-        ":",
-        fieldX + labelConfig.labelWidth - labelConfig.fontSize * 0.3,
-        fieldY,
+        ctx.fillStyle = "black";
+        ctx.font = `bold ${labelConfig.fontSize}px Arial`;
+        ctx.fillText(label, fieldX, fieldY);
+        ctx.fillText(
+          ":",
+          fieldX + labelConfig.labelWidth - labelConfig.fontSize * 0.3,
+          fieldY,
+        );
+
+        if (isMultiline) {
+          ctx.font = `bold ${labelConfig.fontSize}px Arial`;
+          return drawWrappedText(
+            value || "",
+            dotStart,
+            fieldY,
+            dotEnd - dotStart,
+            labelConfig.dotLineHeight,
+          );
+        } else {
+          ctx.beginPath();
+          ctx.setLineDash([5, 5]);
+          ctx.strokeStyle = labelConfig.dotColor || "black";
+          ctx.lineWidth = labelConfig.dotWidth || labelConfig.borderWidth;
+          ctx.moveTo(dotStart, fieldY + labelConfig.fontSize * 0.15);
+          ctx.lineTo(dotEnd, fieldY + labelConfig.fontSize * 0.15);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.strokeStyle = "black";
+          ctx.lineWidth = labelConfig.borderWidth;
+
+          if (value) {
+            ctx.font = `bold ${labelConfig.fontSize}px Arial`;
+            ctx.fillText(
+              value,
+              dotStart + 5,
+              fieldY - labelConfig.fontSize * 0.1,
+            );
+          }
+        }
+      };
+
+      const typeBottomY = drawDataField(
+        "Type",
+        equipment.equipmentName || "",
+        0,
+        true,
+      );
+      // Advance below the LAST wrapped line so capacity never overlaps the name.
+      fieldY = (typeBottomY || fieldY) + labelConfig.fieldLineSpacing;
+
+      drawDataField("Cap", equipment.capacity || "", 0);
+      fieldY += labelConfig.fieldLineSpacing;
+
+      drawDataField("Installed", formatDate(unitInstall), 0);
+      fieldY += labelConfig.fieldLineSpacing;
+
+      drawDataField("Exp.", formatDate(unitExpiry), 0);
+      fieldY += labelConfig.fieldLineSpacing;
+
+      drawDataField("HP Test.", formatDate(unitHpTested), 0);
+      fieldY += labelConfig.fieldLineSpacing;
+
+      drawDataField("Due On", formatDate(unitRefDue), 0);
+
+      ctx.drawImage(
+        qrImg,
+        labelConfig.qrX,
+        labelConfig.qrY,
+        labelConfig.qrSize,
+        labelConfig.qrSize,
       );
 
-      if (isMultiline) {
-        ctx.font = `bold ${labelConfig.fontSize}px Arial`;
-        return drawWrappedText(
-          value || "",
-          dotStart,
-          fieldY,
-          dotEnd - dotStart,
-          labelConfig.dotLineHeight,
-        );
-      } else {
-        ctx.beginPath();
-        ctx.setLineDash([5, 5]);
-        ctx.strokeStyle = labelConfig.dotColor || "black";
-        ctx.lineWidth = labelConfig.dotWidth || labelConfig.borderWidth;
-        ctx.moveTo(dotStart, fieldY + labelConfig.fontSize * 0.15);
-        ctx.lineTo(dotEnd, fieldY + labelConfig.fontSize * 0.15);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = labelConfig.borderWidth;
+      ctx.font = `bold ${labelConfig.qrTextFont}px Courier New`;
+      ctx.fillStyle = "#666";
+      ctx.textAlign = "center";
+      ctx.fillText(
+        uniqueUnitId,
+        labelConfig.qrX + labelConfig.qrSize / 2,
+        labelConfig.qrTextY,
+      );
+      ctx.textAlign = "left";
 
-        if (value) {
-          ctx.font = `bold ${labelConfig.fontSize}px Arial`;
-          ctx.fillText(
-            value,
-            dotStart + 5,
-            fieldY - labelConfig.fontSize * 0.1,
-          );
-        }
-      }
-    };
+      ctx.fillStyle = "#DC6D18";
+      ctx.font = `bold ${labelConfig.serialLabelFontSize}px Arial`;
+      ctx.fillText(
+        "SERIAL NO:",
+        labelConfig.columnX1,
+        labelConfig.serialStartY,
+      );
 
-    const typeBottomY = drawDataField(
-      "Type",
-      equipment.equipmentName || "",
-      0,
-      true,
-    );
-    // Advance below the LAST wrapped line so capacity never overlaps the name.
-    fieldY = (typeBottomY || fieldY) + labelConfig.fieldLineSpacing;
-
-    drawDataField("Cap", equipment.capacity || "", 0);
-    fieldY += labelConfig.fieldLineSpacing;
-
-    drawDataField("Installed", formatDate(unitInstall), 0);
-    fieldY += labelConfig.fieldLineSpacing;
-
-    drawDataField("Exp.", formatDate(unitExpiry), 0);
-    fieldY += labelConfig.fieldLineSpacing;
-
-    drawDataField("HP Test.", formatDate(unitHpTested), 0);
-    fieldY += labelConfig.fieldLineSpacing;
-
-    drawDataField("Due On", formatDate(unitRefDue), 0);
-
-    ctx.drawImage(
-      qrImg,
-      labelConfig.qrX,
-      labelConfig.qrY,
-      labelConfig.qrSize,
-      labelConfig.qrSize,
-    );
-
-    ctx.font = `bold ${labelConfig.qrTextFont}px Courier New`;
-    ctx.fillStyle = "#666";
-    ctx.textAlign = "center";
-    ctx.fillText(
-      uniqueUnitId,
-      labelConfig.qrX + labelConfig.qrSize / 2,
-      labelConfig.qrTextY,
-    );
-    ctx.textAlign = "left";
-
-    ctx.fillStyle = "#DC6D18";
-    ctx.font = `bold ${labelConfig.serialLabelFontSize}px Arial`;
-    ctx.fillText("SERIAL NO:", labelConfig.columnX1, labelConfig.serialStartY);
-
-    ctx.fillStyle = "black";
-    ctx.font = `bold ${labelConfig.serialValueFontSize}px Courier New`;
-    ctx.fillText(
-      unit.serialNumber || "",
-      labelConfig.serialValueX,
-      labelConfig.serialStartY,
-    );
+      ctx.fillStyle = "black";
+      ctx.font = `bold ${labelConfig.serialValueFontSize}px Courier New`;
+      ctx.fillText(
+        unit.serialNumber || "",
+        labelConfig.serialValueX,
+        labelConfig.serialStartY,
+      );
     }
 
     return {
@@ -1489,10 +1490,10 @@ export default function EquipmentList() {
     const isSmall = labelType === "small";
 
     const labelWidth = isSmall ? 40 : 90;
-    const labelHeight = isSmall ? 40 : 30;
+    const labelHeight = isSmall ? 40 : 40;
 
     const columns = isSmall ? 7 : 3;
-    const rows = isSmall ? 5 : 4;
+    const rows = isSmall ? 5 : 5;
 
     const labelsPerPage = columns * rows;
 
@@ -2189,4 +2190,3 @@ export default function EquipmentList() {
     </div>
   );
 }
-
