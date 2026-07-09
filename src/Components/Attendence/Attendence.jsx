@@ -497,11 +497,11 @@ const Attendance = () => {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Technician Name</th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Photo</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Check-In Photo</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Check-Out Photo</th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Site Name</th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Site Location</th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Check In</th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Check Out</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Check-In Details</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Check-Out Details</th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Duration</th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Normal Time</th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Overtime</th>
@@ -537,10 +537,11 @@ const Attendance = () => {
                                 </div>
                               </div>
                             </td>
+                            {/* Check-In Photo */}
                             <td className="px-6 py-4 whitespace-nowrap">
                               {record.photoUrl ? (
-                                <a href={record.photoUrl} target="_blank" rel="noopener noreferrer">
-                                  <img src={record.photoUrl} alt="Attendance" className="h-10 w-10 rounded object-cover border border-gray-200 hover:scale-[2.5] hover:z-10 relative transition-transform cursor-pointer" />
+                                <a href={record.photoUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                                  <img src={record.photoUrl} alt="Check-In" className="h-10 w-10 rounded object-cover border border-gray-200 hover:scale-[2.5] hover:z-10 relative transition-transform cursor-pointer" />
                                 </a>
                               ) : (
                                 <div className="h-10 w-10 rounded bg-gray-100 flex items-center justify-center text-gray-400">
@@ -548,16 +549,50 @@ const Attendance = () => {
                                 </div>
                               )}
                             </td>
-                            <td className="px-6 py-4 text-sm text-gray-700">
+
+                            {/* Check-Out Photo */}
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {record.logoutPhotoUrl ? (
+                                <a href={record.logoutPhotoUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                                  <img src={record.logoutPhotoUrl} alt="Check-Out" className="h-10 w-10 rounded object-cover border border-gray-200 hover:scale-[2.5] hover:z-10 relative transition-transform cursor-pointer" />
+                                </a>
+                              ) : record.status === 'active' ? (
+                                <span className="text-xs text-gray-400 italic font-normal">Active</span>
+                              ) : (
+                                <div className="h-10 w-10 rounded bg-gray-500 bg-opacity-10 flex items-center justify-center text-gray-450" title="No photo captured (e.g. force logout)">
+                                  <i className="fa-solid fa-user-slash"></i>
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Site Name */}
+                            <td className="px-6 py-4 text-sm text-gray-700 font-medium">
                               {record.siteName}
                             </td>
-                            <td className="px-6 py-4 text-sm text-gray-500">
-                              {record.siteLocation}
+
+                            {/* Check-In Details & Address */}
+                            <td className="px-6 py-4 text-sm text-gray-700">
+                              <div className="flex flex-col space-y-1">
+                                <span className="font-semibold">{new Date(record.checkIn).toLocaleString('en-IN')}</span>
+                                <span className="text-xs text-gray-500 max-w-[200px] truncate" title={record.checkInAddress || record.siteLocation}>
+                                  {record.checkInAddress || record.siteLocation || 'Location not specified'}
+                                </span>
+                                {record.checkInLatitude != null && record.checkInLongitude != null && (
+                                  <a 
+                                    href={`https://www.google.com/maps?q=${record.checkInLatitude},${record.checkInLongitude}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="inline-flex items-center gap-1 text-xs text-[#DC6D18] hover:underline font-bold mt-0.5"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <i className="fa-solid fa-location-dot"></i> Maps
+                                  </a>
+                                )}
+                              </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                              {new Date(record.checkIn).toLocaleString('en-IN')}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+
+                            {/* Check-Out Details & Address */}
+                            <td className="px-6 py-4 text-sm text-gray-700">
                               {record.status === 'active' ? (
                                 <div className="flex items-center gap-3">
                                   <span className="flex items-center gap-2 text-green-600 font-semibold">
@@ -579,9 +614,40 @@ const Attendance = () => {
                                   )}
                                 </div>
                               ) : (
-                                <span className="text-gray-700">
-                                  {record.checkOut ? new Date(record.checkOut).toLocaleString('en-IN') : '-'}
-                                </span>
+                                <div className="flex flex-col space-y-1">
+                                  <span className="font-semibold">
+                                    {record.checkOut ? new Date(record.checkOut).toLocaleString('en-IN') : '-'}
+                                  </span>
+                                  {record.checkOut && (
+                                    <span className="text-xs text-gray-500 max-w-[200px] truncate" title={record.checkOutAddress}>
+                                      {record.checkOutAddress || 'Address not resolved'}
+                                    </span>
+                                  )}
+                                  {record.checkOutLatitude != null && record.checkOutLongitude != null && (
+                                    <a 
+                                      href={`https://www.google.com/maps?q=${record.checkOutLatitude},${record.checkOutLongitude}`} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      className="inline-flex items-center gap-1 text-xs text-[#DC6D18] hover:underline font-bold mt-0.5"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <i className="fa-solid fa-location-dot"></i> Maps
+                                    </a>
+                                  )}
+                                  {record.checkOutDistanceMeters != null && (
+                                    <div className="mt-1">
+                                      {record.checkOutDistanceMeters > 500 ? (
+                                        <span className="inline-flex items-center gap-1 bg-red-50 text-red-800 border border-red-200 px-2 py-0.5 rounded text-[10px] font-bold" title="Distance between check-in and check-out locations">
+                                          ⚠️ Out of Bounds: {(record.checkOutDistanceMeters / 1000).toFixed(2)} km
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 border border-green-150 px-2 py-0.5 rounded text-[10px] font-bold" title="Checked out within acceptable site radius">
+                                          ✅ Near Site ({record.checkOutDistanceMeters.toFixed(0)}m)
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
