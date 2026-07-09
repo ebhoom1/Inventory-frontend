@@ -282,6 +282,8 @@ const UserList = () => {
         confirmButtonText: "OK",
         allowOutsideClick: true,
       });
+      // Refresh user list to align state (e.g. if the user was already logged out)
+      dispatch(getAllUsers());
     } finally {
       setLoggingOutId(null);
     }
