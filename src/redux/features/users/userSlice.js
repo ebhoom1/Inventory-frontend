@@ -121,7 +121,7 @@ export const loginUser = createAsyncThunk(
 // 2.5 Logout User from Backend (To capture attendance checkOut)
 export const logoutUserBackend = createAsyncThunk(
   'users/logoutBackend',
-  async (_, { rejectWithValue, getState }) => {
+  async (logoutData, { rejectWithValue, getState }) => {
     try {
       const { userInfo } = getState().users;
       if (userInfo) {
@@ -131,7 +131,11 @@ export const logoutUserBackend = createAsyncThunk(
             Authorization: `Bearer ${userInfo.token}`,
           },
         };
-        await axios.post(`${API_URL}/api/auth/logout`, { activeAttendanceId: userInfo.activeAttendanceId || null }, config);
+        const payload = {
+          activeAttendanceId: userInfo.activeAttendanceId || null,
+          ...(logoutData || {})
+        };
+        await axios.post(`${API_URL}/api/auth/logout`, payload, config);
       }
       return true;
     } catch (error) {

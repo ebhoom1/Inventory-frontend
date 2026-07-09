@@ -147,6 +147,14 @@ const Login = () => {
 
     if (userType === 'Technician') {
       if (step === 1) {
+        if (isLocating) {
+          alert("Acquiring GPS location. Please wait...");
+          return;
+        }
+        if (!userLocation) {
+          alert(locationError || "GPS Location is required to log in. Please enable location services in your browser settings and try again.");
+          return;
+        }
         setStep(2);
         setTimeout(() => startCamera(), 100); // Wait for video element to render
         return;
@@ -353,9 +361,9 @@ const Login = () => {
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-3">
                   <div className="flex justify-between items-center">
                     <h3 className="font-semibold text-blue-800 text-sm">
-                      <i className="fa-solid fa-location-dot mr-2"></i> Location (Optional)
+                      <i className="fa-solid fa-location-dot mr-2"></i> Location (Required)
                     </h3>
-                    <span className="text-[10px] bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full font-semibold uppercase">Optional</span>
+                    <span className="text-[10px] bg-red-100 text-red-800 px-2 py-0.5 rounded-full font-semibold uppercase">Required</span>
                   </div>
 
                   {isLocating ? (
