@@ -341,7 +341,7 @@
 // export default Header;
 
 // src/components/Header/Header.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout, logoutUserBackend } from "../../redux/features/users/userSlice";
@@ -477,6 +477,74 @@ function Header({ onSidebarToggle }) {
     }
   };
 
+  const fetchLogoutLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLogoutLocError("Geolocation is not supported by your browser");
+      return;
+    }
+    setLogoutLocating(true);
+    setLogoutLocError("");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLogoutLocating(false);
+        setLogoutLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        });
+        startLogoutCamera();
+      },
+      (error) => {
+        setLogoutLocating(false);
+        let errMsg = "Location permission is required.";
+        if (error.code === 1) errMsg = "Location access was denied. Please allow it in browser settings.";
+        if (error.code === 2) errMsg = "Location is unavailable. Please check your network or GPS.";
+        if (error.code === 3) errMsg = "Location request timed out.";
+        setLogoutLocError(errMsg);
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  }, []);
+
+  // Effect to automatically retry fetching logout location when permission status changes or tab gains focus
+  useEffect(() => {
+    if (!showLogoutModal || (userInfo && userInfo.userType !== "Technician")) return;
+
+    let permissionStatus = null;
+
+    const handlePermissionChange = () => {
+      if (permissionStatus && (permissionStatus.state === 'granted' || permissionStatus.state === 'prompt')) {
+        fetchLogoutLocation();
+      }
+    };
+
+    const handleWindowFocus = () => {
+      // Auto-retry location fetching on window focus if logout modal is open and we don't have location yet
+      if (!logoutLocation) {
+        fetchLogoutLocation();
+      }
+    };
+
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'geolocation' })
+        .then((status) => {
+          permissionStatus = status;
+          status.addEventListener('change', handlePermissionChange);
+        })
+        .catch((err) => {
+          console.warn("Permissions API query failed:", err);
+        });
+    }
+
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      if (permissionStatus) {
+        permissionStatus.removeEventListener('change', handlePermissionChange);
+      }
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [showLogoutModal, logoutLocation, userInfo, fetchLogoutLocation]);
+
   const captureLogoutPhoto = () => {
     if (logoutVideoRef.current && logoutCanvasRef.current) {
       const video = logoutVideoRef.current;
@@ -551,25 +619,7 @@ function Header({ onSidebarToggle }) {
       setLogoutLocation(null);
       setLogoutCamError("");
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLogoutLocating(false);
-          setLogoutLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
-          startLogoutCamera();
-        },
-        (error) => {
-          setLogoutLocating(false);
-          let errMsg = "Location permission is required.";
-          if (error.code === 1) errMsg = "Location access was denied. Please allow it in browser settings.";
-          if (error.code === 2) errMsg = "Location is unavailable. Please check your network or GPS.";
-          if (error.code === 3) errMsg = "Location request timed out.";
-          setLogoutLocError(errMsg);
-        },
-        { timeout: 10000, enableHighAccuracy: true }
-      );
+      fetchLogoutLocation();
     } else {
       // Non-technicians logout normally without modal
       performLogout();
@@ -750,29 +800,7 @@ function Header({ onSidebarToggle }) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    setLogoutLocating(true);
-                    setLogoutLocError("");
-                    navigator.geolocation.getCurrentPosition(
-                      (position) => {
-                        setLogoutLocating(false);
-                        setLogoutLocation({
-                          latitude: position.coords.latitude,
-                          longitude: position.coords.longitude
-                        });
-                        startLogoutCamera();
-                      },
-                      (error) => {
-                        setLogoutLocating(false);
-                        let errMsg = "Location permission is required.";
-                        if (error.code === 1) errMsg = "Location access was denied. Please allow it in browser settings.";
-                        if (error.code === 2) errMsg = "Location is unavailable. Please check your network or GPS.";
-                        if (error.code === 3) errMsg = "Location request timed out.";
-                        setLogoutLocError(errMsg);
-                      },
-                      { timeout: 10000, enableHighAccuracy: true }
-                    );
-                  }}
+                  onClick={fetchLogoutLocation}
                   className="w-full bg-red-600 text-white text-xs py-2.5 rounded-lg font-semibold hover:bg-red-700 transition"
                 >
                   Retry GPS Capture
