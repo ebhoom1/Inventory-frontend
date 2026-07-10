@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser, reset, clearError } from '../../redux/features/users/userSlice'; // Adjust path as needed
@@ -51,39 +51,88 @@ const Login = () => {
     }
   }, [errorStatus]);
 
+  // Geolocation fetch function with optional auto-advance to step 2
+  const fetchLocation = useCallback((autoAdvance = false) => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser");
+      return;
+    }
+    setIsLocating(true);
+    setLocationError("");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setIsLocating(false);
+        setUserLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        });
+        if (autoAdvance) {
+          setStep(2);
+          setTimeout(() => startCamera(), 100);
+        }
+      },
+      (error) => {
+        setIsLocating(false);
+        let errMsg = "Location permission is required.";
+        if (error.code === 1) errMsg = "Location access was denied. Please allow it in browser settings.";
+        if (error.code === 2) errMsg = "Location is unavailable. Please check your network or GPS.";
+        if (error.code === 3) errMsg = "Location request timed out.";
+        setLocationError(errMsg);
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  }, []);
+
   // Effect to request location when Technician is selected
   useEffect(() => {
     if (userType === 'Technician') {
-      if (!navigator.geolocation) {
-        setLocationError("Geolocation is not supported by your browser");
-      } else {
-        setIsLocating(true);
-        setLocationError("");
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setIsLocating(false);
-            setUserLocation({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude
-            });
-          },
-          (error) => {
-            setIsLocating(false);
-            let errMsg = "Location permission is required.";
-            if (error.code === 1) errMsg = "Location access was denied. Please allow it in browser settings.";
-            if (error.code === 2) errMsg = "Location is unavailable. Please check your network or GPS.";
-            if (error.code === 3) errMsg = "Location request timed out.";
-            setLocationError(errMsg);
-          },
-          { timeout: 10000, enableHighAccuracy: true }
-        );
-      }
+      fetchLocation(false);
     } else {
       setUserLocation(null);
       setLocationError("");
       setManualLocation("");
     }
-  }, [userType]);
+  }, [userType, fetchLocation]);
+
+  // Effect to automatically retry fetching location when permission status changes or tab gains focus
+  useEffect(() => {
+    if (userType !== 'Technician') return;
+
+    let permissionStatus = null;
+
+    const handlePermissionChange = () => {
+      if (permissionStatus && (permissionStatus.state === 'granted' || permissionStatus.state === 'prompt')) {
+        fetchLocation(false);
+      }
+    };
+
+    const handleWindowFocus = () => {
+      // Auto-retry location fetching on window focus if we don't have location yet
+      if (!userLocation) {
+        fetchLocation(false);
+      }
+    };
+
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'geolocation' })
+        .then((status) => {
+          permissionStatus = status;
+          status.addEventListener('change', handlePermissionChange);
+        })
+        .catch((err) => {
+          console.warn("Permissions API query failed:", err);
+        });
+    }
+
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      if (permissionStatus) {
+        permissionStatus.removeEventListener('change', handlePermissionChange);
+      }
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [userType, userLocation, fetchLocation]);
 
   // Cleanup error state and camera on mount/unmount
   useEffect(() => {
@@ -152,7 +201,8 @@ const Login = () => {
           return;
         }
         if (!userLocation) {
-          alert(locationError || "GPS Location is required to log in. Please enable location services in your browser settings and try again.");
+          // Attempt to fetch geolocation automatically on "Next" click
+          fetchLocation(true);
           return;
         }
         setStep(2);
@@ -369,7 +419,18 @@ const Login = () => {
                   {isLocating ? (
                     <p className="text-xs text-blue-600 animate-pulse">Fetching GPS location...</p>
                   ) : locationError ? (
-                    <p className="text-xs text-blue-500 font-medium"><i className="fa-solid fa-triangle-exclamation mr-1"></i> GPS: {locationError}</p>
+                    <div className="space-y-2">
+                      <p className="text-xs text-blue-500 font-medium">
+                        <i className="fa-solid fa-triangle-exclamation mr-1"></i> GPS: {locationError}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => fetchLocation(false)}
+                        className="w-full bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs py-2 rounded-lg font-semibold transition flex items-center justify-center gap-1"
+                      >
+                        <i className="fa-solid fa-arrows-rotate"></i> Retry GPS Capture
+                      </button>
+                    </div>
                   ) : userLocation ? (
                     <div className="text-xs text-blue-800 bg-blue-100 p-2 rounded-lg inline-block w-full">
                       <span className="block font-mono">GPS Lat: {userLocation.latitude.toFixed(6)}</span>
