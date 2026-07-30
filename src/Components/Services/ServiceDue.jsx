@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { listServiceDue } from "../../redux/features/serviceRequests/serviceRequestSlice";
+import StyledSelect from "../common/StyledSelect";
 
 /* -------------------------- Small helper for dates ------------------------- */
 const DueDate = ({ value }) => {
@@ -197,47 +198,37 @@ const shownDue = useMemo(() => {
             Include overdue
           </label>
           {isSuperAdmin && (
-            <select
+            <StyledSelect
               name="userId"
               value={filter.userId}
               onChange={(e) =>
                 setFilter((p) => ({ ...p, userId: e.target.value }))
               }
-              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-              title="Filter by user who created the service record"
-            >
-              {availableUsers.map((u) => (
-                <option key={u.value} value={u.value}>
-                  {u.label}
-                </option>
-              ))}
-            </select>
+              fullWidth={false}
+              triggerClassName="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18] text-left flex items-center justify-between gap-2 min-w-[180px]"
+              options={availableUsers}
+            />
           )}
 
-          <select
+          <StyledSelect
             name="month"
             value={filter.month}
             onChange={onFilterChange}
-            className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-          >
-            {availableMonths.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-          <select
+            fullWidth={false}
+            triggerClassName="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18] text-left flex items-center justify-between gap-2 min-w-[140px]"
+            options={availableMonths}
+          />
+          <StyledSelect
             name="year"
             value={filter.year}
             onChange={onFilterChange}
-            className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-          >
-            {availableYears.map((y) => (
-              <option key={y} value={y}>
-                {y === "all" ? "All Years" : y}
-              </option>
-            ))}
-          </select>
+            fullWidth={false}
+            triggerClassName="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18] text-left flex items-center justify-between gap-2 min-w-[120px]"
+            options={availableYears.map((y) => ({
+              value: y,
+              label: y === "all" ? "All Years" : y,
+            }))}
+          />
         </div>
       </div>
 

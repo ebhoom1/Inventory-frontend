@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { createReport } from "../../redux/features/report/reportSlice";
 import Swal from "sweetalert2";
+import StyledSelect from "../common/StyledSelect";
 
 export default function ReportModal({ open, onClose, item, onSubmitted }) {
   const dispatch = useDispatch();
@@ -183,17 +184,12 @@ export default function ReportModal({ open, onClose, item, onSubmitted }) {
                   {f.label}
                 </label>
                 {f.type === "select" ? (
-                  <select
+                  <StyledSelect
                     value={form[f.key] ?? ""}
                     onChange={(e) => update(f.key, e.target.value)}
-                    className="rounded-md border-2 border-[#DC6D18] focus:border-[#DC6D18] focus:outline-none focus:ring-0"
-                  >
-                    {(f.options || []).map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
+                    triggerClassName="rounded-md border-2 border-[#DC6D18] focus:border-[#DC6D18] focus:outline-none focus:ring-0 text-left flex items-center justify-between gap-2 px-3 py-2"
+                    options={f.options || []}
+                  />
                 ) : f.type === "textarea" ? (
                   <textarea
                     rows={3}

@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { getAllUsers } from "../../redux/features/users/userSlice";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../../../utils/apiConfig";
+import UserAssignmentModal from "./UserAssignmentModal";
 
 // Icons
 const ViewIcon = () => (
@@ -89,6 +90,8 @@ const UserList = () => {
   const [deletingId, setDeletingId] = useState(null);
   const [loggingOutId, setLoggingOutId] = useState(null);
 
+  const [assignmentUser, setAssignmentUser] = useState(null);
+
   useEffect(() => {
     dispatch(getAllUsers());
   }, [dispatch]);
@@ -113,7 +116,7 @@ const UserList = () => {
   const handleEdit = (userOrId) => {
     if (!userOrId) return;
     // If caller passed the full user object, include it in navigation state
-    if (typeof userOrId === 'object' && userOrId._id) {
+    if (typeof userOrId === "object" && userOrId._id) {
       navigate(`/edit-user/${userOrId._id}`, { state: { user: userOrId } });
     } else {
       navigate(`/edit-user/${userOrId}`);
@@ -176,7 +179,11 @@ const UserList = () => {
         didOpen: () => Swal.showLoading(),
       });
 
-      await axios.delete(`${API_URL}/api/auth/${userId}`);
+      await axios.delete(`${API_URL}/api/auth/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${userInfo?.token}`,
+        },
+      });
 
       await Swal.fire({
         icon: "success",
@@ -216,7 +223,10 @@ const UserList = () => {
           <div style="font-size: 48px; margin-bottom: 20px;">🚪</div>
           <p style="font-size: 18px; color: #374151; margin-bottom: 15px; font-weight: 600;">
             Are you sure you want to log out technician <strong style="color: #DC6D18;">"${
-              targetUser.userId || targetUser.firstName || targetUser.companyName || "this technician"
+              targetUser.userId ||
+              targetUser.firstName ||
+              targetUser.companyName ||
+              "this technician"
             }"</strong>?
           </p>
           <p style="font-size: 16px; color: #6b7280; line-height: 1.5;">
@@ -229,9 +239,12 @@ const UserList = () => {
       cancelButtonText: "Cancel",
       buttonsStyling: false,
       customClass: {
-        popup: "rounded-2xl border border-orange-100 shadow-xl font-sans bg-white",
-        confirmButton: "px-6 py-2.5 font-semibold text-white rounded-lg bg-[#DC6D18] hover:bg-[#B85B14] transition-colors outline-none mx-2",
-        cancelButton: "px-6 py-2.5 font-semibold text-white rounded-lg bg-gray-500 hover:bg-gray-600 transition-colors outline-none mx-2",
+        popup:
+          "rounded-2xl border border-orange-100 shadow-xl font-sans bg-white",
+        confirmButton:
+          "px-6 py-2.5 font-semibold text-white rounded-lg bg-[#DC6D18] hover:bg-[#B85B14] transition-colors outline-none mx-2",
+        cancelButton:
+          "px-6 py-2.5 font-semibold text-white rounded-lg bg-gray-500 hover:bg-gray-600 transition-colors outline-none mx-2",
         actions: "mt-4 flex justify-center gap-2",
       },
     });
@@ -252,12 +265,16 @@ const UserList = () => {
 
       const config = {
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${userInfo?.token}`,
         },
       };
 
-      await axios.post(`${API_URL}/api/auth/force-logout/${targetUser._id}`, {}, config);
+      await axios.post(
+        `${API_URL}/api/auth/force-logout/${targetUser._id}`,
+        {},
+        config,
+      );
 
       await Swal.fire({
         icon: "success",
@@ -286,6 +303,140 @@ const UserList = () => {
       dispatch(getAllUsers());
     } finally {
       setLoggingOutId(null);
+    }
+  };
+
+  const handleAdminPasswordReset = async (targetUser) => {
+    if (!targetUser?._id) return;
+
+    const result = await Swal.fire({
+      title: "Change Account Password",
+      html: `
+      <div style="text-align:left">
+        <p style="margin-bottom:15px;color:#6b7280">
+          Change password for
+          <strong>${targetUser.userId || targetUser.email}</strong>
+        </p>
+
+        <label style="display:block;margin-bottom:6px;font-weight:600">
+          New Password
+        </label>
+        <input
+          id="new-password"
+          type="password"
+          class="swal2-input"
+          placeholder="Minimum 8 characters"
+          style="width:100%;margin:0 0 15px 0"
+        />
+
+        <label style="display:block;margin-bottom:6px;font-weight:600">
+          Confirm New Password
+        </label>
+        <input
+          id="confirm-password"
+          type="password"
+          class="swal2-input"
+          placeholder="Re-enter password"
+          style="width:100%;margin:0 0 15px 0"
+        />
+
+        <label style="display:block;margin-bottom:6px;font-weight:600">
+          Your Super Admin Password
+        </label>
+        <input
+          id="super-admin-password"
+          type="password"
+          class="swal2-input"
+          placeholder="Confirm this action"
+          style="width:100%;margin:0"
+        />
+      </div>
+    `,
+      showCancelButton: true,
+      confirmButtonText: "Change Password",
+      cancelButtonText: "Cancel",
+      buttonsStyling: false,
+      customClass: {
+        popup: "rounded-2xl border border-orange-100 shadow-xl font-sans",
+        confirmButton:
+          "px-6 py-2.5 font-semibold text-white rounded-lg bg-[#DC6D18] hover:bg-[#B85B14] transition-colors outline-none mx-2",
+        cancelButton:
+          "px-6 py-2.5 font-semibold text-white rounded-lg bg-gray-500 hover:bg-gray-600 transition-colors outline-none mx-2",
+        actions: "mt-4 flex justify-center gap-2",
+      },
+
+      preConfirm: () => {
+        const newPassword =
+          document.getElementById("new-password")?.value || "";
+
+        const confirmPassword =
+          document.getElementById("confirm-password")?.value || "";
+
+        const superAdminPassword =
+          document.getElementById("super-admin-password")?.value || "";
+
+        if (!newPassword || !confirmPassword || !superAdminPassword) {
+          Swal.showValidationMessage("All password fields are required");
+          return false;
+        }
+
+        if (newPassword.length < 8) {
+          Swal.showValidationMessage(
+            "New password must contain at least 8 characters",
+          );
+          return false;
+        }
+
+        if (newPassword !== confirmPassword) {
+          Swal.showValidationMessage("New passwords do not match");
+          return false;
+        }
+
+        return {
+          newPassword,
+          confirmPassword,
+          superAdminPassword,
+        };
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      Swal.fire({
+        title: "Changing password...",
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      const response = await axios.patch(
+        `${API_URL}/api/auth/users/${targetUser._id}/admin-reset-password`,
+        result.value,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${userInfo?.token}`,
+          },
+        },
+      );
+
+      await Swal.fire({
+        icon: "success",
+        title: "Password Changed",
+        text: response.data?.message || "Password changed successfully.",
+        confirmButtonColor: "#059669",
+      });
+
+      dispatch(getAllUsers());
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Password Change Failed",
+        text:
+          error?.response?.data?.message || "Unable to change the password.",
+        confirmButtonColor: "#dc2626",
+      });
     }
   };
 
@@ -342,8 +493,8 @@ const UserList = () => {
           {filterMode === "admins"
             ? "Admin List"
             : filterMode === "technicians"
-            ? "Technician List"
-            : "User List"}
+              ? "Technician List"
+              : "User List"}
         </h2>
 
         {/* Show toggle group only if logged in as Admin or Super Admin */}
@@ -518,22 +669,69 @@ const UserList = () => {
                           )}
                         </button>
 
-                        {user._id !== userInfo?._id && (
+                        {/* Assign Admins and Technicians */}
+                        {isSuperAdmin && user.userType === "User" && (
                           <button
-                            className="text-[#DC6D18] hover:text-white hover:bg-[#DC6D18] transition-all duration-200 p-3 rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-110"
-                            onClick={() => handleForceLogout(user)}
-                            title="Force Logout"
-                            disabled={isDeleting || loggingOutId === user._id}
+                            type="button"
+                            onClick={() => setAssignmentUser(user)}
+                            className="rounded-full p-3 text-blue-600 transition-all duration-200 hover:scale-110 hover:bg-blue-600 hover:text-white hover:shadow-lg disabled:opacity-50"
+                            title="Assign Admins and Technicians"
+                            disabled={isDeleting}
                           >
-                            {loggingOutId === user._id ? (
+                            <i className="fa-solid fa-users-gear text-lg" />
+                          </button>
+                        )}
+
+                        {/* Change Password */}
+                        {isSuperAdmin &&
+                          ["Admin", "User", "Technician"].includes(
+                            user.userType,
+                          ) && (
+                            <button
+                              type="button"
+                              onClick={() => handleAdminPasswordReset(user)}
+                              className="rounded-full p-3 text-purple-600 transition-all duration-200 hover:scale-110 hover:bg-purple-600 hover:text-white hover:shadow-lg disabled:opacity-50"
+                              title="Change Password"
+                              disabled={isDeleting}
+                            >
+                              <i className="fa-solid fa-key text-lg" />
+                            </button>
+                          )}
+
+                        {/* Delete — Super Admin only */}
+                        {isSuperAdmin && (
+                          <button
+                            className="text-red-500 hover:text-white hover:bg-red-500 transition-all duration-200 p-3 rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-110"
+                            onClick={() => handleDelete(user._id, displayName)}
+                            title="Delete"
+                            disabled={isDeleting}
+                          >
+                            {isDeleting ? (
                               <div className="flex items-center">
                                 <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
                               </div>
                             ) : (
-                              <LogoutIcon />
+                              <DeleteIcon />
                             )}
                           </button>
                         )}
+
+                        {/* Force Logout */}
+                        {(userInfo?.userType === "Admin" || isSuperAdmin) &&
+                          user._id !== userInfo?._id && (
+                            <button
+                              className="text-[#DC6D18] hover:text-white hover:bg-[#DC6D18] transition-all duration-200 p-3 rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-110"
+                              onClick={() => handleForceLogout(user)}
+                              title="Force Logout"
+                              disabled={isDeleting || loggingOutId === user._id}
+                            >
+                              {loggingOutId === user._id ? (
+                                <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                              ) : (
+                                <LogoutIcon />
+                              )}
+                            </button>
+                          )}
                       </div>
                     </td>
                   </tr>
@@ -542,6 +740,12 @@ const UserList = () => {
           </tbody>
         </table>
       </div>
+      <UserAssignmentModal
+        open={Boolean(assignmentUser)}
+        user={assignmentUser}
+        onClose={() => setAssignmentUser(null)}
+        onSaved={() => dispatch(getAllUsers())}
+      />
     </div>
   );
 };

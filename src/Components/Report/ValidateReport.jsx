@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Sidebar from '../Sidebar/Sidebar';
 import Header from '../Header/Header';
 import { useNavigate } from 'react-router-dom';
+import StyledSelect from '../common/StyledSelect';
 
 const ValidateReport = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -63,34 +64,38 @@ const navigate = useNavigate()
                   <label htmlFor="company" className="absolute -top-3 left-4 bg-gradient-to-br from-white to-[#f0f7fa] px-1 text-sm font-semibold text-[#236a80]">
                     Select Company
                   </label>
-                  <select
+                  <StyledSelect
                     id="company"
                     name="company"
                     value={formData.company}
                     onChange={handleInputChange}
-                    className="w-full border-2 border-dotted border-[#236a80] rounded-xl py-3 px-4 text-gray-700 bg-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-[#236a80] appearance-none"
-                  >
-                    <option value="" disabled>Select a Company</option>
-                    <option value="company_a">Company A</option>
-                    <option value="company_b">Company B</option>
-                  </select>
+                    triggerClassName="w-full border-2 border-dotted border-[#236a80] rounded-xl py-3 px-4 text-gray-700 bg-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-[#236a80] text-left flex items-center justify-between gap-2"
+                    placeholder="Select a Company"
+                    options={[
+                      { value: "", label: "Select a Company", disabled: true },
+                      { value: "company_a", label: "Company A" },
+                      { value: "company_b", label: "Company B" },
+                    ]}
+                  />
                 </div>
                     <div className="relative">
                   <label htmlFor="industry" className="absolute -top-3 left-4 bg-gradient-to-br from-white to-[#f0f7fa] px-1 text-sm font-semibold text-[#236a80]">
                     Select Industry
                   </label>
-                  <select
+                  <StyledSelect
                     id="industry"
                     name="industry"
                     value={formData.industry}
                     onChange={handleInputChange}
-                    className="w-full border-2 border-dotted border-[#236a80] rounded-xl py-3 px-4 text-gray-700 bg-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-[#236a80] appearance-none"
-                  >
-                    <option value="" disabled>Select an Industry</option>
-                    <option value="pharma">Pharmaceutical</option>
-                    <option value="seafood">Seafood Processing</option>
-                    <option value="chemical">Chemical Manufacturing</option>
-                  </select>
+                    triggerClassName="w-full border-2 border-dotted border-[#236a80] rounded-xl py-3 px-4 text-gray-700 bg-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-[#236a80] text-left flex items-center justify-between gap-2"
+                    placeholder="Select an Industry"
+                    options={[
+                      { value: "", label: "Select an Industry", disabled: true },
+                      { value: "pharma", label: "Pharmaceutical" },
+                      { value: "seafood", label: "Seafood Processing" },
+                      { value: "chemical", label: "Chemical Manufacturing" },
+                    ]}
+                  />
                 </div>
 
                 {/* From Date */}

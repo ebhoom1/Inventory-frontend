@@ -10,6 +10,7 @@ import Swal from "sweetalert2";
 import Sidebar from "../Sidebar/Sidebar";
 import Header from "../Header/Header";
 import { API_URL } from "../../../utils/apiConfig";
+import StyledSelect from "../common/StyledSelect";
 
 const qrConfig = {
   fps: 20,
@@ -659,23 +660,23 @@ function InstallationReport() {
               {/* Filter + download row */}
               <div className="mb-4 p-4 border-2 border-dashed border-gray-300 rounded-xl bg-white flex flex-col sm:flex-row gap-3 sm:items-center">
                 {canFilter && (
-                  <select
-                    className={inputClass}
+                  <StyledSelect
+                    triggerClassName={`${inputClass} text-left flex items-center justify-between gap-2`}
                     value={selectedUserId}
                     onChange={(e) => {
                       const uid = e.target.value;
                       setSelectedUserId(uid);
                       fetchReports(uid);
                     }}
-                  >
-                    <option value="">— Select a user —</option>
-                    <option value="all">All users</option>
-                    {userList.map((u) => (
-                      <option key={u.userId} value={u.userId}>
-                        {u.name || u.userId}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "", label: "— Select a user —" },
+                      { value: "all", label: "All users" },
+                      ...userList.map((u) => ({
+                        value: u.userId,
+                        label: u.name || u.userId,
+                      })),
+                    ]}
+                  />
                 )}
 
                 <button

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser, reset, clearError } from '../../redux/features/users/userSlice'; // Adjust path as needed
 import safetickLogo from '../../assets/safetik.png';
+import StyledSelect from '../common/StyledSelect';
 
 const Login = () => {
   // State for handling form inputs
@@ -364,6 +365,7 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={loading}
+                  autoComplete="email"
                   className="w-full pl-12 pr-4 py-3 border-2 border-dotted border-[#DC6D18] rounded-lg focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-[#DC6D18] transition disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
@@ -378,6 +380,7 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={loading}
+                  autoComplete="current-password"
                   className="w-full pl-12 pr-12 py-3 border-2 border-dotted border-[#DC6D18] rounded-lg focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-[#DC6D18] transition disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <i
@@ -389,21 +392,22 @@ const Login = () => {
 
               {/* User Type Dropdown */}
               <div className="relative">
-                <i className="fa-solid fa-user-gear absolute top-1/2 left-4 -translate-y-1/2 text-gray-400"></i>
-                <select
+                <i className="fa-solid fa-user-gear absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 z-10"></i>
+                <StyledSelect
                   value={userType}
                   onChange={(e) => setUserType(e.target.value)}
                   required
                   disabled={loading}
-                  className="w-full pl-12 pr-4 py-3 border-2 border-dotted border-[#DC6D18] rounded-lg appearance-none focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-[#DC6D18] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option value="" disabled>Select User Type</option>
-                  <option value="Super Admin">Super Admin</option>
-                  <option value="Admin">Admin</option>
-                  <option value="User">User</option>
-                  <option value="Technician">Technician</option>
-                </select>
-                <i className="fa-solid fa-chevron-down absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                  placeholder="Select User Type"
+                  triggerClassName="w-full pl-12 pr-4 py-3 border-2 border-dotted border-[#DC6D18] rounded-lg focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-[#DC6D18] transition disabled:opacity-50 disabled:cursor-not-allowed text-left flex items-center justify-between gap-2"
+                  options={[
+                    { value: "", label: "Select User Type", disabled: true },
+                    "Super Admin",
+                    "Admin",
+                    "User",
+                    "Technician",
+                  ]}
+                />
               </div>
 
               {/* Location Display for Technician */}

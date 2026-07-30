@@ -140,7 +140,8 @@ export default function ViewUser() {
     adminType,
     subscriptionPlan,
     assignOperators = [],
-    assignTechnicians = [],
+    assignedAdmins = [],
+assignedTechnicians = [],
     assignTerritorialManager,
     address,
     district,
@@ -148,6 +149,20 @@ export default function ViewUser() {
     latitude,
     longitude,
   } = displayUser;
+
+  const getAssignmentName = (account) => {
+  if (typeof account === "string") {
+    return account;
+  }
+
+  return (
+    account?.firstName ||
+    account?.userId ||
+    account?.companyName ||
+    account?.email ||
+    "Unknown account"
+  );
+};
 
   return (
     <div className="w-full max-w-5xl mx-auto mt-7">
@@ -256,37 +271,47 @@ export default function ViewUser() {
           </div>
 
           {/* Team & Assignments */}
-          <div className="rounded-xl border border-orange-200 p-5 bg-white shadow-sm">
-            <h3 className="text-sm font-semibold text-[#DC6D18] mb-3">Assignments</h3>
-            <dl className="space-y-2 text-sm">
-              <div>
-                <dt className="text-slate-500 mb-1">Territorial Manager</dt>
-                <dd className="font-medium text-slate-800">
-                  {assignTerritorialManager || '—'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-slate-500 mb-1">Operators</dt>
-                <dd className="flex flex-wrap gap-2">
-                  {assignOperators.length ? (
-                    assignOperators.map((op, i) => <Pill key={i} tone="violet">{op}</Pill>)
-                  ) : (
-                    <span className="text-slate-400">—</span>
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-slate-500 mb-1">Technicians</dt>
-                <dd className="flex flex-wrap gap-2">
-                  {assignTechnicians.length ? (
-                    assignTechnicians.map((t, i) => <Pill key={i} tone="cyan">{t}</Pill>)
-                  ) : (
-                    <span className="text-slate-400">—</span>
-                  )}
-                </dd>
-              </div>
-            </dl>
-          </div>
+         <div>
+  <dt className="text-slate-500 mb-1">
+    Assigned Admins
+  </dt>
+
+  <dd className="flex flex-wrap gap-2">
+    {assignedAdmins.length ? (
+      assignedAdmins.map((admin) => (
+        <Pill
+          key={admin._id || admin}
+          tone="blue"
+        >
+          {getAssignmentName(admin)}
+        </Pill>
+      ))
+    ) : (
+      <span className="text-slate-400">—</span>
+    )}
+  </dd>
+</div>
+
+<div>
+  <dt className="text-slate-500 mb-1">
+    Assigned Technicians
+  </dt>
+
+  <dd className="flex flex-wrap gap-2">
+    {assignedTechnicians.length ? (
+      assignedTechnicians.map((technician) => (
+        <Pill
+          key={technician._id || technician}
+          tone="cyan"
+        >
+          {getAssignmentName(technician)}
+        </Pill>
+      ))
+    ) : (
+      <span className="text-slate-400">—</span>
+    )}
+  </dd>
+</div>
 
           {/* Subscription */}
           <div className="rounded-xl border border-orange-200 p-5 bg-white shadow-sm">

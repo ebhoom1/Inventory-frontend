@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import Swal from "sweetalert2";
 import { fetchInventorySummary, fetchInventory, updateInventory } from "../../redux/features/inventory/inventorySlice";
 import { getAllUsers } from "../../redux/features/users/userSlice";
+import StyledSelect from "../common/StyledSelect";
 import { API_URL } from "../../../utils/apiConfig";
 import EditInventoryModal from "./EditInventoryModal";
 
@@ -24,13 +25,13 @@ function InventoryList() {
 
   // ---------- Data fetching ----------
   useEffect(() => {
-  
+
     dispatch(fetchInventory()); // Fetch raw list for edit
   }, [dispatch]);
 
   // ...existing code...
 
-  
+
   const loading = reduxLoading;
 
   const parseDate = (d) => {
@@ -204,30 +205,25 @@ function InventoryList() {
         </h2>
         
         <div className="flex items-center gap-3">
-          <select
+          <StyledSelect
             name="month"
             value={filter.month}
             onChange={handleFilterChange}
-            className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-          >
-            {availableMonths.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-          <select
+            fullWidth={false}
+            triggerClassName="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18] text-left flex items-center justify-between gap-2 min-w-[140px]"
+            options={availableMonths}
+          />
+          <StyledSelect
             name="year"
             value={filter.year}
             onChange={handleFilterChange}
-            className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-          >
-            {availableYears.map((y) => (
-              <option key={y} value={y}>
-                {y === "all" ? "All Years" : y}
-              </option>
-            ))}
-          </select>
+            fullWidth={false}
+            triggerClassName="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18] text-left flex items-center justify-between gap-2 min-w-[120px]"
+            options={availableYears.map((y) => ({
+              value: y,
+              label: y === "all" ? "All Years" : y,
+            }))}
+          />
         </div>
       </div>
 

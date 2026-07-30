@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from '../Sidebar/Sidebar'; // Adjust path as needed
 import Header from '../Header/Header';   // Adjust path as needed
+import StyledSelect from '../common/StyledSelect';
 
 // --- ICONS (Heroicons) ---
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>;
@@ -17,8 +18,10 @@ const sampleData = [
 const ViewCalibration = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [data, setData] = useState(sampleData);
+  const [sortValue, setSortValue] = useState('date');
 
   const handleSortChange = (e) => {
+    setSortValue(e.target.value);
     const value = e.target.value;
     let sorted = [...data];
     if (value === 'date') {
@@ -49,10 +52,17 @@ const ViewCalibration = () => {
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <label htmlFor="sort" className="text-gray-600 font-semibold text-sm">Sort by:</label>
-                  <select id="sort" onChange={handleSortChange} className="rounded-md border-gray-300 shadow-sm py-2 px-3 text-sm focus:ring-[#236a80] focus:border-[#236a80]">
-                    <option value="date">Calibration Date</option>
-                    <option value="adminName">Admin Name</option>
-                  </select>
+                  <StyledSelect
+                    id="sort"
+                    value={sortValue}
+                    onChange={handleSortChange}
+                    fullWidth={false}
+                    triggerClassName="rounded-md border border-gray-300 shadow-sm py-2 px-3 text-sm focus:ring-[#236a80] focus:border-[#236a80] text-left flex items-center justify-between gap-2 min-w-[180px]"
+                    options={[
+                      { value: "date", label: "Calibration Date" },
+                      { value: "adminName", label: "Admin Name" },
+                    ]}
+                  />
                 </div>
               
               </div>

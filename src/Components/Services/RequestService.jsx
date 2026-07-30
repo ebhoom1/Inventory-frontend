@@ -8,6 +8,7 @@ import {
 } from "../../redux/features/serviceRequests/serviceRequestSlice";
 import Swal from "sweetalert2";
 import { API_URL } from "../../../utils/apiConfig";
+import StyledSelect from "../common/StyledSelect";
 
 const qrConfig = {
   fps: 20,
@@ -741,22 +742,19 @@ function RequestService() {
           </label>
 
           <div className="flex gap-3 items-center">
-            <select
-              className={inputClass}
+            <StyledSelect
+              triggerClassName={`${inputClass} text-left flex items-center justify-between gap-2`}
               value={selectedUserId}
               onChange={(e) => {
                 const uid = e.target.value;
                 setSelectedUserId(uid);
                 fetchReportsForUser(uid);
               }}
-            >
-              <option value="">— Select a user —</option>
-              {userList.map((u) => (
-                <option key={u.userId} value={u.userId}>
-                  {u.name || u.userId}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "— Select a user —" },
+                ...userList.map((u) => ({ value: u.userId, label: u.name || u.userId })),
+              ]}
+            />
 
             <button
               onClick={() => {
@@ -1109,19 +1107,13 @@ function RequestService() {
                   <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18]">
                     {label}
                   </span>
-                  <select
+                  <StyledSelect
                     name={name}
                     value={formData[name] || ""}
                     onChange={handleChange}
-                    className={inputClass}
-                  >
-                    <option value="">Select</option>
-                    {options.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
+                    triggerClassName={`${inputClass} text-left flex items-center justify-between gap-2`}
+                    options={[{ value: "", label: "Select" }, ...options]}
+                  />
                 </div>
               ))}
 
@@ -1129,21 +1121,20 @@ function RequestService() {
                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18]">
                   Type of Service
                 </span>
-                <select
+                <StyledSelect
                   name="serviceType"
                   value={formData.serviceType}
                   onChange={handleChange}
-                  className={inputClass}
+                  triggerClassName={`${inputClass} text-left flex items-center justify-between gap-2`}
                   required
-                >
-                  <option value="">Select a service type</option>
-                  <option value="Routine Maintenance">
-                    Routine Maintenance
-                  </option>
-                  <option value="Repair">Repair</option>
-                  <option value="Inspection">Inspection</option>
-                  <option value="Calibration">Calibration</option>
-                </select>
+                  options={[
+                    { value: "", label: "Select a service type" },
+                    "Routine Maintenance",
+                    "Repair",
+                    "Inspection",
+                    "Calibration",
+                  ]}
+                />
               </div>
 
               <div className="relative">

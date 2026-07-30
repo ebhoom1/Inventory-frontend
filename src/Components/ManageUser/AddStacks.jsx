@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import StyledSelect from '../common/StyledSelect';
 
 const staticCompanies = [
   { _id: '1', companyName: 'Eco Solutions Inc.' },
@@ -46,19 +47,20 @@ const AddStacks = () => {
         {/* Select Company Dropdown */}
         <div className="mb-6 relative flex items-center justify-center">
           <span className="absolute -top-3 left-6 bg-white px-2 text-sm font-semibold text-[#236a80] z-10">Select Company</span>
-          <select
+          <StyledSelect
             id="company"
             value={selectedCompany}
             onChange={(e) => setSelectedCompany(e.target.value)}
-            className="w-full border-2 border-dotted border-[#236a80] rounded-xl py-3 px-4 text-sm text-gray-700 bg-gradient-to-r from-white to-[#f0f7fa] shadow-md focus:outline-none focus:ring-2 focus:ring-[#236a80]"
-          >
-            <option value="" className="text-gray-400">-- Choose a Company --</option>
-            {staticCompanies.map((company) => (
-              <option key={company._id} value={company.companyName} className="text-gray-700">
-                {company.companyName}
-              </option>
-            ))}
-          </select>
+            triggerClassName="w-full border-2 border-dotted border-[#236a80] rounded-xl py-3 px-4 text-sm text-gray-700 bg-gradient-to-r from-white to-[#f0f7fa] shadow-md focus:outline-none focus:ring-2 focus:ring-[#236a80] text-left flex items-center justify-between gap-2"
+            placeholder="-- Choose a Company --"
+            options={[
+              { value: "", label: "-- Choose a Company --" },
+              ...staticCompanies.map((company) => ({
+                value: company.companyName,
+                label: company.companyName,
+              })),
+            ]}
+          />
         </div>
         {/* Dynamic Stack Name and Station Type Inputs */}
         <div className="space-y-4 mb-6">

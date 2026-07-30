@@ -3,6 +3,1186 @@
 // import { useDispatch, useSelector } from "react-redux";
 // import Swal from "sweetalert2";
 // import {
+//   resetInventoryState,
+//   fetchInventory,
+// } from "../../redux/features/inventory/inventorySlice";
+// import {
+//   assignEquipment,
+//   getEquipments,
+// } from "../../redux/features/equipment/equipmentSlice";
+// import { getAllUsers } from "../../redux/features/users/userSlice";
+// import { API_URL } from "../../../utils/apiConfig";
+// import StyledSelect from "../common/StyledSelect";
+
+// const ASSIGNMENT_TYPE_OPTIONS = [
+//   { value: "NEW_INSTALLATION", label: "New Equipment" },
+//   { value: "REFILL", label: "Refilled Equipment" },
+//   { value: "SERVICE", label: "Serviced Equipment" },
+// ];
+
+// const SERVICE_TYPE_OPTIONS = [
+//   "Routine Maintenance",
+//   "Repair",
+//   "Inspection",
+//   "Calibration",
+// ];
+
+// const LIFECYCLE_FIELDS_BY_TYPE = {
+//   NEW_INSTALLATION: ["installedOn", "expiryDate", "hpTestedDate", "nextRefillDue"],
+//   REFILL: ["refilledOn", "nextRefillDue", "expiryDate", "hpTestedDate"],
+//   SERVICE: [
+//     "servicedOn",
+//     "nextServiceDue",
+//     "serviceType",
+//     "technicianName",
+//     "includesRefill",
+//     "refilledOn",
+//     "nextRefillDue",
+//   ],
+// };
+
+// const ALL_LIFECYCLE_FIELDS = Array.from(
+//   new Set(Object.values(LIFECYCLE_FIELDS_BY_TYPE).flat())
+// );
+
+// function UseInventory() {
+//   const dispatch = useDispatch();
+
+//   const {
+//     items: allInventoryItems = [],
+//     loading: listLoading,
+//   } = useSelector((s) => s.inventory || {});
+
+//   const {
+//     allUsers = [],
+//     loading: usersLoading,
+//     error: usersError,
+//     userInfo,
+//   } = useSelector((s) => s.users || {});
+
+//   const {
+//     list: equipmentList = [],
+//     loading: assignLoading,
+//   } = useSelector((s) => s.equipment || {});
+
+//   const role = (userInfo?.userType || "").toLowerCase();
+//   const isAdmin =
+//     role === "admin" || role === "super admin" || role === "technician";
+
+//   const authToken = userInfo?.token || localStorage.getItem("token");
+
+//   const [formData, setFormData] = useState({
+//     skuName: "",
+//     userId: "",
+//     quantityUsed: "",
+//     assignmentType: "NEW_INSTALLATION",
+//     installedOn: "",
+//     refilledOn: "",
+//     servicedOn: "",
+//     nextRefillDue: "",
+//     nextServiceDue: "",
+//     expiryDate: "",
+//     hpTestedDate: "",
+//     serviceType: "",
+//     technicianName: "",
+//     includesRefill: false,
+//     notes: "",
+//   });
+
+//   const selectedUserId = isAdmin ? formData.userId : userInfo?.userId || "";
+
+//   const normalize = (s) => (s || "").toString().trim().toLowerCase();
+
+//   const [availableSerials, setAvailableSerials] = useState([]);
+//   const [selectedSerials, setSelectedSerials] = useState([]);
+//   const [serialLocationMap, setSerialLocationMap] = useState({});
+//   const [serialFloorMap, setSerialFloorMap] = useState({});
+
+//   const [userSkuOptions, setUserSkuOptions] = useState([]);
+//   const [userSkuLoading, setUserSkuLoading] = useState(false);
+//   const [userSkuError, setUserSkuError] = useState(null);
+
+//   const [locationOptions, setLocationOptions] = useState([]);
+//   const [locationLoading, setLocationLoading] = useState(false);
+
+//   const [skuLeftMap, setSkuLeftMap] = useState({});
+
+//   // Fetch inventory summary
+//   useEffect(() => {
+//     const fetchSummary = async () => {
+//       try {
+//         const res = await fetch(`${API_URL}/api/inventory/summary`, {
+//           headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+//         });
+
+//         const data = await res.json();
+
+//         if (!res.ok) {
+//           throw new Error(data?.message || "Failed to fetch summary");
+//         }
+
+//         const map = {};
+//         (Array.isArray(data) ? data : []).forEach((r) => {
+//           if (r?.skuName) {
+//             map[r.skuName] = Number(r.left) || 0;
+//           }
+//         });
+
+//         setSkuLeftMap(map);
+//       } catch (e) {
+//         console.warn("Could not load inventory summary", e.message || e);
+//       }
+//     };
+
+//     fetchSummary();
+//   }, [authToken]);
+
+//   // Set userId for non-admin users
+//   useEffect(() => {
+//     if (!isAdmin && userInfo?.userId) {
+//       setFormData((p) => ({ ...p, userId: userInfo.userId }));
+//     }
+//   }, [isAdmin, userInfo?.userId]);
+
+//   // Admin fetch users, inventory, equipment
+//   useEffect(() => {
+//     if (isAdmin) {
+//       if (!allUsers || allUsers.length === 0) {
+//         dispatch(getAllUsers());
+//       }
+
+//       dispatch(fetchInventory());
+//       dispatch(getEquipments());
+//     }
+//   }, [dispatch, isAdmin, allUsers?.length]);
+
+//   // Non-admin fetch inventory SKUs
+//   useEffect(() => {
+//     const fetchUserSkus = async () => {
+//       if (isAdmin) return;
+//       if (!userInfo?.userId) return;
+
+//       try {
+//         setUserSkuLoading(true);
+//         setUserSkuError(null);
+
+//         const res = await fetch(`${API_URL}/api/inventory`, {
+//           headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+//         });
+
+//         const data = await res.json();
+
+//         if (!res.ok) {
+//           throw new Error(data?.message || "Failed to load inventory");
+//         }
+
+//         const uniqueSkus = Array.from(
+//           new Set(
+//             (Array.isArray(data) ? data : [])
+//               .map((it) => it.skuName)
+//               .filter(Boolean)
+//           )
+//         ).sort((a, b) => a.localeCompare(b));
+
+//         const filtered = uniqueSkus.filter(
+//           (name) => skuLeftMap[name] === undefined || Number(skuLeftMap[name]) > 0
+//         );
+
+//         setUserSkuOptions(filtered);
+//       } catch (e) {
+//         setUserSkuError(e.message || "Failed to load SKUs");
+//       } finally {
+//         setUserSkuLoading(false);
+//       }
+//     };
+
+//     fetchUserSkus();
+//   }, [authToken, isAdmin, userInfo?.userId, skuLeftMap]);
+
+//   useEffect(() => {
+//     if (usersError) {
+//       Swal.fire({
+//         icon: "warning",
+//         title: "Could not load users",
+//         text: usersError,
+//       });
+//     }
+//   }, [usersError]);
+
+//   // Find available serials when SKU changes
+//   useEffect(() => {
+//     const rawVal = formData.skuName;
+
+//     if (!rawVal) {
+//       setAvailableSerials([]);
+//       setSelectedSerials([]);
+//       setSerialLocationMap({});
+//       setSerialFloorMap({});
+//       return;
+//     }
+
+//     let targetName = rawVal;
+
+//     if (rawVal.startsWith("eq:")) {
+//       const id = rawVal.slice(3);
+//       const eq = equipmentList.find(
+//         (e) => e._id === id || e.equipmentId === id
+//       );
+//       if (eq) targetName = eq.equipmentName;
+//     } else if (rawVal.startsWith("sku:")) {
+//       targetName = rawVal.slice(4);
+//     }
+
+//     if (!targetName) {
+//       setAvailableSerials([]);
+//       setSelectedSerials([]);
+//       setSerialLocationMap({});
+//       setSerialFloorMap({});
+//       return;
+//     }
+
+//     // Once a serial is assigned, it's permanently out of the assignable
+//     // pool — Assign Inventory only ever offers still-unassigned units,
+//     // regardless of which Assignment Type (New/Refill/Service) is selected.
+//     const serials = equipmentList
+//       .filter((eq) => normalize(eq.equipmentName) === normalize(targetName))
+//       .filter((eq) => eq.serialNumber)
+//       .filter((eq) => !eq.userId)
+//       .map((eq) => eq.serialNumber)
+//       .sort();
+
+//     setAvailableSerials(serials);
+//     setSelectedSerials([]);
+//     setSerialLocationMap({});
+//     setFormData((prev) => ({ ...prev, quantityUsed: "" }));
+//   }, [formData.skuName, formData.assignmentType, equipmentList]);
+
+//   // Auto update quantity from selected serial count
+//   useEffect(() => {
+//     if (selectedSerials.length > 0) {
+//       setFormData((prev) => ({
+//         ...prev,
+//         quantityUsed: selectedSerials.length,
+//       }));
+//     }
+//   }, [selectedSerials]);
+
+//   // Admin SKU options — only equipment names that still have unassigned
+//   // stock are offered here, for all three assignment types (New/Refill/
+//   // Service). Once every unit of a name is assigned, it drops out of this
+//   // list too, matching the serial list below.
+//   const adminSkuOptions = useMemo(() => {
+//     if (!isAdmin) return [];
+
+//     const uniqueSkuMap = new Map();
+
+//     (allInventoryItems || []).forEach((item) => {
+//       if (item?.skuName && !uniqueSkuMap.has(item.skuName)) {
+//         uniqueSkuMap.set(item.skuName, item);
+//       }
+//     });
+
+//     const skuOptions = Array.from(uniqueSkuMap.keys()).map((name) => ({
+//       type: "sku",
+//       label: name,
+//       value: `sku:${name}`,
+//       skuName: name,
+//     }));
+
+//     const uniqueEquipmentMap = new Map();
+
+//     (equipmentList || [])
+//       .filter((eq) => !eq.userId)
+//       .forEach((eq) => {
+//         if (eq?.equipmentName && !uniqueEquipmentMap.has(eq.equipmentName)) {
+//           uniqueEquipmentMap.set(eq.equipmentName, eq);
+//         }
+//       });
+
+//     const equipmentOptions = Array.from(uniqueEquipmentMap.values()).map(
+//       (eq) => ({
+//         type: "equipment",
+//         label: eq.equipmentName,
+//         value: `eq:${eq._id}`,
+//         equipmentId: eq._id,
+//         equipmentName: eq.equipmentName,
+//       })
+//     );
+
+//     const finalOptions = [];
+//     const seenLabels = new Set();
+
+//     [...skuOptions, ...equipmentOptions].forEach((option) => {
+//       if (option.label && !seenLabels.has(option.label)) {
+//         finalOptions.push(option);
+//         seenLabels.add(option.label);
+//       }
+//     });
+
+//     return finalOptions.sort((a, b) => a.label.localeCompare(b.label));
+//   }, [isAdmin, allInventoryItems, equipmentList]);
+
+//   // Admin user options
+//   const userOptions = useMemo(() => {
+//     if (!isAdmin) return [];
+
+//     return [...(Array.isArray(allUsers) ? allUsers : [])]
+//       .filter((user) => (user.userType || "").toLowerCase() === "user")
+//       .sort((a, b) => (a.userId || "").localeCompare(b.userId || ""));
+//   }, [isAdmin, allUsers]);
+
+//   const skuLoading = isAdmin ? listLoading : userSkuLoading;
+//   const skuError = isAdmin ? null : userSkuError;
+//   const skuOptions = isAdmin ? adminSkuOptions : userSkuOptions;
+
+//   // Fetch selected user's predefined equipment locations
+//   useEffect(() => {
+//     const fetchUserLocations = async () => {
+//       if (!selectedUserId) {
+//         setLocationOptions([]);
+//         setSerialLocationMap({});
+//         setSerialFloorMap({});
+//         return;
+//       }
+
+//       try {
+//         setLocationLoading(true);
+
+//         const selectedUser = allUsers.find(
+//           (user) => user.userId === selectedUserId
+//         );
+
+//         if (
+//           selectedUser &&
+//           Array.isArray(selectedUser.equipmentLocations) &&
+//           selectedUser.equipmentLocations.length > 0
+//         ) {
+//           setLocationOptions(
+//             selectedUser.equipmentLocations
+//               .map((loc) => String(loc || "").trim())
+//               .filter(Boolean)
+//           );
+//         } else {
+//           setLocationOptions([]);
+//         }
+
+//         setSerialLocationMap({});
+//         setSerialFloorMap({});
+//       } catch (e) {
+//         console.error("Error fetching locations:", e);
+//         setLocationOptions([]);
+//         setSerialLocationMap({});
+//         setSerialFloorMap({});
+//       } finally {
+//         setLocationLoading(false);
+//       }
+//     };
+
+//     fetchUserLocations();
+//   }, [selectedUserId, allUsers]);
+
+//   const handleChange = (e) => {
+//     const { name, value, type, checked } = e.target;
+//     const nextValue = type === "checkbox" ? checked : value;
+
+//     setFormData((prev) => {
+//       const updated = { ...prev, [name]: nextValue };
+
+//       // Assignment Type drives which lifecycle fields are visible — clear
+//       // every field that doesn't belong to the newly selected type so a
+//       // hidden, stale value never gets submitted.
+//       if (name === "assignmentType") {
+//         const keepFields = new Set(LIFECYCLE_FIELDS_BY_TYPE[value] || []);
+//         ALL_LIFECYCLE_FIELDS.forEach((field) => {
+//           if (!keepFields.has(field)) {
+//             updated[field] = field === "includesRefill" ? false : "";
+//           }
+//         });
+//       }
+
+//       return updated;
+//     });
+
+//     if (name === "userId" || name === "assignmentType") {
+//       setSelectedSerials([]);
+//       setSerialLocationMap({});
+//       setSerialFloorMap({});
+//     }
+//   };
+
+//   const handleSerialToggle = (serial) => {
+//     setSelectedSerials((prev) => {
+//       const isAlreadySelected = prev.includes(serial);
+
+//       const nextSelected = isAlreadySelected
+//         ? prev.filter((item) => item !== serial)
+//         : [...prev, serial];
+
+//       setSerialLocationMap((prevMap) => {
+//         const nextMap = { ...prevMap };
+
+//         if (isAlreadySelected) {
+//           delete nextMap[serial];
+//         } else {
+//           nextMap[serial] = "";
+//         }
+
+//         return nextMap;
+//       });
+
+//       setSerialFloorMap((prevMap) => {
+//         const nextMap = { ...prevMap };
+
+//         if (isAlreadySelected) {
+//           delete nextMap[serial];
+//         } else {
+//           nextMap[serial] = "";
+//         }
+
+//         return nextMap;
+//       });
+
+//       return nextSelected;
+//     });
+//   };
+
+//   const handleSerialLocationChange = (serial, location) => {
+//     setSerialLocationMap((prev) => ({
+//       ...prev,
+//       [serial]: location,
+//     }));
+//   };
+
+//   const handleSerialFloorChange = (serial, floor) => {
+//     setSerialFloorMap((prev) => ({
+//       ...prev,
+//       [serial]: floor,
+//     }));
+//   };
+
+//   const parseSelectedSkuName = () => {
+//     const rawSku = formData.skuName || "";
+
+//     if (rawSku.startsWith("eq:")) {
+//       const id = rawSku.slice(3);
+//       const eq = equipmentList.find(
+//         (item) => (item._id || item.equipmentId) === id
+//       );
+
+//       if (!eq?.equipmentName) {
+//         throw new Error(
+//           "Could not identify the equipment name for the selected item. Please refresh and try again."
+//         );
+//       }
+
+//       return eq.equipmentName;
+//     }
+
+//     if (rawSku.startsWith("sku:")) {
+//       return rawSku.slice(4);
+//     }
+
+//     return rawSku;
+//   };
+
+//   const parseSelectedSkuNameSafe = () => {
+//     try {
+//       return parseSelectedSkuName();
+//     } catch (e) {
+//       return "";
+//     }
+//   };
+
+//   const buildPayload = () => {
+//     if (!formData.skuName) {
+//       throw { title: "Missing inventory", text: "Please select an inventory item." };
+//     }
+
+//     const finalUserId = isAdmin ? formData.userId : userInfo?.userId || "";
+
+//     if (!finalUserId) {
+//       throw { title: "Missing user", text: "Please select a user." };
+//     }
+
+//     let skuName = "";
+//     try {
+//       skuName = parseSelectedSkuName();
+//     } catch (err) {
+//       throw { title: "Selection Error", text: err.message };
+//     }
+
+//     const assignmentType = formData.assignmentType;
+
+//     if (assignmentType !== "NEW_INSTALLATION" && selectedSerials.length === 0) {
+//       throw {
+//         title: "Select serial number",
+//         text: "Please select the serial number(s) of the equipment being refilled/serviced.",
+//       };
+//     }
+
+//    if (selectedSerials.length === 0) {
+//   throw {
+//     title: "Select serial number",
+//     text: "Please select at least one available serial number.",
+//   };
+// }
+
+//     // Required fields per assignment type (mirrors backend validation).
+//     if (assignmentType === "NEW_INSTALLATION" && !formData.installedOn) {
+//       throw { title: "Missing date", text: "Installed On is required." };
+//     }
+//     if (assignmentType === "REFILL" && (!formData.refilledOn || !formData.nextRefillDue)) {
+//       throw {
+//         title: "Missing date",
+//         text: "Refilled On and Next Refill Due are required.",
+//       };
+//     }
+//     if (assignmentType === "SERVICE" && !formData.servicedOn) {
+//       throw { title: "Missing date", text: "Serviced On is required." };
+//     }
+
+//     const selectedSerialLocationMap = selectedSerials.reduce((acc, serial) => {
+//       acc[serial] = String(serialLocationMap[serial] || "").trim();
+//       return acc;
+//     }, {});
+
+//     // Floor / Building is optional free text — no validation needed
+//     const selectedSerialFloorMap = selectedSerials.reduce((acc, serial) => {
+//       acc[serial] = String(serialFloorMap[serial] || "").trim();
+//       return acc;
+//     }, {});
+
+//     const missingLocationSerials = selectedSerials.filter(
+//       (serial) => !selectedSerialLocationMap[serial]
+//     );
+
+//     if (missingLocationSerials.length > 0) {
+//       throw {
+//         title: "Location missing",
+//         text: `Please select location for serial(s): ${missingLocationSerials.join(", ")}`,
+//       };
+//     }
+
+//    const quantityUsed = selectedSerials.length;
+
+//     if (!quantityUsed || quantityUsed < 1) {
+//       throw { title: "Invalid quantity", text: "Quantity must be at least 1." };
+//     }
+
+//     const payload = {
+//       skuName: skuName.trim(),
+//       userId: String(finalUserId).trim(),
+//       quantityUsed,
+//       location: "",
+//       notes: formData.notes?.trim() || "",
+//       assignmentType,
+//       installedOn: formData.installedOn || undefined,
+//       refilledOn: formData.refilledOn || undefined,
+//       servicedOn: formData.servicedOn || undefined,
+//       nextRefillDue: formData.nextRefillDue || undefined,
+//       nextServiceDue: formData.nextServiceDue || undefined,
+//       expiryDate: formData.expiryDate || undefined,
+//       hpTestedDate: formData.hpTestedDate || undefined,
+//       serviceType: formData.serviceType || undefined,
+//       technicianName: formData.technicianName || undefined,
+//       includesRefill: formData.includesRefill || undefined,
+//       serialNumbers: selectedSerials.length > 0 ? selectedSerials : undefined,
+//       serialLocationMap:
+//         selectedSerials.length > 0 ? selectedSerialLocationMap : undefined,
+//       serialFloorMap:
+//         selectedSerials.length > 0 ? selectedSerialFloorMap : undefined,
+//     };
+
+//     return payload;
+//   };
+
+
+
+//   const handleSubmit = (e) => {
+//     e.preventDefault();
+
+//     let payload;
+//     try {
+//       payload = buildPayload();
+//     } catch (err) {
+//       Swal.fire({
+//         icon: "warning",
+//         title: err.title || "Invalid submission",
+//         text: err.text || "Please check the form and try again.",
+//         confirmButtonColor: "#DC6D18",
+//       });
+//       return;
+//     }
+
+//     performAssign(payload);
+//   };
+
+//   const performAssign = (payload) => {
+//     console.log("Submitting Payload:", payload);
+
+//     const tempId = `temp-${Date.now()}-${Math.random()
+//       .toString(36)
+//       .slice(2, 8)}`;
+
+//     const optimisticItem = {
+//       _tempId: tempId,
+//       userId: payload.userId,
+//       username: payload.userId,
+//       companyName:
+//         (isAdmin
+//           ? userOptions.find((u) => u.userId === payload.userId)?.companyName ||
+//             ""
+//           : userInfo?.companyName) || "",
+//       skuName: payload.skuName,
+//       location: payload.serialLocationMap
+//         ? Object.values(payload.serialLocationMap).filter(Boolean).join(", ")
+//         : "",
+//       totalUsed: payload.quantityUsed,
+//       lastUsedAt: new Date().toISOString(),
+//     };
+
+//     window.dispatchEvent(
+//       new CustomEvent("inventory:optimisticAdd", {
+//         detail: optimisticItem,
+//       })
+//     );
+
+//     dispatch(assignEquipment(payload))
+//       .unwrap()
+//       .then((res) => {
+//         const usage = res?.usage || res;
+
+//         window.dispatchEvent(
+//           new CustomEvent("inventory:confirmAdd", {
+//             detail: { tempId, usage },
+//           })
+//         );
+
+//         Swal.fire({
+//           icon: "success",
+//           title: "Assignment Successful",
+//           text: `${payload.skuName}: ${payload.quantityUsed} unit(s) assigned to ${payload.userId}`,
+//           timer: 1500,
+//           showConfirmButton: false,
+//         });
+
+//         setFormData({
+//           skuName: "",
+//           userId: isAdmin ? "" : userInfo?.userId || "",
+//           quantityUsed: "",
+//           assignmentType: "NEW_INSTALLATION",
+//           installedOn: "",
+//           refilledOn: "",
+//           servicedOn: "",
+//           nextRefillDue: "",
+//           nextServiceDue: "",
+//           expiryDate: "",
+//           hpTestedDate: "",
+//           serviceType: "",
+//           technicianName: "",
+//           includesRefill: false,
+//           notes: "",
+//         });
+
+//         setAvailableSerials([]);
+//         setSelectedSerials([]);
+//         setSerialLocationMap({});
+//         setSerialFloorMap({});
+//         setLocationOptions([]);
+
+//         dispatch(resetInventoryState());
+
+//         if (isAdmin) {
+//           dispatch(getEquipments());
+//           dispatch(fetchInventory());
+//         }
+//       })
+//       .catch((err) => {
+//         console.error("Submission Failed:", err);
+
+//         window.dispatchEvent(
+//           new CustomEvent("inventory:rollbackAdd", {
+//             detail: { tempId },
+//           })
+//         );
+
+//         Swal.fire({
+//           icon: "error",
+//           title: "Assignment failed",
+//           text:
+//             typeof err === "string"
+//               ? err
+//               : err?.message || "Could not assign inventory.",
+//           confirmButtonColor: "#DC6D18",
+//         });
+//       });
+//   };
+
+//   return (
+//     <div className="w-full max-w-4xl mx-auto">
+//       <h2 className="text-3xl font-bold text-center text-[#DC6D18] mb-10">
+//         Assign Inventory Usage
+//       </h2>
+
+//       <form className="space-y-10" onSubmit={handleSubmit}>
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-10">
+//           {/* Assignment Type — drives which lifecycle fields appear below */}
+//           <div className="relative flex items-center md:col-span-2">
+//             <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//               Assignment Type
+//             </span>
+
+//             <StyledSelect
+//               name="assignmentType"
+//               value={formData.assignmentType}
+//               onChange={handleChange}
+//               options={ASSIGNMENT_TYPE_OPTIONS}
+//               required
+//             />
+//           </div>
+
+//           {/* Select Inventory */}
+//           <div className="relative flex items-center">
+//             <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//               Select Inventory
+//             </span>
+
+//             <StyledSelect
+//               name="skuName"
+//               value={formData.skuName}
+//               onChange={handleChange}
+//               required
+//               disabled={skuLoading}
+//               placeholder={
+//                 skuLoading
+//                   ? "Loading inventory…"
+//                   : skuError
+//                   ? "Failed to load inventory"
+//                   : "Select inventory"
+//               }
+//               options={
+//                 !skuLoading && !skuError
+//                   ? [{ value: "", label: "Select inventory", disabled: true }, ...skuOptions]
+//                   : []
+//               }
+//             />
+//           </div>
+
+//           {/* User */}
+//           <div className="relative flex items-center">
+//             <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//               {isAdmin ? "User (userId - company)" : "Your User ID"}
+//             </span>
+
+//             {isAdmin ? (
+//               <StyledSelect
+//                 name="userId"
+//                 value={formData.userId}
+//                 onChange={handleChange}
+//                 required
+//                 disabled={usersLoading}
+//                 placeholder={usersLoading ? "Loading users…" : "Select user"}
+//                 options={[
+//                   { value: "", label: usersLoading ? "Loading users…" : "Select user", disabled: true },
+//                   ...userOptions.map((user) => ({
+//                     value: user.userId,
+//                     label: `${user.userId} - ${user.companyName}`,
+//                   })),
+//                 ]}
+//               />
+//             ) : (
+//               <StyledSelect
+//                 name="userId"
+//                 value={formData.userId}
+//                 onChange={handleChange}
+//                 required
+//                 disabled
+//                 options={[{ value: formData.userId, label: formData.userId || "—" }]}
+//               />
+//             )}
+//           </div>
+
+//           {/* Serial-wise Location */}
+//           {isAdmin && formData.skuName && !assignLoading && availableSerials.length === 0 && (
+//             <div className="relative md:col-span-2">
+//               <div className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl p-4 bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md text-sm text-red-600 font-medium">
+//                 No unassigned stock left for "{parseSelectedSkuNameSafe()}". All
+//                 units are already assigned, or none are in stock yet.
+//               </div>
+//             </div>
+//           )}
+
+//           {isAdmin && availableSerials.length > 0 && (
+//             <div className="relative md:col-span-2">
+//               <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                 Select Serial Numbers, Location & Floor / Building
+//               </span>
+
+//               <div className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl p-4 bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md">
+//                 {locationLoading ? (
+//                   <div className="text-sm text-gray-500">
+//                     Loading locations…
+//                   </div>
+//                 ) : locationOptions.length === 0 ? (
+//                   <div className="text-sm text-red-600 font-medium">
+//                     No predefined locations found for this user. Add equipment
+//                     locations in Manage Users first.
+//                   </div>
+//                 ) : (
+//                   <div className="grid grid-cols-1 gap-3">
+//                     {availableSerials.map((serial) => {
+//                       const checked = selectedSerials.includes(serial);
+
+//                       return (
+//                         <div
+//                           key={serial}
+//                           className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center bg-white/60 rounded-lg p-3 border border-orange-100"
+//                         >
+//                           <label className="flex items-center gap-3 text-sm font-medium text-gray-800">
+//                             <input
+//                               type="checkbox"
+//                               checked={checked}
+//                               onChange={() => handleSerialToggle(serial)}
+//                               className="w-4 h-4 accent-[#DC6D18]"
+//                             />
+//                             <span>{serial}</span>
+//                           </label>
+
+//                           <div className="md:col-span-2">
+//                             <StyledSelect
+//                               value={serialLocationMap[serial] || ""}
+//                               onChange={(e) =>
+//                                 handleSerialLocationChange(
+//                                   serial,
+//                                   e.target.value
+//                                 )
+//                               }
+//                               disabled={!checked}
+//                               placeholder={
+//                                 checked
+//                                   ? "Select location for this serial"
+//                                   : "Select serial first"
+//                               }
+//                               triggerClassName="w-full border border-orange-300 rounded-lg py-2 px-3 bg-white disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#DC6D18] text-left flex items-center justify-between gap-2"
+//                               options={[
+//                                 {
+//                                   value: "",
+//                                   label: checked
+//                                     ? "Select location for this serial"
+//                                     : "Select serial first",
+//                                   disabled: true,
+//                                 },
+//                                 ...locationOptions.map((loc) => ({ value: loc, label: loc })),
+//                               ]}
+//                             />
+//                           </div>
+
+//                           <div className="md:col-span-2">
+//                             <input
+//                               type="text"
+//                               value={serialFloorMap[serial] || ""}
+//                               onChange={(e) =>
+//                                 handleSerialFloorChange(serial, e.target.value)
+//                               }
+//                               disabled={!checked}
+//                               placeholder={
+//                                 checked
+//                                   ? "Floor / Building (optional)"
+//                                   : "Select serial first"
+//                               }
+//                               className="w-full border border-orange-300 rounded-lg py-2 px-3 bg-white disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//                             />
+//                           </div>
+//                         </div>
+//                       );
+//                     })}
+//                   </div>
+//                 )}
+//               </div>
+//             </div>
+//           )}
+
+//           {/* Quantity Used */}
+//           <div className="relative flex items-center">
+//             <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//               Quantity Used
+//             </span>
+
+//             <input
+//               type="number"
+//               name="quantityUsed"
+//               value={formData.quantityUsed}
+//               onChange={handleChange}
+//               readOnly={selectedSerials.length > 0}
+//               className={`w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18] ${
+//                 selectedSerials.length > 0
+//                   ? "bg-gray-100 cursor-not-allowed"
+//                   : ""
+//               }`}
+//               required
+//             />
+//           </div>
+
+//           {/* Lifecycle date fields — which ones appear depends on Assignment Type */}
+//           {formData.assignmentType === "NEW_INSTALLATION" && (
+//             <>
+//               <div className="relative flex items-center">
+//                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                   Installed On *
+//                 </span>
+//                 <input
+//                   type="date"
+//                   name="installedOn"
+//                   value={formData.installedOn}
+//                   onChange={handleChange}
+//                   required
+//                   className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//                 />
+//               </div>
+
+//               <div className="relative flex items-center">
+//                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                   Expiry Date
+//                 </span>
+//                 <input
+//                   type="date"
+//                   name="expiryDate"
+//                   value={formData.expiryDate}
+//                   onChange={handleChange}
+//                   className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//                 />
+//               </div>
+
+//               <div className="relative flex items-center">
+//                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                   HP Tested On
+//                 </span>
+//                 <input
+//                   type="date"
+//                   name="hpTestedDate"
+//                   value={formData.hpTestedDate}
+//                   onChange={handleChange}
+//                   className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//                 />
+//               </div>
+
+//               <div className="relative flex items-center">
+//                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                   Refill Due
+//                 </span>
+//                 <input
+//                   type="date"
+//                   name="nextRefillDue"
+//                   value={formData.nextRefillDue}
+//                   onChange={handleChange}
+//                   className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//                 />
+//               </div>
+//             </>
+//           )}
+
+//           {formData.assignmentType === "REFILL" && (
+//             <>
+//               <div className="relative flex items-center">
+//                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                   Refilled On *
+//                 </span>
+//                 <input
+//                   type="date"
+//                   name="refilledOn"
+//                   value={formData.refilledOn}
+//                   onChange={handleChange}
+//                   required
+//                   className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//                 />
+//               </div>
+
+//               <div className="relative flex items-center">
+//                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                   Next Refill Due *
+//                 </span>
+//                 <input
+//                   type="date"
+//                   name="nextRefillDue"
+//                   value={formData.nextRefillDue}
+//                   onChange={handleChange}
+//                   required
+//                   className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//                 />
+//               </div>
+
+//               <div className="relative flex items-center">
+//                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                   Expiry Date
+//                 </span>
+//                 <input
+//                   type="date"
+//                   name="expiryDate"
+//                   value={formData.expiryDate}
+//                   onChange={handleChange}
+//                   className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//                 />
+//               </div>
+
+//               <div className="relative flex items-center">
+//                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                   HP Tested On
+//                 </span>
+//                 <input
+//                   type="date"
+//                   name="hpTestedDate"
+//                   value={formData.hpTestedDate}
+//                   onChange={handleChange}
+//                   className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//                 />
+//               </div>
+//             </>
+//           )}
+
+//           {formData.assignmentType === "SERVICE" && (
+//             <>
+//               <div className="relative flex items-center">
+//                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                   Serviced On *
+//                 </span>
+//                 <input
+//                   type="date"
+//                   name="servicedOn"
+//                   value={formData.servicedOn}
+//                   onChange={handleChange}
+//                   required
+//                   className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//                 />
+//               </div>
+
+//               <div className="relative flex items-center">
+//                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                   Next Service Due
+//                 </span>
+//                 <input
+//                   type="date"
+//                   name="nextServiceDue"
+//                   value={formData.nextServiceDue}
+//                   onChange={handleChange}
+//                   className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//                 />
+//               </div>
+
+//               <div className="relative flex items-center">
+//                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                   Service Type
+//                 </span>
+//                 <StyledSelect
+//                   name="serviceType"
+//                   value={formData.serviceType}
+//                   onChange={handleChange}
+//                   placeholder="Select service type"
+//                   options={[
+//                     { value: "", label: "Select service type", disabled: true },
+//                     ...SERVICE_TYPE_OPTIONS,
+//                   ]}
+//                 />
+//               </div>
+
+//               <div className="relative flex items-center">
+//                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                   Technician Name
+//                 </span>
+//                 <input
+//                   type="text"
+//                   name="technicianName"
+//                   value={formData.technicianName}
+//                   onChange={handleChange}
+//                   placeholder="e.g., Ramesh Kumar"
+//                   className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//                 />
+//               </div>
+
+//               <div className="relative flex items-center md:col-span-2">
+//                 <label className="flex items-center gap-3 text-sm font-medium text-gray-800">
+//                   <input
+//                     type="checkbox"
+//                     name="includesRefill"
+//                     checked={formData.includesRefill}
+//                     onChange={handleChange}
+//                     className="w-4 h-4 accent-[#DC6D18]"
+//                   />
+//                   This service included a refill
+//                 </label>
+//               </div>
+
+//               {formData.includesRefill && (
+//                 <>
+//                   <div className="relative flex items-center">
+//                     <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                       Refilled On
+//                     </span>
+//                     <input
+//                       type="date"
+//                       name="refilledOn"
+//                       value={formData.refilledOn}
+//                       onChange={handleChange}
+//                       className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//                     />
+//                   </div>
+
+//                   <div className="relative flex items-center">
+//                     <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//                       Next Refill Due
+//                     </span>
+//                     <input
+//                       type="date"
+//                       name="nextRefillDue"
+//                       value={formData.nextRefillDue}
+//                       onChange={handleChange}
+//                       className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//                     />
+//                   </div>
+//                 </>
+//               )}
+//             </>
+//           )}
+
+//           {/* Notes */}
+//           <div className="relative flex items-center md:col-span-2">
+//             <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+//               Optional Notes
+//             </span>
+
+//             <textarea
+//               name="notes"
+//               value={formData.notes}
+//               onChange={handleChange}
+//               placeholder="e.g., For project X, afternoon shift."
+//               rows="3"
+//               className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+//             />
+//           </div>
+//         </div>
+
+//         <div className="flex justify-center mt-8">
+//           <button
+//             type="submit"
+//             disabled={assignLoading || skuLoading || (isAdmin && usersLoading)}
+//             className="px-8 py-3 bg-[#DC6D18] text-[#FFF7ED] rounded-lg font-semibold shadow-md hover:bg-[#B85B14] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#DC6D18] transition-all duration-200 ease-in-out disabled:opacity-60"
+//           >
+//             {assignLoading ? "Assigning…" : "Assign"}
+//           </button>
+//         </div>
+//       </form>
+//     </div>
+//   );
+// }
+
+// export default UseInventory;
+
+
+
+// // src/pages/UseInventory/UseInventory.jsx
+// import React, { useState, useEffect, useMemo } from "react";
+// import { useDispatch, useSelector } from "react-redux";
+// import Swal from "sweetalert2";
+// import {
 //   logInventoryUsage,
 //   resetInventoryState,
 //   fetchInventory,
@@ -936,6 +2116,38 @@ import {
 } from "../../redux/features/equipment/equipmentSlice";
 import { getAllUsers } from "../../redux/features/users/userSlice";
 import { API_URL } from "../../../utils/apiConfig";
+import StyledSelect from "../common/StyledSelect";
+
+const ASSIGNMENT_TYPE_OPTIONS = [
+  { value: "NEW_INSTALLATION", label: "New Equipment" },
+  { value: "REFILL", label: "Refilled Equipment" },
+  { value: "SERVICE", label: "Serviced Equipment" },
+];
+
+const SERVICE_TYPE_OPTIONS = [
+  "Routine Maintenance",
+  "Repair",
+  "Inspection",
+  "Calibration",
+];
+
+const LIFECYCLE_FIELDS_BY_TYPE = {
+  NEW_INSTALLATION: ["installedOn", "expiryDate", "hpTestedDate", "nextRefillDue"],
+  REFILL: ["refilledOn", "nextRefillDue", "expiryDate", "hpTestedDate"],
+  SERVICE: [
+    "servicedOn",
+    "nextServiceDue",
+    "serviceType",
+    "technicianName",
+    "includesRefill",
+    "refilledOn",
+    "nextRefillDue",
+  ],
+};
+
+const ALL_LIFECYCLE_FIELDS = Array.from(
+  new Set(Object.values(LIFECYCLE_FIELDS_BY_TYPE).flat())
+);
 
 function UseInventory() {
   const dispatch = useDispatch();
@@ -967,13 +2179,23 @@ function UseInventory() {
     skuName: "",
     userId: "",
     quantityUsed: "",
-    installationDate: "",
+    assignmentType: "NEW_INSTALLATION",
+    installedOn: "",
+    refilledOn: "",
+    servicedOn: "",
+    nextRefillDue: "",
+    nextServiceDue: "",
     expiryDate: "",
-    refDue: "",
+    hpTestedDate: "",
+    serviceType: "",
+    technicianName: "",
+    includesRefill: false,
     notes: "",
   });
 
   const selectedUserId = isAdmin ? formData.userId : userInfo?.userId || "";
+
+  const normalize = (s) => (s || "").toString().trim().toLowerCase();
 
   const [availableSerials, setAvailableSerials] = useState([]);
   const [selectedSerials, setSelectedSerials] = useState([]);
@@ -1123,9 +2345,12 @@ function UseInventory() {
       return;
     }
 
+    // New, Refill and Service all assign a currently unassigned inventory unit.
+    // The assignment type only controls the lifecycle fields submitted below.
     const serials = equipmentList
-      .filter((eq) => eq.equipmentName === targetName)
-      .filter((eq) => !eq.userId && eq.serialNumber)
+      .filter((eq) => normalize(eq.equipmentName) === normalize(targetName))
+      .filter((eq) => eq.serialNumber)
+      .filter((eq) => !eq.userId)
       .map((eq) => eq.serialNumber)
       .sort();
 
@@ -1133,7 +2358,11 @@ function UseInventory() {
     setSelectedSerials([]);
     setSerialLocationMap({});
     setFormData((prev) => ({ ...prev, quantityUsed: "" }));
-  }, [formData.skuName, equipmentList]);
+  }, [
+    formData.skuName,
+    formData.assignmentType,
+    equipmentList,
+  ]);
 
   // Auto update quantity from selected serial count
   useEffect(() => {
@@ -1145,7 +2374,8 @@ function UseInventory() {
     }
   }, [selectedSerials]);
 
-  // Admin SKU options
+  // Offer only equipment names that still have unassigned serials, regardless
+  // of whether the selected assignment type is New, Refill or Service.
   const adminSkuOptions = useMemo(() => {
     if (!isAdmin) return [];
 
@@ -1157,16 +2387,12 @@ function UseInventory() {
       }
     });
 
-    const skuOptions = Array.from(uniqueSkuMap.keys())
-      .filter(
-        (name) => skuLeftMap[name] === undefined || Number(skuLeftMap[name]) > 0
-      )
-      .map((name) => ({
-        type: "sku",
-        label: name,
-        value: `sku:${name}`,
-        skuName: name,
-      }));
+    const skuOptions = Array.from(uniqueSkuMap.keys()).map((name) => ({
+      type: "sku",
+      label: name,
+      value: `sku:${name}`,
+      skuName: name,
+    }));
 
     const uniqueEquipmentMap = new Map();
 
@@ -1199,7 +2425,11 @@ function UseInventory() {
     });
 
     return finalOptions.sort((a, b) => a.label.localeCompare(b.label));
-  }, [isAdmin, allInventoryItems, equipmentList, skuLeftMap]);
+  }, [
+    isAdmin,
+    allInventoryItems,
+    equipmentList,
+  ]);
 
   // Admin user options
   const userOptions = useMemo(() => {
@@ -1231,19 +2461,31 @@ function UseInventory() {
           (user) => user.userId === selectedUserId
         );
 
-        if (
-          selectedUser &&
-          Array.isArray(selectedUser.equipmentLocations) &&
-          selectedUser.equipmentLocations.length > 0
-        ) {
-          setLocationOptions(
-            selectedUser.equipmentLocations
+        const predefinedLocations = Array.isArray(
+          selectedUser?.equipmentLocations
+        )
+          ? selectedUser.equipmentLocations
               .map((loc) => String(loc || "").trim())
               .filter(Boolean)
-          );
-        } else {
-          setLocationOptions([]);
-        }
+          : [];
+
+        // Preserve an installed unit's current location even when an older
+        // user record does not yet contain it in equipmentLocations.
+        const assignedLocations =
+          formData.assignmentType === "NEW_INSTALLATION"
+            ? []
+            : equipmentList
+                .filter(
+                  (eq) =>
+                    normalize(eq.userId) === normalize(selectedUserId) &&
+                    eq.location
+                )
+                .map((eq) => String(eq.location).trim())
+                .filter(Boolean);
+
+        setLocationOptions(
+          Array.from(new Set([...predefinedLocations, ...assignedLocations]))
+        );
 
         setSerialLocationMap({});
         setSerialFloorMap({});
@@ -1258,17 +2500,36 @@ function UseInventory() {
     };
 
     fetchUserLocations();
-  }, [selectedUserId, allUsers]);
+  }, [
+    selectedUserId,
+    allUsers,
+    equipmentList,
+    formData.assignmentType,
+  ]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    const nextValue = type === "checkbox" ? checked : value;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: nextValue };
 
-    if (name === "userId") {
+      // Assignment Type drives which lifecycle fields are visible — clear
+      // every field that doesn't belong to the newly selected type so a
+      // hidden, stale value never gets submitted.
+      if (name === "assignmentType") {
+        const keepFields = new Set(LIFECYCLE_FIELDS_BY_TYPE[value] || []);
+        ALL_LIFECYCLE_FIELDS.forEach((field) => {
+          if (!keepFields.has(field)) {
+            updated[field] = field === "includesRefill" ? false : "";
+          }
+        });
+      }
+
+      return updated;
+    });
+
+    if (name === "userId" || name === "assignmentType") {
       setSelectedSerials([]);
       setSerialLocationMap({});
       setSerialFloorMap({});
@@ -1350,53 +2611,53 @@ function UseInventory() {
     return rawSku;
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const parseSelectedSkuNameSafe = () => {
+    try {
+      return parseSelectedSkuName();
+    } catch (e) {
+      return "";
+    }
+  };
 
+  const buildPayload = () => {
     if (!formData.skuName) {
-      Swal.fire({
-        icon: "warning",
-        title: "Missing inventory",
-        text: "Please select an inventory item.",
-        confirmButtonColor: "#DC6D18",
-      });
-      return;
+      throw { title: "Missing inventory", text: "Please select an inventory item." };
     }
 
     const finalUserId = isAdmin ? formData.userId : userInfo?.userId || "";
 
     if (!finalUserId) {
-      Swal.fire({
-        icon: "warning",
-        title: "Missing user",
-        text: "Please select a user.",
-        confirmButtonColor: "#DC6D18",
-      });
-      return;
+      throw { title: "Missing user", text: "Please select a user." };
     }
 
     let skuName = "";
-
     try {
       skuName = parseSelectedSkuName();
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Selection Error",
-        text: err.message,
-        confirmButtonColor: "#DC6D18",
-      });
-      return;
+      throw { title: "Selection Error", text: err.message };
     }
 
-    if (availableSerials.length > 0 && selectedSerials.length === 0) {
-      Swal.fire({
-        icon: "warning",
+    const assignmentType = formData.assignmentType;
+
+    if (selectedSerials.length === 0) {
+      throw {
         title: "Select serial number",
-        text: "Please select at least one serial number.",
-        confirmButtonColor: "#DC6D18",
-      });
-      return;
+        text: "Please select at least one unassigned stock serial.",
+      };
+    }
+
+    // Required fields per assignment type (mirrors backend validation).
+    if (assignmentType === "NEW_INSTALLATION" && !formData.installedOn) {
+      throw { title: "Missing date", text: "Installed On is required." };
+    }
+    if (assignmentType === "REFILL" && (!formData.refilledOn || !formData.nextRefillDue)) {
+      throw {
+        title: "Missing date",
+        text: "Refilled On and Next Refill Due are required.",
+      };
+    }
+    if (assignmentType === "SERVICE" && !formData.servicedOn) {
+      throw { title: "Missing date", text: "Serviced On is required." };
     }
 
     const selectedSerialLocationMap = selectedSerials.reduce((acc, serial) => {
@@ -1415,30 +2676,16 @@ function UseInventory() {
     );
 
     if (missingLocationSerials.length > 0) {
-      Swal.fire({
-        icon: "warning",
+      throw {
         title: "Location missing",
-        text: `Please select location for serial(s): ${missingLocationSerials.join(
-          ", "
-        )}`,
-        confirmButtonColor: "#DC6D18",
-      });
-      return;
+        text: `Please select location for serial(s): ${missingLocationSerials.join(", ")}`,
+      };
     }
 
-    const quantityUsed =
-      selectedSerials.length > 0
-        ? selectedSerials.length
-        : Number(formData.quantityUsed);
+    const quantityUsed = selectedSerials.length;
 
     if (!quantityUsed || quantityUsed < 1) {
-      Swal.fire({
-        icon: "warning",
-        title: "Invalid quantity",
-        text: "Quantity must be at least 1.",
-        confirmButtonColor: "#DC6D18",
-      });
-      return;
+      throw { title: "Invalid quantity", text: "Quantity must be at least 1." };
     }
 
     const payload = {
@@ -1447,21 +2694,51 @@ function UseInventory() {
       quantityUsed,
       location: "",
       notes: formData.notes?.trim() || "",
-      installationDate: formData.installationDate || undefined,
+      assignmentType,
+      installedOn: formData.installedOn || undefined,
+      refilledOn: formData.refilledOn || undefined,
+      servicedOn: formData.servicedOn || undefined,
+      nextRefillDue: formData.nextRefillDue || undefined,
+      nextServiceDue: formData.nextServiceDue || undefined,
       expiryDate: formData.expiryDate || undefined,
-      refDue: formData.refDue || undefined,
-      serialNumbers: selectedSerials.length > 0 ? selectedSerials : undefined,
-      serialLocationMap:
-        selectedSerials.length > 0 ? selectedSerialLocationMap : undefined,
-      serialFloorMap:
-        selectedSerials.length > 0 ? selectedSerialFloorMap : undefined,
+      hpTestedDate: formData.hpTestedDate || undefined,
+      serviceType: formData.serviceType || undefined,
+      technicianName: formData.technicianName || undefined,
+      includesRefill: formData.includesRefill || undefined,
+      serialNumbers: selectedSerials,
+      serialLocationMap: selectedSerialLocationMap,
+      serialFloorMap: selectedSerialFloorMap,
     };
 
+    return payload;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    let payload;
+    try {
+      payload = buildPayload();
+    } catch (err) {
+      Swal.fire({
+        icon: "warning",
+        title: err.title || "Invalid submission",
+        text: err.text || "Please check the form and try again.",
+        confirmButtonColor: "#DC6D18",
+      });
+      return;
+    }
+
+    performAssign(payload);
+  };
+
+  const performAssign = (payload) => {
     console.log("Submitting Payload:", payload);
 
     const tempId = `temp-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)}`;
+    const consumesStock = true;
 
     const optimisticItem = {
       _tempId: tempId,
@@ -1473,35 +2750,41 @@ function UseInventory() {
             ""
           : userInfo?.companyName) || "",
       skuName: payload.skuName,
-      location:
-        selectedSerials.length > 0
-          ? Object.values(selectedSerialLocationMap).filter(Boolean).join(", ")
-          : "",
+      location: payload.serialLocationMap
+        ? Object.values(payload.serialLocationMap).filter(Boolean).join(", ")
+        : "",
       totalUsed: payload.quantityUsed,
       lastUsedAt: new Date().toISOString(),
     };
 
-    window.dispatchEvent(
-      new CustomEvent("inventory:optimisticAdd", {
-        detail: optimisticItem,
-      })
-    );
+    if (consumesStock) {
+      window.dispatchEvent(
+        new CustomEvent("inventory:optimisticAdd", {
+          detail: optimisticItem,
+        })
+      );
+    }
 
     dispatch(assignEquipment(payload))
       .unwrap()
       .then((res) => {
         const usage = res?.usage || res;
 
-        window.dispatchEvent(
-          new CustomEvent("inventory:confirmAdd", {
-            detail: { tempId, usage },
-          })
-        );
+        if (consumesStock) {
+          window.dispatchEvent(
+            new CustomEvent("inventory:confirmAdd", {
+              detail: { tempId, usage },
+            })
+          );
+        }
 
         Swal.fire({
           icon: "success",
-          title: "Assignment Successful",
-          text: `${payload.skuName}: ${payload.quantityUsed} unit(s) assigned to ${payload.userId}`,
+          title:
+            payload.assignmentType === "NEW_INSTALLATION"
+              ? "Installation Successful"
+              : "Lifecycle Updated",
+          text: `${payload.skuName}: ${payload.quantityUsed} unit(s) updated for ${payload.userId}`,
           timer: 1500,
           showConfirmButton: false,
         });
@@ -1510,10 +2793,18 @@ function UseInventory() {
           skuName: "",
           userId: isAdmin ? "" : userInfo?.userId || "",
           quantityUsed: "",
-          notes: "",
-          installationDate: "",
+          assignmentType: "NEW_INSTALLATION",
+          installedOn: "",
+          refilledOn: "",
+          servicedOn: "",
+          nextRefillDue: "",
+          nextServiceDue: "",
           expiryDate: "",
-          refDue: "",
+          hpTestedDate: "",
+          serviceType: "",
+          technicianName: "",
+          includesRefill: false,
+          notes: "",
         });
 
         setAvailableSerials([]);
@@ -1532,11 +2823,13 @@ function UseInventory() {
       .catch((err) => {
         console.error("Submission Failed:", err);
 
-        window.dispatchEvent(
-          new CustomEvent("inventory:rollbackAdd", {
-            detail: { tempId },
-          })
-        );
+        if (consumesStock) {
+          window.dispatchEvent(
+            new CustomEvent("inventory:rollbackAdd", {
+              detail: { tempId },
+            })
+          );
+        }
 
         Swal.fire({
           icon: "error",
@@ -1553,47 +2846,51 @@ function UseInventory() {
   return (
     <div className="w-full max-w-4xl mx-auto">
       <h2 className="text-3xl font-bold text-center text-[#DC6D18] mb-10">
-        Assign Inventory Usage
+        Install, Refill or Service Equipment
       </h2>
 
       <form className="space-y-10" onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-10">
+          {/* Assignment Type — drives which lifecycle fields appear below */}
+          <div className="relative flex items-center md:col-span-2">
+            <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+              Assignment Type
+            </span>
+
+            <StyledSelect
+              name="assignmentType"
+              value={formData.assignmentType}
+              onChange={handleChange}
+              options={ASSIGNMENT_TYPE_OPTIONS}
+              required
+            />
+          </div>
+
           {/* Select Inventory */}
           <div className="relative flex items-center">
             <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
               Select Inventory
             </span>
 
-            <select
+            <StyledSelect
               name="skuName"
               value={formData.skuName}
               onChange={handleChange}
-              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
               required
               disabled={skuLoading}
-            >
-              <option value="">
-                {skuLoading
+              placeholder={
+                skuLoading
                   ? "Loading inventory…"
                   : skuError
                   ? "Failed to load inventory"
-                  : "Select inventory"}
-              </option>
-
-              {!skuLoading &&
-                !skuError &&
-                skuOptions.map((opt) =>
-                  typeof opt === "string" ? (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ) : (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  )
-                )}
-            </select>
+                  : "Select inventory"
+              }
+              options={
+                !skuLoading && !skuError
+                  ? [{ value: "", label: "Select inventory", disabled: true }, ...skuOptions]
+                  : []
+              }
+            />
           </div>
 
           {/* User */}
@@ -1603,41 +2900,42 @@ function UseInventory() {
             </span>
 
             {isAdmin ? (
-              <select
+              <StyledSelect
                 name="userId"
                 value={formData.userId}
                 onChange={handleChange}
-                className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
                 required
                 disabled={usersLoading}
-              >
-                <option value="">
-                  {usersLoading ? "Loading users…" : "Select user"}
-                </option>
-
-                {userOptions.map((user) => (
-                  <option key={user._id || user.userId} value={user.userId}>
-                    {user.userId} - {user.companyName}
-                  </option>
-                ))}
-              </select>
+                placeholder={usersLoading ? "Loading users…" : "Select user"}
+                options={[
+                  { value: "", label: usersLoading ? "Loading users…" : "Select user", disabled: true },
+                  ...userOptions.map((user) => ({
+                    value: user.userId,
+                    label: `${user.userId} - ${user.companyName}`,
+                  })),
+                ]}
+              />
             ) : (
-              <select
+              <StyledSelect
                 name="userId"
                 value={formData.userId}
                 onChange={handleChange}
-                className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
                 required
                 disabled
-              >
-                <option value={formData.userId}>
-                  {formData.userId || "—"}
-                </option>
-              </select>
+                options={[{ value: formData.userId, label: formData.userId || "—" }]}
+              />
             )}
           </div>
 
           {/* Serial-wise Location */}
+          {isAdmin && formData.skuName && !assignLoading && availableSerials.length === 0 && (
+            <div className="relative md:col-span-2">
+              <div className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl p-4 bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md text-sm text-red-600 font-medium">
+                {`No unassigned stock is available for "${parseSelectedSkuNameSafe()}".`}
+              </div>
+            </div>
+          )}
+
           {isAdmin && availableSerials.length > 0 && (
             <div className="relative md:col-span-2">
               <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
@@ -1675,7 +2973,7 @@ function UseInventory() {
                           </label>
 
                           <div className="md:col-span-2">
-                            <select
+                            <StyledSelect
                               value={serialLocationMap[serial] || ""}
                               onChange={(e) =>
                                 handleSerialLocationChange(
@@ -1684,20 +2982,23 @@ function UseInventory() {
                                 )
                               }
                               disabled={!checked}
-                              className="w-full border border-orange-300 rounded-lg py-2 px-3 bg-white disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-                            >
-                              <option value="">
-                                {checked
+                              placeholder={
+                                checked
                                   ? "Select location for this serial"
-                                  : "Select serial first"}
-                              </option>
-
-                              {locationOptions.map((loc) => (
-                                <option key={loc} value={loc}>
-                                  {loc}
-                                </option>
-                              ))}
-                            </select>
+                                  : "Select serial first"
+                              }
+                              triggerClassName="w-full border border-orange-300 rounded-lg py-2 px-3 bg-white disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#DC6D18] text-left flex items-center justify-between gap-2"
+                              options={[
+                                {
+                                  value: "",
+                                  label: checked
+                                    ? "Select location for this serial"
+                                    : "Select serial first",
+                                  disabled: true,
+                                },
+                                ...locationOptions.map((loc) => ({ value: loc, label: loc })),
+                              ]}
+                            />
                           </div>
 
                           <div className="md:col-span-2">
@@ -1736,60 +3037,234 @@ function UseInventory() {
               name="quantityUsed"
               value={formData.quantityUsed}
               onChange={handleChange}
-              readOnly={selectedSerials.length > 0}
-              className={`w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18] ${
-                selectedSerials.length > 0
-                  ? "bg-gray-100 cursor-not-allowed"
-                  : ""
-              }`}
+              readOnly
+              min="1"
+              step="1"
+              placeholder="Select serial number(s)"
+              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gray-100 shadow-md focus:outline-none cursor-not-allowed"
               required
             />
           </div>
 
-          {/* Installation Date */}
-          <div className="relative flex items-center">
-            <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
-              Installation Date
-            </span>
+          {/* Lifecycle date fields — which ones appear depends on Assignment Type */}
+          {formData.assignmentType === "NEW_INSTALLATION" && (
+            <>
+              <div className="relative flex items-center">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                  Installed On *
+                </span>
+                <input
+                  type="date"
+                  name="installedOn"
+                  value={formData.installedOn}
+                  onChange={handleChange}
+                  required
+                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                />
+              </div>
 
-            <input
-              type="date"
-              name="installationDate"
-              value={formData.installationDate}
-              onChange={handleChange}
-              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-            />
-          </div>
+              <div className="relative flex items-center">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                  Expiry Date
+                </span>
+                <input
+                  type="date"
+                  name="expiryDate"
+                  value={formData.expiryDate}
+                  onChange={handleChange}
+                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                />
+              </div>
 
-          {/* Expiry Date */}
-          <div className="relative flex items-center">
-            <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
-              Expiry Date
-            </span>
+              <div className="relative flex items-center">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                  HP Tested On
+                </span>
+                <input
+                  type="date"
+                  name="hpTestedDate"
+                  value={formData.hpTestedDate}
+                  onChange={handleChange}
+                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                />
+              </div>
 
-            <input
-              type="date"
-              name="expiryDate"
-              value={formData.expiryDate}
-              onChange={handleChange}
-              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-            />
-          </div>
+              <div className="relative flex items-center">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                  Refill Due
+                </span>
+                <input
+                  type="date"
+                  name="nextRefillDue"
+                  value={formData.nextRefillDue}
+                  onChange={handleChange}
+                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                />
+              </div>
+            </>
+          )}
 
-          {/* REF Due */}
-          <div className="relative flex items-center">
-            <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
-              REF Due
-            </span>
+          {formData.assignmentType === "REFILL" && (
+            <>
+              <div className="relative flex items-center">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                  Refilled On *
+                </span>
+                <input
+                  type="date"
+                  name="refilledOn"
+                  value={formData.refilledOn}
+                  onChange={handleChange}
+                  required
+                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                />
+              </div>
 
-            <input
-              type="date"
-              name="refDue"
-              value={formData.refDue}
-              onChange={handleChange}
-              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-            />
-          </div>
+              <div className="relative flex items-center">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                  Next Refill Due *
+                </span>
+                <input
+                  type="date"
+                  name="nextRefillDue"
+                  value={formData.nextRefillDue}
+                  onChange={handleChange}
+                  required
+                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                />
+              </div>
+
+              <div className="relative flex items-center">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                  Expiry Date
+                </span>
+                <input
+                  type="date"
+                  name="expiryDate"
+                  value={formData.expiryDate}
+                  onChange={handleChange}
+                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                />
+              </div>
+
+              <div className="relative flex items-center">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                  HP Tested On
+                </span>
+                <input
+                  type="date"
+                  name="hpTestedDate"
+                  value={formData.hpTestedDate}
+                  onChange={handleChange}
+                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                />
+              </div>
+            </>
+          )}
+
+          {formData.assignmentType === "SERVICE" && (
+            <>
+              <div className="relative flex items-center">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                  Serviced On *
+                </span>
+                <input
+                  type="date"
+                  name="servicedOn"
+                  value={formData.servicedOn}
+                  onChange={handleChange}
+                  required
+                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                />
+              </div>
+
+              <div className="relative flex items-center">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                  Next Service Due
+                </span>
+                <input
+                  type="date"
+                  name="nextServiceDue"
+                  value={formData.nextServiceDue}
+                  onChange={handleChange}
+                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                />
+              </div>
+
+              <div className="relative flex items-center">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                  Service Type
+                </span>
+                <StyledSelect
+                  name="serviceType"
+                  value={formData.serviceType}
+                  onChange={handleChange}
+                  placeholder="Select service type"
+                  options={[
+                    { value: "", label: "Select service type", disabled: true },
+                    ...SERVICE_TYPE_OPTIONS,
+                  ]}
+                />
+              </div>
+
+              <div className="relative flex items-center">
+                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                  Technician Name
+                </span>
+                <input
+                  type="text"
+                  name="technicianName"
+                  value={formData.technicianName}
+                  onChange={handleChange}
+                  placeholder="e.g., Ramesh Kumar"
+                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                />
+              </div>
+
+              <div className="relative flex items-center md:col-span-2">
+                <label className="flex items-center gap-3 text-sm font-medium text-gray-800">
+                  <input
+                    type="checkbox"
+                    name="includesRefill"
+                    checked={formData.includesRefill}
+                    onChange={handleChange}
+                    className="w-4 h-4 accent-[#DC6D18]"
+                  />
+                  This service included a refill
+                </label>
+              </div>
+
+              {formData.includesRefill && (
+                <>
+                  <div className="relative flex items-center">
+                    <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                      Refilled On
+                    </span>
+                    <input
+                      type="date"
+                      name="refilledOn"
+                      value={formData.refilledOn}
+                      onChange={handleChange}
+                      className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                    />
+                  </div>
+
+                  <div className="relative flex items-center">
+                    <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
+                      Next Refill Due
+                    </span>
+                    <input
+                      type="date"
+                      name="nextRefillDue"
+                      value={formData.nextRefillDue}
+                      onChange={handleChange}
+                      className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                    />
+                  </div>
+                </>
+              )}
+            </>
+          )}
 
           {/* Notes */}
           <div className="relative flex items-center md:col-span-2">
@@ -1814,7 +3289,13 @@ function UseInventory() {
             disabled={assignLoading || skuLoading || (isAdmin && usersLoading)}
             className="px-8 py-3 bg-[#DC6D18] text-[#FFF7ED] rounded-lg font-semibold shadow-md hover:bg-[#B85B14] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#DC6D18] transition-all duration-200 ease-in-out disabled:opacity-60"
           >
-            {assignLoading ? "Assigning…" : "Assign"}
+            {assignLoading
+              ? "Saving…"
+              : formData.assignmentType === "NEW_INSTALLATION"
+                ? "Install Equipment"
+                : formData.assignmentType === "REFILL"
+                  ? "Record Refill"
+                  : "Record Service"}
           </button>
         </div>
       </form>
@@ -1823,3 +3304,4 @@ function UseInventory() {
 }
 
 export default UseInventory;
+

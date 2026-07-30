@@ -75,7 +75,9 @@ function AssignedUsers() {
           floor: it.floor || "",
           totalUsed: 0,
 
-          lastUsedAt: it.updatedAt || it.installationDate || it.createdAt || null,
+          lastUsedAt:
+            it.latestActionDate || it.updatedAt || it.installationDate || it.createdAt || null,
+          latestActionType: it.latestActionType || "NEW_INSTALLATION",
           createdAt: it.createdAt || null,
           installationDate: it.installationDate || null,
 
@@ -93,11 +95,13 @@ function AssignedUsers() {
         ? new Date(grouped[key].lastUsedAt).getTime()
         : 0;
 
-      const newTime = it.updatedAt || it.installationDate || it.createdAt;
+      const newTime =
+        it.latestActionDate || it.updatedAt || it.installationDate || it.createdAt;
       const newTimeValue = newTime ? new Date(newTime).getTime() : 0;
 
       if (newTimeValue > oldTime) {
         grouped[key].lastUsedAt = newTime;
+        grouped[key].latestActionType = it.latestActionType || "NEW_INSTALLATION";
       }
 
       if (!grouped[key].companyName && it.companyName) {
@@ -262,7 +266,7 @@ function AssignedUsers() {
                 <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Location</th>
                 <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Floor / Building</th>
                 <th className="px-4 py-2 text-right text-sm font-medium text-gray-700">Quantity</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Last Used</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Latest Action</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -297,7 +301,14 @@ function AssignedUsers() {
                     <td className="px-4 py-3 text-sm text-gray-700">{r.floor || '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-700 text-right font-mono">{r.totalUsed}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">
-                      {r.lastUsedAt ? new Date(r.lastUsedAt).toLocaleDateString() : '-'}
+                      {r.lastUsedAt ? (
+                        <>
+                          <span className="text-xs text-gray-400 mr-1">
+                            {{ NEW_INSTALLATION: 'Installed', REFILL: 'Refilled', SERVICE: 'Serviced' }[r.latestActionType] || 'Installed'}:
+                          </span>
+                          {new Date(r.lastUsedAt).toLocaleDateString()}
+                        </>
+                      ) : '-'}
                     </td>
                   </tr>
                 ))}

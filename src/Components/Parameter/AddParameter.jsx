@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from '../Sidebar/Sidebar';
 import Header from '../Header/Header';
+import StyledSelect from '../common/StyledSelect';
 
 function AddParameterUI() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -59,12 +60,11 @@ function AddParameterUI() {
                         <span className="absolute -top-3 left-6 bg-white px-2 text-sm font-semibold text-[#236a80] tracking-wide z-10">
                           Industry Type
                         </span>
-                        <select className="w-full border-2 border-dotted border-[#236a80] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-white to-[#f0f7fa] shadow-md input focus:outline-none focus:ring-2 focus:ring-[#236a80]">
-                          <option value="">Select Industry</option>
-                          {industryType.map((industry, index) => (
-                            <option key={index} value={industry}>{industry}</option>
-                          ))}
-                        </select>
+                        <StyledSelect
+                          triggerClassName="w-full border-2 border-dotted border-[#236a80] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-white to-[#f0f7fa] shadow-md focus:outline-none focus:ring-2 focus:ring-[#236a80] text-left flex items-center justify-between gap-2"
+                          placeholder="Select Industry"
+                          options={industryType}
+                        />
                       </div>
                     </div>
                     <h3 className="text-xl font-bold mt-6 mb-2">Values</h3>

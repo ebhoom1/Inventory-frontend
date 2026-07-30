@@ -9,6 +9,7 @@ import { updateUser, getUserById, reset } from '../../redux/features/users/userS
 // Layout
 import Sidebar from '../Sidebar/Sidebar';
 import Header from '../Header/Header';
+import StyledSelect from '../common/StyledSelect';
 
 // Same initial state as AddUser
 const initialFormState = {
@@ -24,7 +25,6 @@ const initialFormState = {
   adminType: '',
   assignOperators: '',
   assignTerritorialManager: '',
-  assignTechnicians: '',
   district: '',
   state: '',
   address: '',
@@ -113,9 +113,7 @@ const EditUser = () => {
         assignOperators: Array.isArray(selectedUser.assignOperators)
           ? selectedUser.assignOperators.join(', ')
           : (selectedUser.assignOperators || ''),
-        assignTechnicians: Array.isArray(selectedUser.assignTechnicians)
-          ? selectedUser.assignTechnicians.join(', ')
-          : (selectedUser.assignTechnicians || ''),
+       
         equipmentLocations: Array.isArray(selectedUser.equipmentLocations) &&
           selectedUser.equipmentLocations.length > 0
             ? selectedUser.equipmentLocations
@@ -156,9 +154,7 @@ const EditUser = () => {
           assignOperators: Array.isArray(navUser.assignOperators)
             ? navUser.assignOperators.join(', ')
             : (navUser.assignOperators || ''),
-          assignTechnicians: Array.isArray(navUser.assignTechnicians)
-            ? navUser.assignTechnicians.join(', ')
-            : (navUser.assignTechnicians || ''),
+      
           equipmentLocations: Array.isArray(navUser.equipmentLocations) && navUser.equipmentLocations.length > 0
             ? navUser.equipmentLocations
             : [''],
@@ -263,9 +259,7 @@ const EditUser = () => {
       assignOperators: form.assignOperators
         ? form.assignOperators.split(',').map((op) => op.trim()).filter(Boolean)
         : [],
-      assignTechnicians: form.assignTechnicians
-        ? form.assignTechnicians.split(',').map((tech) => tech.trim()).filter(Boolean)
-        : [],
+     
     };
 
     
@@ -408,24 +402,18 @@ const EditUser = () => {
               {/* ✅ 3. MODIFIED User Type (Dropdown) */}
               <div className="relative">
                 <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">User Type</span>
-                <select
+                <StyledSelect
                   name="userType"
                   value={form.userType}
                   onChange={handleChange}
-                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18] appearance-none"
+                  triggerClassName="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18] text-left flex items-center justify-between gap-2"
                   required
-                >
-                  <option value="" disabled>Select a user type</option>
-                  {roleOptions.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-                {/* Custom dropdown arrow */}
-                <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
-                  <svg className="w-5 h-5 text-[#DC6D18]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                </div>
+                  placeholder="Select a user type"
+                  options={[
+                    { value: "", label: "Select a user type", disabled: true },
+                    ...roleOptions,
+                  ]}
+                />
               </div>
 
               {/* Admin Type */}
@@ -464,17 +452,6 @@ const EditUser = () => {
                 />
               </div>
 
-              {/* Assign Technician(s) */}
-              <div className="relative">
-                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">Assign Technician(s)</span>
-                <input
-                  name="assignTechnicians"
-                  value={form.assignTechnicians}
-                  onChange={handleChange}
-                  placeholder="Enter Technician IDs"
-                  className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-sm bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-                />
-              </div>
 
               {/* Equipment Locations (dynamic) */}
               <div className="relative md:col-span-2">

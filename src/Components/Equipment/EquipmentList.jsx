@@ -10,6 +10,14 @@ import Swal from "sweetalert2";
 import EditEquipmentModal from "./EditEquipmentModal";
 import logo from "../../assets/safetik.png";
 import { API_URL } from "../../../utils/apiConfig";
+import { buildQrLabelRows } from "../../utils/qrLabelData";
+import StyledSelect from "../common/StyledSelect";
+
+const ACTION_TYPE_LABELS = {
+  NEW_INSTALLATION: "Installed",
+  REFILL: "Refilled",
+  SERVICE: "Serviced",
+};
 
 /**
  * EquipmentDetailsRow Component
@@ -91,7 +99,13 @@ const EquipmentDetailsRow = ({
           {item && item.spNumber ? (
             <span className="text-gray-400 italic">-</span>
           ) : (
-            safeDate(item.installationDate)
+            (() => {
+              const rows = buildQrLabelRows(item, item);
+              const label = ACTION_TYPE_LABELS[rows.latestActionType] || "Installed";
+              return rows.primaryDateValue
+                ? `${label} — ${safeDate(rows.primaryDateValue)}`
+                : "-";
+            })()
           )}
         </td>
 
@@ -122,7 +136,7 @@ const EquipmentDetailsRow = ({
             colSpan={numCols}
             className="px-6 py-4 border-t border-orange-100 shadow-inner"
           >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-sm">
               <div className="space-y-2">
                 <h4 className="font-bold text-orange-800 text-xs uppercase opacity-70 mb-1">
                   Specs
@@ -161,6 +175,52 @@ const EquipmentDetailsRow = ({
                     {safeDate(item.expiryDate)}
                   </span>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-bold text-orange-800 text-xs uppercase opacity-70 mb-1">
+                  Lifecycle
+                </h4>
+                {item.installedOn || item.installationDate ? (
+                  <div className="flex justify-between border-b border-orange-200/50 pb-1">
+                    <span className="text-gray-500">Installed On</span>
+                    <span className="font-medium">
+                      {safeDate(item.installedOn || item.installationDate)}
+                    </span>
+                  </div>
+                ) : null}
+                {item.refilledOn ? (
+                  <div className="flex justify-between border-b border-orange-200/50 pb-1">
+                    <span className="text-gray-500">Last Refilled On</span>
+                    <span className="font-medium">{safeDate(item.refilledOn)}</span>
+                  </div>
+                ) : null}
+                {item.nextRefillDue || item.refDue ? (
+                  <div className="flex justify-between border-b border-orange-200/50 pb-1">
+                    <span className="text-gray-500">Next Refill Due</span>
+                    <span className="font-medium">
+                      {safeDate(item.nextRefillDue || item.refDue)}
+                    </span>
+                  </div>
+                ) : null}
+                {item.servicedOn ? (
+                  <div className="flex justify-between border-b border-orange-200/50 pb-1">
+                    <span className="text-gray-500">Last Serviced On</span>
+                    <span className="font-medium">{safeDate(item.servicedOn)}</span>
+                  </div>
+                ) : null}
+                {item.nextServiceDue ? (
+                  <div className="flex justify-between border-b border-orange-200/50 pb-1">
+                    <span className="text-gray-500">Next Service Due</span>
+                    <span className="font-medium">{safeDate(item.nextServiceDue)}</span>
+                  </div>
+                ) : null}
+                {item.hpTestedDate ? (
+                  <div className="flex justify-between border-b border-orange-200/50 pb-1">
+                    <span className="text-gray-500">HP Tested On</span>
+                    <span className="font-medium">{safeDate(item.hpTestedDate)}</span>
+                  </div>
+                ) : null}
               </div>
 
               <div className="space-y-2">
@@ -327,7 +387,11 @@ export default function EquipmentList() {
 
     assignedEquipmentUnits.forEach((it) => {
       const assignedUser = it.userId;
-      const key = `${it.batchNo || it.equipmentId}::${assignedUser}`;
+      // Group by equipment name + assigned user, not batchNo — units handed
+      // to the same customer over separate assignments often come from
+      // different intake batches, and grouping by batch was hiding/splitting
+      // them instead of listing every serial assigned to that user.
+      const key = `${normalize(it.equipmentName)}::${assignedUser}`;
 
       if (!grouped[key]) {
         grouped[key] = {
@@ -371,9 +435,14 @@ export default function EquipmentList() {
       "Brand",
       "Content",
       "Gross Weight",
-      "Installation Date",
+      "Latest Action Type",
+      "Latest Action Date",
+      "Installed On",
+      "Refilled On",
+      "Serviced On",
+      "Next Refill Due",
+      "Next Service Due",
       "Expiry Date",
-      "Ref Due",
       "HP Tested Date",
       "MFG Month",
       "SP Number",
@@ -395,9 +464,14 @@ export default function EquipmentList() {
       it.brand,
       it.content,
       it.grossWeight,
-      formatCSVDate(it.installationDate),
+      it.latestActionType || "",
+      formatCSVDate(it.latestActionDate),
+      formatCSVDate(it.installedOn || it.installationDate),
+      formatCSVDate(it.refilledOn),
+      formatCSVDate(it.servicedOn),
+      formatCSVDate(it.nextRefillDue || it.refDue),
+      formatCSVDate(it.nextServiceDue),
       formatCSVDate(it.expiryDate),
-      formatCSVDate(it.refDue),
       formatCSVDate(it.hpTestedDate),
       it.mfgMonth,
       it.spNumber,
@@ -557,14 +631,22 @@ export default function EquipmentList() {
     const valueMaxW = labelConfig.verticalDividerX - labelConfig.columnX1 - 48;
     const dividerX2 = labelConfig.verticalDividerX - 48;
 
+    // Which dates to show depends on the unit's lifecycle stage (New
+    // Installation / Refill / Service) — never print an empty/"-" row.
+    const rows = buildQrLabelRows(unit, equipment);
+
     const detailFields = [
       ["TYPE", source.equipmentName || unit.equipmentName || "-"],
       ["CAPACITY", source.capacity || unit.capacity || "-"],
-      ["INSTALLED", formatDate(unitInstall)],
-      ["EXPIRY", formatDate(unitExpiry)],
-      ["HP TESTED", formatDate(unitHpTested)],
-      ["DUE ON", formatDate(unitRefDue)],
-    ];
+      rows.primaryDateValue
+        ? [rows.primaryDateLabel.toUpperCase(), formatDate(rows.primaryDateValue)]
+        : null,
+      rows.expiryValue ? ["EXPIRY", formatDate(rows.expiryValue)] : null,
+      rows.hpTestedValue ? ["HP TESTED", formatDate(rows.hpTestedValue)] : null,
+      rows.dueDateValue
+        ? [rows.dueDateLabel.toUpperCase(), formatDate(rows.dueDateValue)]
+        : null,
+    ].filter(Boolean);
 
     let y = labelConfig.fieldStartY;
     for (const [label, value] of detailFields) {
@@ -780,16 +862,22 @@ export default function EquipmentList() {
     drawDataField("Cap", source.capacity || unit.capacity || "", 0);
     fieldY += labelConfig.fieldLineSpacing;
 
-    drawDataField("Installed", formatDate(unitInstall), 0);
-    fieldY += labelConfig.fieldLineSpacing;
+    // Which dates to show depends on the unit's lifecycle stage (New
+    // Installation / Refill / Service) — never print an empty/"-" row.
+    const rows = buildQrLabelRows(unit, equipment);
+    const dynamicRows = [
+      rows.primaryDateValue
+        ? [rows.primaryDateLabel, formatDate(rows.primaryDateValue)]
+        : null,
+      rows.expiryValue ? ["Exp.", formatDate(rows.expiryValue)] : null,
+      rows.hpTestedValue ? ["HP Test.", formatDate(rows.hpTestedValue)] : null,
+      rows.dueDateValue ? [rows.dueDateLabel, formatDate(rows.dueDateValue)] : null,
+    ].filter(Boolean);
 
-    drawDataField("Exp.", formatDate(unitExpiry), 0);
-    fieldY += labelConfig.fieldLineSpacing;
-
-    drawDataField("HP Test.", formatDate(unitHpTested), 0);
-    fieldY += labelConfig.fieldLineSpacing;
-
-    drawDataField("Due On", formatDate(unitRefDue), 0);
+    dynamicRows.forEach(([label, value], idx) => {
+      drawDataField(label, value, 0);
+      if (idx < dynamicRows.length - 1) fieldY += labelConfig.fieldLineSpacing;
+    });
 
     ctx.drawImage(
       qrImg,
@@ -831,16 +919,17 @@ export default function EquipmentList() {
     try {
       const token = userInfo?.token || localStorage.getItem("token");
 
-      const res = await fetch(
-        `${API_URL}/api/equipment/${equipment.equipmentId}/qrcodes`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+      const url = assignedUserId
+        ? `${API_URL}/api/equipment/${equipment.equipmentId}/qrcodes?userId=${encodeURIComponent(assignedUserId)}`
+        : `${API_URL}/api/equipment/${equipment.equipmentId}/qrcodes`;
+
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       if (res.status === 401) {
         alert("Session expired. Please login again.");
@@ -971,7 +1060,7 @@ export default function EquipmentList() {
 
             fieldStartY: 150,
             fieldLineSpacing: 105,
-            labelWidth: 330,
+            labelWidth: 390,
             dotLineHeight: 58,
             fontSize: 65,
 
@@ -1231,7 +1320,7 @@ export default function EquipmentList() {
 
           fieldStartY: 150,
           fieldLineSpacing: 105,
-          labelWidth: 330,
+          labelWidth: 390,
           dotLineHeight: 58,
           fontSize: 65,
 
@@ -1428,16 +1517,22 @@ export default function EquipmentList() {
       drawDataField("Cap", equipment.capacity || "", 0);
       fieldY += labelConfig.fieldLineSpacing;
 
-      drawDataField("Installed", formatDate(unitInstall), 0);
-      fieldY += labelConfig.fieldLineSpacing;
+      // Which dates to show depends on the unit's lifecycle stage (New
+      // Installation / Refill / Service) — never print an empty/"-" row.
+      const rows = buildQrLabelRows(unit, equipment);
+      const dynamicRows = [
+        rows.primaryDateValue
+          ? [rows.primaryDateLabel, formatDate(rows.primaryDateValue)]
+          : null,
+        rows.expiryValue ? ["Exp.", formatDate(rows.expiryValue)] : null,
+        rows.hpTestedValue ? ["HP Test.", formatDate(rows.hpTestedValue)] : null,
+        rows.dueDateValue ? [rows.dueDateLabel, formatDate(rows.dueDateValue)] : null,
+      ].filter(Boolean);
 
-      drawDataField("Exp.", formatDate(unitExpiry), 0);
-      fieldY += labelConfig.fieldLineSpacing;
-
-      drawDataField("HP Test.", formatDate(unitHpTested), 0);
-      fieldY += labelConfig.fieldLineSpacing;
-
-      drawDataField("Due On", formatDate(unitRefDue), 0);
+      dynamicRows.forEach(([label, value], idx) => {
+        drawDataField(label, value, 0);
+        if (idx < dynamicRows.length - 1) fieldY += labelConfig.fieldLineSpacing;
+      });
 
       ctx.drawImage(
         qrImg,
@@ -1921,20 +2016,20 @@ export default function EquipmentList() {
               Filter by User
             </label>
 
-            <select
+            <StyledSelect
               value={isNormalUser ? loggedUserId : assignedUserFilter}
               onChange={(e) => setAssignedUserFilter(e.target.value)}
               disabled={isNormalUser}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-            >
-              {!isNormalUser && <option value="all">All Assigned Users</option>}
-
-              {assignedUserOptions.map((user) => (
-                <option key={user.userId} value={user.userId}>
-                  {user.label}
-                </option>
-              ))}
-            </select>
+              fullWidth={false}
+              triggerClassName="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC6D18] text-left flex items-center justify-between gap-2 min-w-[220px] disabled:opacity-50 disabled:cursor-not-allowed"
+              options={[
+                ...(!isNormalUser ? [{ value: "all", label: "All Assigned Users" }] : []),
+                ...assignedUserOptions.map((user) => ({
+                  value: user.userId,
+                  label: user.label,
+                })),
+              ]}
+            />
 
             <p className="text-xs text-gray-500">
               {assignedEquipmentUnits.length} assigned unit(s) found
@@ -1988,7 +2083,7 @@ export default function EquipmentList() {
                     Assigned To
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    Installed
+                    Latest Action
                   </th>
                   <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
                     Details
@@ -2004,7 +2099,7 @@ export default function EquipmentList() {
                 {groupedEquipmentRows.length > 0 ? (
                   groupedEquipmentRows.map((item) => (
                     <EquipmentDetailsRow
-                      key={`${item.batchNo || item.equipmentId}::${item.assignedUserId}`}
+                      key={`${item.equipmentName}::${item.assignedUserId}`}
                       item={item}
                       assignedUserId={item.assignedUserId}
                       assignedCount={item.assignedCount}

@@ -4,7 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 import { useDispatch, useSelector } from "react-redux";
 import { API_URL } from "../../../utils/apiConfig";
-import { getAllUsers } from "../../redux/features/users/userSlice"; 
+import { getAllUsers } from "../../redux/features/users/userSlice";
+import StyledSelect from "../common/StyledSelect";
 const INVENTORY_BASE = `${API_URL}/api/inventory`; // list for dropdown
 const REQUESTS_BASE = `${API_URL}/api/requests`;   // create request
 /** ---------------------------- */
@@ -208,22 +209,21 @@ function RequestInventory() {
               <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
                 Request For (User)
               </span>
-              <select
+              <StyledSelect
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
-                className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+                triggerClassName="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18] text-left flex items-center justify-between gap-2"
                 required
                 disabled={usersLoading}
-              >
-                <option value="">
-                  {usersLoading ? "Loading users..." : "Select a user"}
-                </option>
-                {selectableUsers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} {u.companyName ? `(${u.companyName})` : ""}
-                  </option>
-                ))}
-              </select>
+                placeholder={usersLoading ? "Loading users..." : "Select a user"}
+                options={[
+                  { value: "", label: usersLoading ? "Loading users..." : "Select a user" },
+                  ...selectableUsers.map((u) => ({
+                    value: u.id,
+                    label: `${u.name} ${u.companyName ? `(${u.companyName})` : ""}`,
+                  })),
+                ]}
+              />
             </div>
           )}
 
@@ -232,21 +232,22 @@ function RequestInventory() {
             <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18] z-10">
               Select SKU
             </span>
-            <select
+            <StyledSelect
               name="skuName"
               value={formData.skuName}
               onChange={handleChange}
-              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+              triggerClassName="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18] text-left flex items-center justify-between gap-2"
               disabled={loadingInv}
               required
-            >
-              <option value="">{loadingInv ? "Loading..." : "Choose SKU"}</option>
-              {inventory.map((item) => (
-                <option key={item.id || item.name} value={item.name}>
-                  {item.name} {item.sku ? `(${item.sku})` : ""}
-                </option>
-              ))}
-            </select>
+              placeholder={loadingInv ? "Loading..." : "Choose SKU"}
+              options={[
+                { value: "", label: loadingInv ? "Loading..." : "Choose SKU" },
+                ...inventory.map((item) => ({
+                  value: item.name,
+                  label: `${item.name} ${item.sku ? `(${item.sku})` : ""}`,
+                })),
+              ]}
+            />
           </div>
 
           {/* Required Quantity */}

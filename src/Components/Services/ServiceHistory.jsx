@@ -8,6 +8,7 @@ import {
   updateServiceRequestStatus,
   resetServiceRequestState,
 } from "../../redux/features/serviceRequests/serviceRequestSlice";
+import StyledSelect from "../common/StyledSelect";
 
 /* ----------------------------- UI Subcomponents ---------------------------- */
 const StatusBadge = ({ status }) => {
@@ -209,30 +210,25 @@ export default function ServiceHistory() {
         </h2>
 
         <div className="flex items-center gap-3">
-          <select
+          <StyledSelect
             name="month"
             value={filter.month}
             onChange={onFilterChange}
-            className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-          >
-            {availableMonths.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-          <select
+            fullWidth={false}
+            triggerClassName="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18] text-left flex items-center justify-between gap-2 min-w-[140px]"
+            options={availableMonths}
+          />
+          <StyledSelect
             name="year"
             value={filter.year}
             onChange={onFilterChange}
-            className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-          >
-            {availableYears.map((y) => (
-              <option key={y} value={y}>
-                {y === "all" ? "All Years" : y}
-              </option>
-            ))}
-          </select>
+            fullWidth={false}
+            triggerClassName="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18] text-left flex items-center justify-between gap-2 min-w-[120px]"
+            options={availableYears.map((y) => ({
+              value: y,
+              label: y === "all" ? "All Years" : y,
+            }))}
+          />
         </div>
       </div>
 
@@ -403,18 +399,15 @@ export default function ServiceHistory() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Status
             </label>
-            <select
+            <StyledSelect
               value={editForm.status}
               onChange={(e) =>
                 setEditForm((p) => ({ ...p, status: e.target.value }))
               }
-              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
+              triggerClassName="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#DC6D18] text-left flex items-center justify-between gap-2"
               required
-            >
-              <option value="Pending">Pending</option>
-              <option value="Serviced">Serviced</option>
-              <option value="Denied">Denied</option>
-            </select>
+              options={["Pending", "Serviced", "Denied"]}
+            />
           </div>
 
           {editForm.status === "Serviced" && (

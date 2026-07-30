@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import Swal from "sweetalert2";
 import { API_URL } from "../../../utils/apiConfig";
 import "sweetalert2/dist/sweetalert2.min.css";
+import StyledSelect from "../common/StyledSelect";
 
 const REQUESTS_BASE = `${API_URL}/api/requests`;
 const INVENTORY_BASE = `${API_URL}/api/inventory`;
@@ -168,30 +169,25 @@ function RequestHistory() {
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-3xl font-bold text-[#DC6D18]">Request History</h2>
         <div className="flex items-center gap-3">
-          <select
+          <StyledSelect
             name="month"
             value={filter.month}
             onChange={handleFilterChange}
-            className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-          >
-            {availableMonths.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-          <select
+            fullWidth={false}
+            triggerClassName="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18] text-left flex items-center justify-between gap-2 min-w-[140px]"
+            options={availableMonths}
+          />
+          <StyledSelect
             name="year"
             value={filter.year}
             onChange={handleFilterChange}
-            className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18]"
-          >
-            {availableYears.map((y) => (
-              <option key={y} value={y}>
-                {y === "all" ? "All Years" : y}
-              </option>
-            ))}
-          </select>
+            fullWidth={false}
+            triggerClassName="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#DC6D18] focus:border-[#DC6D18] text-left flex items-center justify-between gap-2 min-w-[120px]"
+            options={availableYears.map((y) => ({
+              value: y,
+              label: y === "all" ? "All Years" : y,
+            }))}
+          />
         </div>
       </div>
 

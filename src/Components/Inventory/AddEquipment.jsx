@@ -8,6 +8,7 @@ import {
   getEquipments,
 } from "../../redux/features/equipment/equipmentSlice";
 import { fetchInventory } from "../../redux/features/inventory/inventorySlice";
+import StyledSelect from "../common/StyledSelect";
 
 // Define the initial state structure for easy reset
 const getInitialFormState = () => ({
@@ -406,16 +407,16 @@ delete payload.equipmentType;
             <span className="absolute -top-3 left-5 bg-gradient-to-r from-[#FFF] to-[#FFF7ED] px-2 text-sm font-semibold text-[#DC6D18] z-10">
               Equipment Type
             </span>
-            <select
+            <StyledSelect
               name="equipmentType"
               value={formData.equipmentType}
               onChange={handleChange}
-              className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 text-base md:text-lg bg-gradient-to-r from-[#FFF7ED] to-[#FFEFE1] shadow-md focus:outline-none focus:ring-2 focus:ring-[#DC6D18]"
-            >
-              <option value="new">New</option>
-              <option value="existing">Existing</option>
-              <option value="restock">Restock</option>
-            </select>
+              options={[
+                { value: "new", label: "New" },
+                { value: "existing", label: "Existing" },
+                { value: "restock", label: "Restock" },
+              ]}
+            />
           </div>
 
           {/* Bill Number Input */}
@@ -439,24 +440,26 @@ delete payload.equipmentType;
     Equipment Name
   </span>
   {formData.equipmentType === "restock" ? (
-    <select
+    <StyledSelect
       name="equipmentName"
       value={formData.equipmentName}
       onChange={handleRestockSelection}
-      className="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 bg-orange-50"
-    >
-      <option value="">Select Existing Equipment to Restock</option>
-      {inventoryList && inventoryList.length > 0 && inventoryList
-        .filter(inv => inv.skuName && !inv.isRestock) // Filter out already restocked items
-        .map(inv => (
-          <option key={inv._id} value={inv.skuName}>
-            {inv.skuName} (Qty: {inv.quantity})
-          </option>
-        ))}
-      {(!inventoryList || inventoryList.length === 0) && (
-        <option disabled>No inventory available to restock</option>
-      )}
-    </select>
+      triggerClassName="w-full border-2 border-dotted border-[#DC6D18] rounded-xl py-3 px-4 bg-orange-50 text-left flex items-center justify-between gap-2"
+      placeholder="Select Existing Equipment to Restock"
+      options={
+        inventoryList && inventoryList.length > 0
+          ? [
+              { value: "", label: "Select Existing Equipment to Restock", disabled: true },
+              ...inventoryList
+                .filter((inv) => inv.skuName && !inv.isRestock)
+                .map((inv) => ({
+                  value: inv.skuName,
+                  label: `${inv.skuName} (Qty: ${inv.quantity})`,
+                })),
+            ]
+          : [{ value: "", label: "No inventory available to restock", disabled: true }]
+      }
+    />
   ) : (
     <input
       type="text"

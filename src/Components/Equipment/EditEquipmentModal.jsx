@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import StyledSelect from "../common/StyledSelect";
 
 // --- Helper Functions for Date Formatting ---
 
@@ -100,6 +101,14 @@ export default function EditEquipmentModal({
     refDue: "",
     hpTestedDate: "", // ✅ NEW: HP Tested date
     installationDate: "",
+    latestActionType: "NEW_INSTALLATION",
+    installedOn: "",
+    refilledOn: "",
+    servicedOn: "",
+    nextRefillDue: "",
+    nextServiceDue: "",
+    serviceType: "",
+    technicianName: "",
     modelSeries: "",
     userId: "",
     location: "",
@@ -138,6 +147,14 @@ export default function EditEquipmentModal({
         refDue: formatDateForInput(equipment.refDue),
         hpTestedDate: formatDateForInput(equipment.hpTestedDate), // ✅ NEW: HP Tested date
         installationDate: formatDateForInput(equipment.installationDate),
+        latestActionType: equipment.latestActionType || "NEW_INSTALLATION",
+        installedOn: formatDateForInput(equipment.installedOn),
+        refilledOn: formatDateForInput(equipment.refilledOn),
+        servicedOn: formatDateForInput(equipment.servicedOn),
+        nextRefillDue: formatDateForInput(equipment.nextRefillDue),
+        nextServiceDue: formatDateForInput(equipment.nextServiceDue),
+        serviceType: equipment.serviceType || "",
+        technicianName: equipment.technicianName || "",
         units: unitsArray, // ✅ Store units array for editing
       });
     }
@@ -316,6 +333,99 @@ export default function EditEquipmentModal({
               />{" "}
               {/* ✅ NEW: HP Tested Date */}
               {/* Default Location removed from edit modal UI per request */}
+            </div>
+
+            {/* --- Lifecycle (Latest Action) --- */}
+            <div className="border-t pt-4 mt-4">
+              <h4 className="text-lg font-bold text-[#DC6D18] mb-4">
+                Lifecycle
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label
+                    htmlFor="latestActionType"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Latest Action Type
+                  </label>
+                  <StyledSelect
+                    id="latestActionType"
+                    name="latestActionType"
+                    value={formData.latestActionType || "NEW_INSTALLATION"}
+                    onChange={handleChange}
+                    triggerClassName="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm focus:ring-[#DC6D18] focus:border-[#DC6D18] text-left flex items-center justify-between gap-2"
+                    options={[
+                      { value: "NEW_INSTALLATION", label: "New Equipment" },
+                      { value: "REFILL", label: "Refilled Equipment" },
+                      { value: "SERVICE", label: "Serviced Equipment" },
+                    ]}
+                  />
+                </div>
+
+                {formData.latestActionType === "REFILL" && (
+                  <>
+                    <FormInput
+                      label="Refilled On"
+                      name="refilledOn"
+                      value={formData.refilledOn}
+                      onChange={handleChange}
+                      type="date"
+                    />
+                    <FormInput
+                      label="Next Refill Due"
+                      name="nextRefillDue"
+                      value={formData.nextRefillDue}
+                      onChange={handleChange}
+                      type="date"
+                    />
+                  </>
+                )}
+
+                {formData.latestActionType === "SERVICE" && (
+                  <>
+                    <FormInput
+                      label="Serviced On"
+                      name="servicedOn"
+                      value={formData.servicedOn}
+                      onChange={handleChange}
+                      type="date"
+                    />
+                    <FormInput
+                      label="Next Service Due"
+                      name="nextServiceDue"
+                      value={formData.nextServiceDue}
+                      onChange={handleChange}
+                      type="date"
+                    />
+                    <FormInput
+                      label="Service Type"
+                      name="serviceType"
+                      value={formData.serviceType}
+                      onChange={handleChange}
+                    />
+                    <FormInput
+                      label="Technician Name"
+                      name="technicianName"
+                      value={formData.technicianName}
+                      onChange={handleChange}
+                    />
+                  </>
+                )}
+
+                {formData.latestActionType === "NEW_INSTALLATION" && (
+                  <FormInput
+                    label="Installed On"
+                    name="installedOn"
+                    value={formData.installedOn}
+                    onChange={handleChange}
+                    type="date"
+                  />
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                Correcting these does not erase earlier lifecycle dates
+                (Installed On / Refilled On / Serviced On all stay on record).
+              </p>
             </div>
 
             {/* Notes */}

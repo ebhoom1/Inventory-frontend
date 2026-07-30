@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import StyledSelect from '../common/StyledSelect';
 
 function CustomisableReport() {
   const [formData, setFormData] = useState({
@@ -51,23 +52,39 @@ function CustomisableReport() {
           {/* Select Username */}
           <div className="relative">
             <label htmlFor="username" className="absolute -top-3 left-4 bg-white px-1 text-sm font-semibold text-[#236a80]">Select Username</label>
-            <select id="username" name="username" value={formData.username} onChange={handleInputChange} className="w-full border-2 border-dotted border-[#236a80] rounded-xl py-3 px-4 bg-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-[#236a80]">
-              <option value="" disabled>Select a user</option>
-              <option value="admin_kspcb">admin_kspcb</option>
-              <option value="operator_spl">operator_spl</option>
-              <option value="viewer_gov">viewer_gov</option>
-            </select>
+            <StyledSelect
+              id="username"
+              name="username"
+              value={formData.username}
+              onChange={handleInputChange}
+              triggerClassName="w-full border-2 border-dotted border-[#236a80] rounded-xl py-3 px-4 bg-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-[#236a80] text-left flex items-center justify-between gap-2"
+              placeholder="Select a user"
+              options={[
+                { value: "", label: "Select a user", disabled: true },
+                "admin_kspcb",
+                "operator_spl",
+                "viewer_gov",
+              ]}
+            />
           </div>
 
           {/* Select StackName */}
           <div className="relative">
             <label htmlFor="stackName" className="absolute -top-3 left-4 bg-white px-1 text-sm font-semibold text-[#236a80]">Select Stack Name</label>
-            <select id="stackName" name="stackName" value={formData.stackName} onChange={handleInputChange} className="w-full border-2 border-dotted border-[#236a80] rounded-xl py-3 px-4 bg-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-[#236a80]">
-              <option value="" disabled>Select a stack</option>
-              <option value="STP-01">STP-01</option>
-              <option value="ETP-Main">ETP-Main</option>
-              <option value="Boiler-A">Boiler-A</option>
-            </select>
+            <StyledSelect
+              id="stackName"
+              name="stackName"
+              value={formData.stackName}
+              onChange={handleInputChange}
+              triggerClassName="w-full border-2 border-dotted border-[#236a80] rounded-xl py-3 px-4 bg-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-[#236a80] text-left flex items-center justify-between gap-2"
+              placeholder="Select a stack"
+              options={[
+                { value: "", label: "Select a stack", disabled: true },
+                "STP-01",
+                "ETP-Main",
+                "Boiler-A",
+              ]}
+            />
           </div>
 
           {/* From Date */}
@@ -85,13 +102,21 @@ function CustomisableReport() {
           {/* Select Industry Type */}
           <div className="relative md:col-span-2">
             <label htmlFor="industryType" className="absolute -top-3 left-4 bg-white px-1 text-sm font-semibold text-[#236a80]">Select Industry Type</label>
-            <select id="industryType" name="industryType" value={formData.industryType} onChange={handleInputChange} className="w-full border-2 border-dotted border-[#236a80] rounded-xl py-3 px-4 bg-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-[#236a80]">
-              <option value="" disabled>Select an industry</option>
-              <option value="Seafood Processing">Seafood Processing</option>
-              <option value="Pharmaceutical">Pharmaceutical</option>
-              <option value="Chemical Manufacturing">Chemical Manufacturing</option>
-              <option value="Power Plant">Power Plant</option>
-            </select>
+            <StyledSelect
+              id="industryType"
+              name="industryType"
+              value={formData.industryType}
+              onChange={handleInputChange}
+              triggerClassName="w-full border-2 border-dotted border-[#236a80] rounded-xl py-3 px-4 bg-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-[#236a80] text-left flex items-center justify-between gap-2"
+              placeholder="Select an industry"
+              options={[
+                { value: "", label: "Select an industry", disabled: true },
+                "Seafood Processing",
+                "Pharmaceutical",
+                "Chemical Manufacturing",
+                "Power Plant",
+              ]}
+            />
           </div>
         </div>
 
