@@ -80,6 +80,7 @@ const EquipmentDetailsRow = ({
               className="text-left text-sm font-bold text-[#DC6D18] hover:text-[#B85B14] hover:underline decoration-dotted underline-offset-2 flex items-center gap-2"
               title="Click to view individual QR codes"
             >
+              {item.batchNo ? `Batch ${item.batchNo}` : "No Batch"} —{" "}
               {item.equipmentName}
               <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-0.5 rounded-full">
                 {unitCount} Assigned
@@ -387,11 +388,13 @@ export default function EquipmentList() {
 
     assignedEquipmentUnits.forEach((it) => {
       const assignedUser = it.userId;
-      // Group by equipment name + assigned user, not batchNo — units handed
-      // to the same customer over separate assignments often come from
-      // different intake batches, and grouping by batch was hiding/splitting
-      // them instead of listing every serial assigned to that user.
-      const key = `${normalize(it.equipmentName)}::${assignedUser}`;
+      // Group by equipment name + batchNo + assigned user. Name + user keeps
+      // the earlier fix (units handed to the same customer over separate
+      // assignments don't get hidden/split just because they came from
+      // different intake batches); batchNo is layered back in so each batch
+      // renders as its own row and shared-field edits made from that row
+      // only ever touch units in that exact batch.
+      const key = `${normalize(it.equipmentName)}::${normalize(it.batchNo)}::${assignedUser}`;
 
       if (!grouped[key]) {
         grouped[key] = {
@@ -1930,6 +1933,15 @@ export default function EquipmentList() {
               hpTestedDate: formData.hpTestedDate,
               notes: formData.notes,
               companyName: formData.companyName,
+              // ✅ Lifecycle fields — previously omitted, so lifecycle edits never reached the backend
+              latestActionType: formData.latestActionType,
+              installedOn: formData.installedOn,
+              refilledOn: formData.refilledOn,
+              servicedOn: formData.servicedOn,
+              nextRefillDue: formData.nextRefillDue,
+              nextServiceDue: formData.nextServiceDue,
+              serviceType: formData.serviceType,
+              technicianName: formData.technicianName,
             };
 
             const res = await fetch(`${API_URL}/api/equipment/${unit._id}`, {
@@ -2099,7 +2111,7 @@ export default function EquipmentList() {
                 {groupedEquipmentRows.length > 0 ? (
                   groupedEquipmentRows.map((item) => (
                     <EquipmentDetailsRow
-                      key={`${item.equipmentName}::${item.assignedUserId}`}
+                      key={`${item.equipmentName}::${item.batchNo}::${item.assignedUserId}`}
                       item={item}
                       assignedUserId={item.assignedUserId}
                       assignedCount={item.assignedCount}
