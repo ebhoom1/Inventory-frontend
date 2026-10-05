@@ -1088,8 +1088,8 @@ function RequestService() {
 
               {[
                 ["tag", "Tag", ["yes", "no", "na"]],
-                ["safetyPin", "Safety Pin", ["Green", "Red", "na"]],
-                ["pressureGauge", "Pressure Gauge", ["Yes", "No", "na"]],
+                ["safetyPin", "Safety Pin", ["Yes", "No", "na"]],
+                ["pressureGauge", "Pressure Gauge",["Green", "Red", "na"] ],
                 ["valveSupport", "Valve Support", ["yes", "no", "na"]],
                 [
                   "corrosion",
@@ -1104,7 +1104,8 @@ function RequestService() {
                 ],
               ].map(([name, label, options]) => (
                 <div className="relative" key={name}>
-                  <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18]">
+                  {/* <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18]"> */}
+                  <span className="absolute -top-3 left-5 z-20 bg-white px-2 text-sm font-semibold text-[#DC6D18] pointer-events-none">
                     {label}
                   </span>
                   <StyledSelect
@@ -1118,7 +1119,7 @@ function RequestService() {
               ))}
 
               <div className="relative">
-                <span className="absolute -top-3 left-5 bg-white px-2 text-sm font-semibold text-[#DC6D18]">
+                <span className="absolute -top-3 left-5 z-20 bg-white px-2 text-sm font-semibold text-[#DC6D18] pointer-events-none">
                   Type of Service
                 </span>
                 <StyledSelect
