@@ -102,7 +102,8 @@ const EquipmentDetailsRow = ({
           ) : (
             (() => {
               const rows = buildQrLabelRows(item, item);
-              const label = ACTION_TYPE_LABELS[rows.latestActionType] || "Installed";
+              const label =
+                ACTION_TYPE_LABELS[rows.latestActionType] || "Installed";
               return rows.primaryDateValue
                 ? `${label} — ${safeDate(rows.primaryDateValue)}`
                 : "-";
@@ -193,7 +194,9 @@ const EquipmentDetailsRow = ({
                 {item.refilledOn ? (
                   <div className="flex justify-between border-b border-orange-200/50 pb-1">
                     <span className="text-gray-500">Last Refilled On</span>
-                    <span className="font-medium">{safeDate(item.refilledOn)}</span>
+                    <span className="font-medium">
+                      {safeDate(item.refilledOn)}
+                    </span>
                   </div>
                 ) : null}
                 {item.nextRefillDue || item.refDue ? (
@@ -207,19 +210,25 @@ const EquipmentDetailsRow = ({
                 {item.servicedOn ? (
                   <div className="flex justify-between border-b border-orange-200/50 pb-1">
                     <span className="text-gray-500">Last Serviced On</span>
-                    <span className="font-medium">{safeDate(item.servicedOn)}</span>
+                    <span className="font-medium">
+                      {safeDate(item.servicedOn)}
+                    </span>
                   </div>
                 ) : null}
                 {item.nextServiceDue ? (
                   <div className="flex justify-between border-b border-orange-200/50 pb-1">
                     <span className="text-gray-500">Next Service Due</span>
-                    <span className="font-medium">{safeDate(item.nextServiceDue)}</span>
+                    <span className="font-medium">
+                      {safeDate(item.nextServiceDue)}
+                    </span>
                   </div>
                 ) : null}
                 {item.hpTestedDate ? (
                   <div className="flex justify-between border-b border-orange-200/50 pb-1">
                     <span className="text-gray-500">HP Tested On</span>
-                    <span className="font-medium">{safeDate(item.hpTestedDate)}</span>
+                    <span className="font-medium">
+                      {safeDate(item.hpTestedDate)}
+                    </span>
                   </div>
                 ) : null}
               </div>
@@ -642,7 +651,10 @@ export default function EquipmentList() {
       ["TYPE", source.equipmentName || unit.equipmentName || "-"],
       ["CAPACITY", source.capacity || unit.capacity || "-"],
       rows.primaryDateValue
-        ? [rows.primaryDateLabel.toUpperCase(), formatDate(rows.primaryDateValue)]
+        ? [
+            rows.primaryDateLabel.toUpperCase(),
+            formatDate(rows.primaryDateValue),
+          ]
         : null,
       rows.expiryValue ? ["EXPIRY", formatDate(rows.expiryValue)] : null,
       rows.hpTestedValue ? ["HP TESTED", formatDate(rows.hpTestedValue)] : null,
@@ -790,7 +802,6 @@ export default function EquipmentList() {
     );
     ctx.stroke();
 
-
     let fieldY = labelConfig.fieldStartY;
 
     const drawDataField = (
@@ -874,7 +885,9 @@ export default function EquipmentList() {
         : null,
       rows.expiryValue ? ["Exp.", formatDate(rows.expiryValue)] : null,
       rows.hpTestedValue ? ["HP Test.", formatDate(rows.hpTestedValue)] : null,
-      rows.dueDateValue ? [rows.dueDateLabel, formatDate(rows.dueDateValue)] : null,
+      rows.dueDateValue
+        ? [rows.dueDateLabel, formatDate(rows.dueDateValue)]
+        : null,
     ].filter(Boolean);
 
     dynamicRows.forEach(([label, value], idx) => {
@@ -985,15 +998,7 @@ export default function EquipmentList() {
       const unitRefDue = unit.refDue || equipment.refDue || null;
       const unitHpTested = unit.hpTestedDate || equipment.hpTestedDate || null;
 
-      // ✅ PARSE CAPACITY & CHECK IF < 3KG
-      const parseCapacity = (capStr) => {
-        if (!capStr) return Infinity;
-        const num = parseFloat(String(capStr).match(/[\d.]+/)?.[0] || 0);
-        return num;
-      };
-
-      const capacityValue = parseCapacity(equipment.capacity);
-      const isSmallCapacity = capacityValue > 0 && capacityValue < 3;
+      const isSmallCapacity = false;
 
       // ✅ EXACT DESIGN WITH CAPACITY-BASED SIZING
       const labelConfig = isSmallCapacity
@@ -1072,8 +1077,6 @@ export default function EquipmentList() {
             qrY: 90,
             qrTextY: 900,
             qrTextFont: 64,
-
-            
 
             serialStartY: 1015,
             serialLabelFontSize: 60,
@@ -1244,15 +1247,8 @@ export default function EquipmentList() {
     }
   };
 
-  const getBulkQrLabelConfig = (equipment) => {
-    const parseCapacity = (capStr) => {
-      if (!capStr) return Infinity;
-      const num = parseFloat(String(capStr).match(/[\d.]+/)?.[0] || 0);
-      return num;
-    };
-
-    const capacityValue = parseCapacity(equipment?.capacity);
-    const isSmallCapacity = capacityValue > 0 && capacityValue < 3;
+  const getBulkQrLabelConfig = () => {
+    const isSmallCapacity = false;
 
     return isSmallCapacity
       ? {
@@ -1332,8 +1328,6 @@ export default function EquipmentList() {
           qrY: 90,
           qrTextY: 900,
           qrTextFont: 64,
-
-        
 
           serialStartY: 1015,
           serialLabelFontSize: 60,
@@ -1424,8 +1418,6 @@ export default function EquipmentList() {
         labelConfig.canvasHeight - labelConfig.borderPadding,
       );
       ctx.stroke();
-
-    
 
       const drawWrappedText = (text, x, y, maxWidth, lineHeight) => {
         const words = String(text || "").split(" ");
@@ -1528,13 +1520,18 @@ export default function EquipmentList() {
           ? [rows.primaryDateLabel, formatDate(rows.primaryDateValue)]
           : null,
         rows.expiryValue ? ["Exp.", formatDate(rows.expiryValue)] : null,
-        rows.hpTestedValue ? ["HP Test.", formatDate(rows.hpTestedValue)] : null,
-        rows.dueDateValue ? [rows.dueDateLabel, formatDate(rows.dueDateValue)] : null,
+        rows.hpTestedValue
+          ? ["HP Test.", formatDate(rows.hpTestedValue)]
+          : null,
+        rows.dueDateValue
+          ? [rows.dueDateLabel, formatDate(rows.dueDateValue)]
+          : null,
       ].filter(Boolean);
 
       dynamicRows.forEach(([label, value], idx) => {
         drawDataField(label, value, 0);
-        if (idx < dynamicRows.length - 1) fieldY += labelConfig.fieldLineSpacing;
+        if (idx < dynamicRows.length - 1)
+          fieldY += labelConfig.fieldLineSpacing;
       });
 
       ctx.drawImage(
@@ -2035,7 +2032,9 @@ export default function EquipmentList() {
               fullWidth={false}
               triggerClassName="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC6D18] text-left flex items-center justify-between gap-2 min-w-[220px] disabled:opacity-50 disabled:cursor-not-allowed"
               options={[
-                ...(!isNormalUser ? [{ value: "all", label: "All Assigned Users" }] : []),
+                ...(!isNormalUser
+                  ? [{ value: "all", label: "All Assigned Users" }]
+                  : []),
                 ...assignedUserOptions.map((user) => ({
                   value: user.userId,
                   label: user.label,
